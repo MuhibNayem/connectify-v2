@@ -10,8 +10,8 @@ The service implements a **Dual-Write** strategy to maintain consistency between
 graph TD
     Client[Clients]
     subgraph "User Service"
-        H_HTTP[Handler: HTTP (Gin)]
-        H_GRPC[Handler: gRPC]
+        H_HTTP["Handler: HTTP (Gin)"]
+        H_GRPC["Handler: gRPC"]
         Service[Service Layer]
         
         subgraph "Repositories"
