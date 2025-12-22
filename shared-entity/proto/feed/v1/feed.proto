@@ -1,0 +1,246 @@
+syntax = "proto3";
+
+package feed.v1;
+
+option go_package = "gitlab.com/spydotech-group/shared-entity/proto/feed/v1;feedpb";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service FeedService {
+  // Post Operations
+  rpc CreatePost(CreatePostRequest) returns (PostResponse);
+  rpc GetPost(GetPostRequest) returns (PostResponse);
+  rpc UpdatePost(UpdatePostRequest) returns (PostResponse);
+  rpc DeletePost(DeletePostRequest) returns (google.protobuf.Empty);
+  rpc ListPosts(ListPostsRequest) returns (FeedResponse);
+  rpc GetPostsByHashtag(GetPostsByHashtagRequest) returns (FeedResponse);
+  rpc UpdatePostStatus(UpdatePostStatusRequest) returns (google.protobuf.Empty);
+
+  // Comment Operations
+  rpc CreateComment(CreateCommentRequest) returns (CommentResponse);
+  rpc GetComment(GetCommentRequest) returns (CommentResponse);
+  rpc UpdateComment(UpdateCommentRequest) returns (CommentResponse);
+  rpc DeleteComment(DeleteCommentRequest) returns (google.protobuf.Empty);
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
+
+  // Reply Operations
+  rpc CreateReply(CreateReplyRequest) returns (ReplyResponse);
+  rpc GetReply(GetReplyRequest) returns (ReplyResponse);
+  rpc UpdateReply(UpdateReplyRequest) returns (ReplyResponse);
+  rpc DeleteReply(DeleteReplyRequest) returns (google.protobuf.Empty);
+
+  // Reaction Operations
+  rpc ReactToPost(ReactToPostRequest) returns (google.protobuf.Empty);
+  rpc ReactToComment(ReactToCommentRequest) returns (google.protobuf.Empty);
+  rpc ReactToReply(ReactToReplyRequest) returns (google.protobuf.Empty);
+}
+
+// Common Types
+
+message PostResponse {
+  string id = 1;
+  string user_id = 2;
+  string content = 3;
+  repeated MediaItem media = 4;
+  string location = 5;
+  string privacy = 6;
+  string status = 7;
+  string community_id = 8;
+  repeated string custom_audience = 9;
+  repeated string mentions = 10;
+  repeated string hashtags = 11;
+  int64 total_reactions = 12;
+  int64 total_comments = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  PostAuthor author = 16;
+  repeated PostAuthor mentioned_users = 17;
+}
+
+message MediaItem {
+  string url = 1;
+  string type = 2;
+}
+
+message PostAuthor {
+  string id = 1;
+  string username = 2;
+  string avatar = 3;
+  string full_name = 4;
+}
+
+message CommentResponse {
+  string id = 1;
+  string post_id = 2;
+  string user_id = 3;
+  string content = 4;
+  string media_type = 5;
+  string media_url = 6;
+  repeated string mentions = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  PostAuthor author = 10;
+}
+
+message ReplyResponse {
+  string id = 1;
+  string comment_id = 2;
+  string parent_reply_id = 3;
+  string user_id = 4;
+  string content = 5;
+  repeated string mentions = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  PostAuthor author = 9;
+}
+
+message FeedResponse {
+  repeated PostResponse posts = 1;
+  int64 total = 2;
+  int64 page = 3;
+  int64 limit = 4;
+}
+
+message ListCommentsResponse {
+  repeated CommentResponse comments = 1;
+}
+
+// Requests
+
+message CreatePostRequest {
+  string user_id = 1;
+  string content = 2;
+  repeated MediaItem media = 3;
+  string location = 4;
+  string privacy = 5;
+  string community_id = 6;
+  repeated string custom_audience = 7;
+  repeated string mentions = 8;
+  repeated string hashtags = 9;
+}
+
+message GetPostRequest {
+  string post_id = 1;
+  string viewer_id = 2;
+}
+
+message UpdatePostRequest {
+  string post_id = 1;
+  string user_id = 2;
+  string content = 3;
+  repeated MediaItem media = 4;
+  string location = 5;
+  string privacy = 6;
+  repeated string custom_audience = 7;
+  repeated string mentions = 8;
+  repeated string hashtags = 9;
+}
+
+message DeletePostRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message ListPostsRequest {
+  string viewer_id = 1;
+  string filter_user_id = 2;
+  string community_id = 3;
+  int64 page = 4;
+  int64 limit = 5;
+  string sort_by = 6;
+  string sort_order = 7;
+  bool has_media = 8;
+  string media_type = 9;
+  string status = 10;
+}
+
+message GetPostsByHashtagRequest {
+  string viewer_id = 1;
+  string hashtag = 2;
+  int64 page = 3;
+  int64 limit = 4;
+}
+
+message UpdatePostStatusRequest {
+  string post_id = 1;
+  string user_id = 2;
+  string status = 3;
+}
+
+message CreateCommentRequest {
+  string post_id = 1;
+  string user_id = 2;
+  string content = 3;
+  string media_type = 4;
+  string media_url = 5;
+  repeated string mentions = 6;
+}
+
+message GetCommentRequest {
+  string comment_id = 1;
+}
+
+message UpdateCommentRequest {
+  string comment_id = 1;
+  string user_id = 2;
+  string content = 3;
+  repeated string mentions = 4;
+}
+
+message DeleteCommentRequest {
+  string post_id = 1;
+  string comment_id = 2;
+  string user_id = 3;
+}
+
+message ListCommentsRequest {
+    string post_id = 1;
+    int64 page = 2;
+    int64 limit = 3;
+}
+
+message CreateReplyRequest {
+  string comment_id = 1;
+  string parent_reply_id = 2;
+  string user_id = 3;
+  string content = 4;
+  string media_type = 5;
+  string media_url = 6;
+  repeated string mentions = 7;
+}
+
+message GetReplyRequest {
+  string reply_id = 1;
+}
+
+message UpdateReplyRequest {
+  string reply_id = 1;
+  string user_id = 2;
+  string content = 3;
+  repeated string mentions = 4;
+}
+
+message DeleteReplyRequest {
+  string comment_id = 1;
+  string reply_id = 2;
+  string user_id = 3;
+}
+
+message ReactToPostRequest {
+  string post_id = 1;
+  string user_id = 2;
+  string emoji = 3;
+}
+
+message ReactToCommentRequest {
+  string comment_id = 1;
+  string user_id = 2;
+  string emoji = 3;
+}
+
+message ReactToReplyRequest {
+  string reply_id = 1;
+  string user_id = 2;
+  string emoji = 3;
+}

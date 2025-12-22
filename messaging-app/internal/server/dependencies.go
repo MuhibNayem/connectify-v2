@@ -8,6 +8,7 @@ import (
 	"messaging-app/internal/cache"
 	"messaging-app/internal/controllers"
 	cassdb "messaging-app/internal/db"
+	"messaging-app/internal/feedclient"
 	"messaging-app/internal/graph"
 	"messaging-app/internal/marketplaceclient"
 	notifications "messaging-app/internal/notifications"
@@ -162,14 +163,14 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	}, nil
 }
 
-func buildControllers(cfg *config.Config, services serviceBundle, marketplaceClient *marketplaceclient.Client) routerConfig {
+func buildControllers(cfg *config.Config, services serviceBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client) routerConfig {
 	return routerConfig{
 		authController:         controllers.NewAuthController(services.Auth, cfg),
 		userController:         controllers.NewUserController(services.User),
 		friendshipController:   controllers.NewFriendshipController(services.Friendship),
 		groupController:        controllers.NewGroupController(services.Group, services.User),
 		messageController:      controllers.NewMessageController(services.Message, services.Storage, services.Group),
-		feedController:         controllers.NewFeedController(services.Feed, services.User, services.Privacy, services.Storage),
+		feedController:         controllers.NewFeedController(services.Feed, services.User, services.Privacy, services.Storage, feedClient),
 		privacyController:      controllers.NewPrivacyController(services.Privacy, services.User),
 		searchController:       controllers.NewSearchController(services.Search),
 		notificationController: controllers.NewNotificationController(services.Notification),

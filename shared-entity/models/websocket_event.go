@@ -10,8 +10,9 @@ import (
 // WebSocketEvent is a generic structure for events sent over WebSocket.
 // It contains a Type field to identify the event and Data for the event-specific payload.
 type WebSocketEvent struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
+	Type       string          `json:"type"`
+	Data       json.RawMessage `json:"data"`
+	Recipients []string        `json:"recipients,omitempty"` // List of UserIDs to receive this event
 }
 
 // TypingEvent represents a user typing event in a conversation.

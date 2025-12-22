@@ -1,12 +1,14 @@
 package controllers
 
 import (
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"messaging-app/internal/feedclient"
 	"messaging-app/internal/services"
-	"gitlab.com/spydotech-group/shared-entity/utils"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"gitlab.com/spydotech-group/shared-entity/models"
+	"gitlab.com/spydotech-group/shared-entity/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,10 +19,11 @@ type FeedController struct {
 	userService    *services.UserService
 	privacyService *services.PrivacyService
 	storageService *services.StorageService
+	feedClient     *feedclient.Client
 }
 
-func NewFeedController(feedService *services.FeedService, userService *services.UserService, privacyService *services.PrivacyService, storageService *services.StorageService) *FeedController {
-	return &FeedController{feedService: feedService, userService: userService, privacyService: privacyService, storageService: storageService}
+func NewFeedController(feedService *services.FeedService, userService *services.UserService, privacyService *services.PrivacyService, storageService *services.StorageService, feedClient *feedclient.Client) *FeedController {
+	return &FeedController{feedService: feedService, userService: userService, privacyService: privacyService, storageService: storageService, feedClient: feedClient}
 }
 
 // CreatePost godoc

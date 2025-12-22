@@ -15,6 +15,7 @@ import (
 	"messaging-app/config"
 	cassdb "messaging-app/internal/db"
 	"messaging-app/internal/eventsclient"
+	"messaging-app/internal/feedclient"
 	"messaging-app/internal/graph"
 	"messaging-app/internal/kafka"
 	"messaging-app/internal/marketplaceclient"
@@ -52,6 +53,7 @@ type Application struct {
 	notificationConsumer    *kafka.NotificationConsumer
 	eventsClient            *eventsclient.Client
 	marketplaceClient       *marketplaceclient.Client
+	feedClient              *feedclient.Client
 	messageArchiveService   *services.MessageArchiveService
 	cleanupService          *services.CleanupService
 	hub                     *websocket.Hub
@@ -257,7 +259,14 @@ func (a *Application) initDomain() error {
 	a.marketplaceClient = marketplaceClient
 	// TODO: Update servicesBundle.Marketplace to use marketplaceClient
 
-	controllerConfig := buildControllers(a.cfg, servicesBundle, a.marketplaceClient)
+	// Initialize feed gRPC client
+	feedClient, err := feedclient.New(a.ctx, a.cfg)
+	if err != nil {
+		return fmt.Errorf("failed to connect to feed service: %w", err)
+	}
+	a.feedClient = feedClient
+
+	controllerConfig := buildControllers(a.cfg, servicesBundle, a.marketplaceClient, a.feedClient)
 
 	a.kafkaConsumer = kafka.NewMessageConsumer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, "message-group", a.hub)
 	a.notificationConsumer = kafka.NewNotificationConsumer(a.cfg.KafkaBrokers, "notifications_events", "notification-group", a.hub, repos.Notification, a.dlqProducer)

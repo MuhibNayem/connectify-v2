@@ -580,6 +580,28 @@ func (h *Hub) getGroupMembers(groupID string) ([]string, error) {
 }
 
 func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
+	// 1. Smart Producer / Dumb Consumer Logic
+	// If recipients are provided, bypass all DB lookups and logic.
+	if len(event.Recipients) > 0 {
+		// Create a client-facing event (strip internal recipients list)
+		clientEvent := models.WebSocketEvent{
+			Type: event.Type,
+			Data: event.Data,
+		}
+		eventBytes, err := json.Marshal(clientEvent)
+		if err != nil {
+			log.Printf("Error marshaling smart event: %v", err)
+			return
+		}
+
+		for _, recipientID := range event.Recipients {
+			h.sendToUser(recipientID, eventBytes)
+		}
+		log.Printf("Smart Broadcast: Sent %s event to %d recipients", event.Type, len(event.Recipients))
+		return
+	}
+
+	// 2. Legacy Logic (Fallbacks)
 	switch event.Type {
 	case "PostCreated":
 		var post models.Post
@@ -587,12 +609,11 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			log.Printf("Error unmarshaling PostCreated data: %v", err)
 			return
 		}
+		// Optimization: Treat Public posts like Friends posts for Broadcasting.
+		// We do NOT want to shout to the entire world (O(N)) for every public post.
+		// Only friends need to know immediately for their feed.
 		switch post.Privacy {
-		case models.PrivacySettingPublic:
-			h.broadcastToAllUsers(event)
-		case models.PrivacySettingOnlyMe:
-			h.sendToUser(post.UserID.Hex(), event.Data)
-		case models.PrivacySettingFriends:
+		case models.PrivacySettingPublic, models.PrivacySettingFriends:
 			h.sendToUser(post.UserID.Hex(), event.Data)
 			friends, err := h.friendshipRepo.GetFriends(context.Background(), post.UserID)
 			if err != nil {
@@ -602,10 +623,12 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			for _, friend := range friends {
 				h.sendToUser(friend.ID.Hex(), event.Data)
 			}
+		case models.PrivacySettingOnlyMe:
+			h.sendToUser(post.UserID.Hex(), event.Data)
 		default:
 			h.sendToUser(post.UserID.Hex(), event.Data)
 		}
-		log.Printf("Broadcasted PostCreated event for post %s (Privacy: %s)", post.ID.Hex(), post.Privacy)
+		log.Printf("Broadcasted PostCreated event for post %s (Privacy: %s) to friends", post.ID.Hex(), post.Privacy)
 
 	case "GROUP_UPDATED", "GROUP_CREATED":
 		var group models.GroupResponse
@@ -630,11 +653,7 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			return
 		}
 		switch post.Privacy {
-		case models.PrivacySettingPublic:
-			h.broadcastToAllUsers(event)
-		case models.PrivacySettingOnlyMe:
-			h.sendToUser(post.UserID.Hex(), event.Data)
-		case models.PrivacySettingFriends:
+		case models.PrivacySettingPublic, models.PrivacySettingFriends:
 			h.sendToUser(post.UserID.Hex(), event.Data)
 			friends, err := h.friendshipRepo.GetFriends(context.Background(), post.UserID)
 			if err != nil {
@@ -644,6 +663,8 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			for _, friend := range friends {
 				h.sendToUser(friend.ID.Hex(), event.Data)
 			}
+		case models.PrivacySettingOnlyMe:
+			h.sendToUser(post.UserID.Hex(), event.Data)
 		default:
 			h.sendToUser(post.UserID.Hex(), event.Data)
 		}
@@ -656,11 +677,7 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			return
 		}
 		switch post.Privacy {
-		case models.PrivacySettingPublic:
-			h.broadcastToAllUsers(event)
-		case models.PrivacySettingOnlyMe:
-			h.sendToUser(post.UserID.Hex(), event.Data)
-		case models.PrivacySettingFriends:
+		case models.PrivacySettingPublic, models.PrivacySettingFriends:
 			h.sendToUser(post.UserID.Hex(), event.Data)
 			friends, err := h.friendshipRepo.GetFriends(context.Background(), post.UserID)
 			if err != nil {
@@ -670,6 +687,8 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			for _, friend := range friends {
 				h.sendToUser(friend.ID.Hex(), event.Data)
 			}
+		case models.PrivacySettingOnlyMe:
+			h.sendToUser(post.UserID.Hex(), event.Data)
 		default:
 			h.sendToUser(post.UserID.Hex(), event.Data)
 		}
@@ -689,9 +708,7 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 		h.sendToUser(post.UserID.Hex(), event.Data)
 
 		switch post.Privacy {
-		case models.PrivacySettingPublic:
-			h.broadcastToAllUsers(event)
-		case models.PrivacySettingFriends:
+		case models.PrivacySettingPublic, models.PrivacySettingFriends:
 			friends, err := h.friendshipRepo.GetFriends(context.Background(), post.UserID)
 			if err == nil {
 				for _, friend := range friends {

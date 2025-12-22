@@ -15,7 +15,7 @@ services:
       - mongodb1_data:/data/db
       - ./docker/mongodb/mongodb-keyfile:/data/keyfile:ro
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "rs.isMaster().ismaster"]
+      test: [ "CMD", "mongosh", "--eval", "rs.isMaster().ismaster" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +39,7 @@ services:
       - mongodb2_data:/data/db
       - ./docker/mongodb/mongodb-keyfile:/data/keyfile:ro
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -62,7 +62,7 @@ services:
       - mongodb3_data:/data/db
       - ./docker/mongodb/mongodb-keyfile:/data/keyfile:ro
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -151,7 +151,6 @@ services:
       - messaging-net
     restart: "no"
 
-    
   # Redis Cluster 
   redis1:
     image: redis:7.0
@@ -162,23 +161,12 @@ services:
     ports:
       - "6379:6379"
       - "16379:16379"
-    command: [
-      "redis-server",
-      "--cluster-enabled", "yes",
-      "--cluster-config-file", "nodes.conf",
-      "--cluster-node-timeout", "5000",
-      "--requirepass", "redispass",
-      "--masterauth", "redispass",
-      "--protected-mode", "no",
-      "--cluster-announce-ip", "redis1",
-      "--cluster-announce-port", "6379",
-      "--cluster-announce-bus-port", "16379"
-    ]
+    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis1", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
 
     volumes:
       - redis1_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redispass", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 3
@@ -196,23 +184,12 @@ services:
     ports:
       - "6380:6379"
       - "16380:16379"
-    command: [
-      "redis-server",
-      "--cluster-enabled", "yes",
-      "--cluster-config-file", "nodes.conf",
-      "--cluster-node-timeout", "5000",
-      "--requirepass", "redispass",
-      "--masterauth", "redispass",
-      "--protected-mode", "no",
-      "--cluster-announce-ip", "redis2",
-      "--cluster-announce-port", "6379",
-      "--cluster-announce-bus-port", "16379"
-    ]
+    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis2", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
 
     volumes:
       - redis2_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redispass", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 3
@@ -230,22 +207,11 @@ services:
     ports:
       - "6381:6379"
       - "16381:16379"
-    command: [
-      "redis-server",
-      "--cluster-enabled", "yes",
-      "--cluster-config-file", "nodes.conf",
-      "--cluster-node-timeout", "5000",
-      "--requirepass", "redispass",
-      "--masterauth", "redispass",
-      "--protected-mode", "no",
-      "--cluster-announce-ip", "redis3",
-      "--cluster-announce-port", "6379",
-      "--cluster-announce-bus-port", "16379"
-    ]
+    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis3", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
     volumes:
       - redis3_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redispass", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 3
@@ -260,18 +226,9 @@ services:
         condition: service_healthy
       redis2:
         condition: service_healthy
-      redis3: 
+      redis3:
         condition: service_healthy
-    entrypoint: ["bash", "-c", "
-      echo 'Waiting for Redis cluster nodes to be ready...';
-      sleep 5;
-      echo 'Creating Redis cluster...';
-      yes yes | redis-cli --cluster create \
-        redis1:6379 redis2:6379 redis3:6379 \
-        --cluster-replicas 0 \
-        -a redispass;
-      echo 'Redis cluster initialized.'
-      "]
+    entrypoint: [ "bash", "-c", " echo 'Waiting for Redis cluster nodes to be ready...'; sleep 5; echo 'Creating Redis cluster...'; yes yes | redis-cli --cluster create redis1:6379 redis2:6379 redis3:6379 --cluster-replicas 0 -a redispass; echo 'Redis cluster initialized.' " ]
     networks:
       - messaging-net
     restart: "no"
@@ -306,8 +263,8 @@ services:
     hostname: kafka1
     depends_on:
       - zookeeper
-    ports:    
-      - "29092:29092"  
+    ports:
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -431,7 +388,6 @@ services:
     networks:
       - messaging-net
 
-      
   # Your Application Service
   app:
     build:
@@ -441,9 +397,9 @@ services:
     container_name: messaging-app
     user: "1000"
     ports:
-      - "8080:8080"  # HTTP API
-      - "8081:8081"  # WebSocket
-      - "9091:9091"  # Metrics
+      - "8080:8080" # HTTP API
+      - "8081:8081" # WebSocket
+      - "9091:9091" # Metrics
     env_file:
       - ".env"
     environment:
@@ -466,7 +422,7 @@ services:
       marketplace-service:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -498,6 +454,30 @@ services:
       neo4j:
         condition: service_healthy
       cassandra:
+        condition: service_healthy
+    networks:
+      - messaging-net
+
+  feed-service:
+    build:
+      context: ../feed-service
+      dockerfile: Dockerfile
+    image: messaging-feed-service:latest
+    container_name: feed-service
+    ports:
+      - "8082:8080"
+    env_file:
+      - ".env"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: connectify
+    depends_on:
+      mongodb3:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     networks:
       - messaging-net
@@ -534,7 +514,7 @@ services:
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -545,12 +525,7 @@ services:
       minio:
         condition: service_healthy
     entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb myminio/connectify-uploads;
-      /usr/bin/mc anonymous set public myminio/connectify-uploads;
-      exit 0;
-      "
+      /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin; /usr/bin/mc mb myminio/connectify-uploads; /usr/bin/mc anonymous set public myminio/connectify-uploads; exit 0; "
     networks:
       - messaging-net
 
@@ -595,25 +570,25 @@ services:
       - messaging-net
 
   mongodb-exporter:
-    image: bitnami/mongodb-exporter:latest  
+    image: bitnami/mongodb-exporter:latest
     container_name: mongodb-exporter
     environment:
-    - MONGODB_URI=mongodb://root:example@mongodb1:27017/admin?replicaSet=rs0&authSource=admin,mongodb://root:example@mongodb3:27017/admin?replicaSet=rs0&authSource=admin,mongodb://root:example@mongodb3:27017/admin?replicaSet=rs0&authSource=admin
-    
-    - SPLIT_CLUSTER=true  
-    - DIRECT_CONNECT=false  
-    
-    - DISABLED_METRICS=asserts,durability
-    - COLLECT_COLLECTION=true
-    - COLLECT_DATABASE=true
-    - COLLECT_TOPSTATS=true
-    - COLLECT_INDEX_STATS=true
-    - COLLECT_CONNPOOL_STATS=true
-    
-    - COLLSTATS_COLLS=messaging_app.messages,messaging_app.users,messaging_app.friendships
-    
-    - LOG_LEVEL=debug
-    - COMPATIBLE_MODE=true  
+      - MONGODB_URI=mongodb://root:example@mongodb1:27017/admin?replicaSet=rs0&authSource=admin,mongodb://root:example@mongodb3:27017/admin?replicaSet=rs0&authSource=admin,mongodb://root:example@mongodb3:27017/admin?replicaSet=rs0&authSource=admin
+
+      - SPLIT_CLUSTER=true
+      - DIRECT_CONNECT=false
+
+      - DISABLED_METRICS=asserts,durability
+      - COLLECT_COLLECTION=true
+      - COLLECT_DATABASE=true
+      - COLLECT_TOPSTATS=true
+      - COLLECT_INDEX_STATS=true
+      - COLLECT_CONNPOOL_STATS=true
+
+      - COLLSTATS_COLLS=messaging_app.messages,messaging_app.users,messaging_app.friendships
+
+      - LOG_LEVEL=debug
+      - COMPATIBLE_MODE=true
     ports:
       - "9216:9216"
     user: "1000"
@@ -625,7 +600,7 @@ services:
       - messaging-net
 
   redis-exporter:
-    image: oliver006/redis_exporter:v1.55.0  
+    image: oliver006/redis_exporter:v1.55.0
     container_name: redis-exporter
     environment:
       - REDIS_ADDR=redis://redis1:6379
@@ -653,7 +628,7 @@ services:
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1"]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -672,7 +647,7 @@ services:
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD-SHELL", "cqlsh", "-e", "describe keyspaces"]
+      test: [ "CMD-SHELL", "cqlsh", "-e", "describe keyspaces" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -695,6 +670,7 @@ volumes:
   kafka2_data:
   kafka3_data:
   minio_data:
+
 
 networks:
   messaging-net:
