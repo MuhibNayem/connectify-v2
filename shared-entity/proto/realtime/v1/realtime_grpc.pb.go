@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: realtime/v1/realtime.proto
+// source: proto/realtime/v1/realtime.proto
 
 package realtimepb
 
@@ -118,5 +118,5 @@ var RealtimeService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "realtime/v1/realtime.proto",
+	Metadata: "proto/realtime/v1/realtime.proto",
 }

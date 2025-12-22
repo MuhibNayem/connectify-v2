@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"gitlab.com/spydotech-group/shared-entity/models"
 	"messaging-app/internal/websocket"
 	"time"
+
+	"gitlab.com/spydotech-group/shared-entity/models"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/kafka-go"
@@ -108,8 +109,19 @@ func (c *MessageConsumer) ConsumeMessages(ctx context.Context) {
 								}
 								continue
 							}
-							log.Printf("Received Kafka event of type: %s for topic %s at offset %d", wsEvent.Type, m.Topic, m.Offset)
-							c.hub.FeedEvents <- wsEvent
+							log.Printf("Received Kafka event of type: %s for topic %s", wsEvent.Type, m.Topic)
+
+							switch wsEvent.Type {
+							case "EVENT_RSVP_UPDATE":
+								var rsvp models.EventRSVPEvent
+								if err := json.Unmarshal(wsEvent.Data, &rsvp); err == nil {
+									c.hub.EventRSVPEvents <- rsvp
+								}
+							case "EVENT_UPDATED", "EVENT_DELETED", "EVENT_POST_CREATED", "EVENT_POST_REACTION", "EVENT_INVITATION_UPDATED", "EVENT_COHOST_ADDED", "EVENT_COHOST_REMOVED":
+								c.hub.EventUpdates <- wsEvent
+							default:
+								c.hub.FeedEvents <- wsEvent
+							}
 						}
 					}
 				}

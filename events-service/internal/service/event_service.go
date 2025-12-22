@@ -19,6 +19,13 @@ import (
 // EventBroadcaster defines interface for broadcasting event updates
 type EventBroadcaster interface {
 	BroadcastRSVP(event models.EventRSVPEvent)
+	PublishEventUpdated(ctx context.Context, event models.EventUpdatedEvent)
+	PublishEventDeleted(ctx context.Context, event models.EventDeletedEvent)
+	PublishPostCreated(ctx context.Context, event models.EventPostCreatedEvent)
+	PublishPostReaction(ctx context.Context, event models.EventPostReactionEvent)
+	PublishInvitationUpdated(ctx context.Context, event models.EventInvitationUpdatedEvent)
+	PublishCoHostAdded(ctx context.Context, event models.EventCoHostAddedEvent)
+	PublishCoHostRemoved(ctx context.Context, event models.EventCoHostRemovedEvent)
 }
 
 type EventService struct {
@@ -145,7 +152,23 @@ func (s *EventService) UpdateEvent(ctx context.Context, id, userID primitive.Obj
 		return nil, err
 	}
 
-	return s.mapToResponse(ctx, event, userID)
+	resp, err := s.mapToResponse(ctx, event, userID)
+	if err == nil && s.broadcaster != nil {
+		s.broadcaster.PublishEventUpdated(ctx, models.EventUpdatedEvent{
+			ID:          event.ID.Hex(),
+			Title:       event.Title,
+			Description: event.Description,
+			StartDate:   event.StartDate,
+			EndDate:     event.EndDate,
+			Location:    event.Location,
+			IsOnline:    event.IsOnline,
+			Privacy:     event.Privacy,
+			Category:    event.Category,
+			CoverImage:  event.CoverImage,
+			UpdatedAt:   event.UpdatedAt,
+		})
+	}
+	return resp, err
 }
 
 func (s *EventService) DeleteEvent(ctx context.Context, id, userID primitive.ObjectID) error {
@@ -158,7 +181,18 @@ func (s *EventService) DeleteEvent(ctx context.Context, id, userID primitive.Obj
 		return errors.New("unauthorized")
 	}
 
-	return s.eventRepo.Delete(ctx, id)
+	if err := s.eventRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if s.broadcaster != nil {
+		s.broadcaster.PublishEventDeleted(ctx, models.EventDeletedEvent{
+			ID:        id.Hex(),
+			DeletedAt: time.Now(),
+		})
+	}
+
+	return nil
 }
 
 func (s *EventService) ListEvents(ctx context.Context, userID primitive.ObjectID, limit, page int64, query, category, period string) ([]models.EventResponse, int64, error) {
@@ -642,6 +676,17 @@ func (s *EventService) RespondToInvitation(ctx context.Context, invitationID, us
 		return err
 	}
 
+	// Broadcast Invitation Update
+	if s.broadcaster != nil {
+		s.broadcaster.PublishInvitationUpdated(ctx, models.EventInvitationUpdatedEvent{
+			InvitationID: invitationID.Hex(),
+			EventID:      invitation.EventID.Hex(),
+			InviteeID:    userID.Hex(),
+			Status:       newStatus,
+			Timestamp:    time.Now(),
+		})
+	}
+
 	// Create notification for the inviter
 	if s.notificationProducer != nil {
 		invitee, _ := s.userRepo.FindByID(ctx, userID)
@@ -737,14 +782,23 @@ func (s *EventService) CreatePost(ctx context.Context, eventID, authorID primiti
 		authorShort.Avatar = author.Avatar
 	}
 
-	return &models.EventPostResponse{
+	resp := &models.EventPostResponse{
 		ID:        post.ID.Hex(),
 		Author:    authorShort,
 		Content:   post.Content,
 		MediaURLs: post.MediaURLs,
 		Reactions: []models.EventPostReactionResponse{},
 		CreatedAt: post.CreatedAt,
-	}, nil
+	}
+
+	if s.broadcaster != nil {
+		s.broadcaster.PublishPostCreated(ctx, models.EventPostCreatedEvent{
+			Post:    *resp,
+			EventID: eventID.Hex(),
+		})
+	}
+
+	return resp, nil
 }
 
 // GetPosts returns discussion posts for an event
@@ -816,12 +870,40 @@ func (s *EventService) DeletePost(ctx context.Context, eventID, postID, userID p
 
 // ReactToPost adds or updates a reaction on a post
 func (s *EventService) ReactToPost(ctx context.Context, postID, userID primitive.ObjectID, emoji string) error {
+	post, err := s.postRepo.GetByID(ctx, postID)
+	if err != nil {
+		return err
+	}
+
 	reaction := models.EventPostReaction{
 		UserID:    userID,
 		Emoji:     emoji,
 		Timestamp: time.Now(),
 	}
-	return s.postRepo.AddReaction(ctx, postID, reaction)
+
+	if err := s.postRepo.AddReaction(ctx, postID, reaction); err != nil {
+		return err
+	}
+
+	// Fetch user for response
+	user, _ := s.userRepo.FindByID(ctx, userID)
+	userShort := models.UserShort{ID: userID.Hex(), Username: "Unknown"}
+	if user != nil {
+		userShort.Username = user.Username
+		userShort.Avatar = user.Avatar
+	}
+
+	if s.broadcaster != nil {
+		s.broadcaster.PublishPostReaction(ctx, models.EventPostReactionEvent{
+			PostID:    postID.Hex(),
+			EventID:   post.EventID.Hex(),
+			User:      userShort,
+			Emoji:     emoji,
+			Timestamp: reaction.Timestamp,
+		})
+	}
+
+	return nil
 }
 
 // ===============================
@@ -903,7 +985,27 @@ func (s *EventService) AddCoHost(ctx context.Context, eventID, userID, coHostID 
 		AddedByID: userID,
 	}
 
-	return s.eventRepo.AddCoHost(ctx, eventID, coHost)
+	if err := s.eventRepo.AddCoHost(ctx, eventID, coHost); err != nil {
+		return err
+	}
+
+	if s.broadcaster != nil {
+		coHostUser, _ := s.userRepo.FindByID(ctx, coHostID)
+		coHostShort := models.UserShort{ID: coHostID.Hex()}
+		if coHostUser != nil {
+			coHostShort.Username = coHostUser.Username
+			coHostShort.Avatar = coHostUser.Avatar
+		}
+
+		s.broadcaster.PublishCoHostAdded(ctx, models.EventCoHostAddedEvent{
+			EventID:   eventID.Hex(),
+			CoHost:    coHostShort,
+			AddedBy:   userID.Hex(),
+			Timestamp: coHost.AddedAt,
+		})
+	}
+
+	return nil
 }
 
 // RemoveCoHost removes a co-host from an event
@@ -917,7 +1019,20 @@ func (s *EventService) RemoveCoHost(ctx context.Context, eventID, userID, coHost
 		return errors.New("only the event creator can remove co-hosts")
 	}
 
-	return s.eventRepo.RemoveCoHost(ctx, eventID, coHostID)
+	if err := s.eventRepo.RemoveCoHost(ctx, eventID, coHostID); err != nil {
+		return err
+	}
+
+	if s.broadcaster != nil {
+		s.broadcaster.PublishCoHostRemoved(ctx, models.EventCoHostRemovedEvent{
+			EventID:   eventID.Hex(),
+			CoHostID:  coHostID.Hex(),
+			RemovedBy: userID.Hex(),
+			Timestamp: time.Now(),
+		})
+	}
+
+	return nil
 }
 
 // ===============================

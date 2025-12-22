@@ -6,7 +6,8 @@ WORKDIR /app
 RUN apk add --no-cache git build-base
 
 # Copy shared-entity first (due to replace directive)
-COPY shared-entity ../shared-entity
+# Copy shared-entity first (due to replace directive)
+COPY shared-entity ./shared-entity
 
 # Copy user-service go.mod and go.sum
 COPY user-service/go.mod user-service/go.sum* ./user-service/

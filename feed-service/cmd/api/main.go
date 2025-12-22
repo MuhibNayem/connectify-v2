@@ -47,8 +47,14 @@ func main() {
 
 	graphRepo := repository.NewGraphRepository(neo4jClient.Driver)
 
+	// Initialize Redis Cache
+	// Assuming RedisAddrs[0] is enough for simple client unless we detect multiple
+	// In config.go we already support splitting or single.
+	// cacheRepo handles cluster logic if > 1 addr.
+	cacheRepo := repository.NewCacheRepository(cfg.RedisAddrs, "") // TODO: Add Redis Password to Config if needed
+
 	// Start Event Listener
-	eventListener := events.NewEventListener(cfg, repo, graphRepo)
+	eventListener := events.NewEventListener(cfg, repo, cacheRepo, graphRepo)
 	ctxBg := context.Background()
 	eventListener.Start(ctxBg)
 
@@ -56,7 +62,7 @@ func main() {
 	producer := events.NewEventProducer(cfg)
 	defer producer.Close()
 
-	svc := service.NewFeedService(repo, graphRepo, producer)
+	svc := service.NewFeedService(repo, cacheRepo, graphRepo, producer)
 	handler := grpc.NewServer(svc)
 
 	// Start gRPC Server

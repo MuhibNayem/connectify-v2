@@ -5,10 +5,16 @@ WORKDIR /app
 
 RUN apk add --no-cache git
 
-COPY go.mod go.sum ./
+# Copy shared entity first (for go.mod replace)
+COPY shared-entity ./shared-entity
+
+# Copy messaging-app go.mod
+COPY messaging-app/go.mod messaging-app/go.sum ./messaging-app/
+WORKDIR /app/messaging-app
 RUN go mod download
 
-COPY . .
+# Copy source
+COPY messaging-app .
 
 # Verify source files
 RUN test -d cmd/server && test -f cmd/server/main.go || \
@@ -25,7 +31,7 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /app/messaging-app .
+COPY --from=builder /app/messaging-app/messaging-app .
 
 RUN addgroup -S appgroup && \
     adduser -S appuser -G appgroup && \

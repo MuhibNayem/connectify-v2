@@ -2,10 +2,15 @@ FROM golang:1.25.1-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+RUN apk add --no-cache git
+
+COPY shared-entity ./shared-entity
+
+COPY events-service/go.mod events-service/go.sum ./events-service/
+WORKDIR /app/events-service
 RUN go mod download
 
-COPY . .
+COPY events-service .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/events-service ./cmd/api
 

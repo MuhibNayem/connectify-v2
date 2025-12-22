@@ -4,9 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"messaging-app/internal/repositories"
+
 	"gitlab.com/spydotech-group/shared-entity/models"
 	"gitlab.com/spydotech-group/shared-entity/redis"
-	"messaging-app/internal/repositories"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -42,6 +43,7 @@ type Hub struct {
 	DeliveredEvents        chan models.DeliveredEvent
 	ConversationSeenEvents chan models.ConversationSeenEvent
 	EventRSVPEvents        chan models.EventRSVPEvent // Channel for event RSVP updates
+	EventUpdates           chan models.WebSocketEvent // Channel for general event updates (created, updated, deleted)
 	CallSignal             chan models.CallSignalEvent
 
 	ctx    context.Context
@@ -87,6 +89,7 @@ func NewHub(
 		DeliveredEvents:        make(chan models.DeliveredEvent, 10000),
 		ConversationSeenEvents: make(chan models.ConversationSeenEvent, 10000),
 		EventRSVPEvents:        make(chan models.EventRSVPEvent, 10000),
+		EventUpdates:           make(chan models.WebSocketEvent, 10000),
 		CallSignal:             make(chan models.CallSignalEvent, 10000),
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -95,6 +98,7 @@ func NewHub(
 
 	go h.run()
 	go h.subscribeToRedis()
+	go h.subscribeToGlobalEvents()
 	go h.cleanupStaleConnections()
 
 	return h

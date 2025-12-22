@@ -391,8 +391,8 @@ services:
   # Your Application Service
   app:
     build:
-      context: ./messaging-app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: messaging-app/Dockerfile
     image: messaging-app:latest
     container_name: messaging-app
     user: "1000"
@@ -435,8 +435,8 @@ services:
 
   events-service:
     build:
-      context: ./events-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: events-service/Dockerfile
     image: messaging-events-service:latest
     container_name: events-service
     env_file:
@@ -464,8 +464,8 @@ services:
 
   feed-service:
     build:
-      context: ./feed-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: feed-service/Dockerfile
     image: messaging-feed-service:latest
     container_name: feed-service
     ports:
@@ -488,8 +488,8 @@ services:
 
   user-service:
     build:
-      context: ./user-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: user-service/Dockerfile
     ports:
       - "8083:8083"
     depends_on:
@@ -508,8 +508,8 @@ services:
 
   marketplace-service:
     build:
-      context: ./marketplace-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: marketplace-service/Dockerfile
     container_name: marketplace-service
     ports:
       - "9097:9097"

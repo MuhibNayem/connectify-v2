@@ -40,7 +40,8 @@ type Application struct {
 	redisClient *redis.ClusterClient
 	neo4jClient *graph.Neo4jClient
 
-	dlqProducer *pkgkafka.DLQProducer
+	dlqProducer   *pkgkafka.DLQProducer
+	eventProducer *producer.EventProducer
 
 	eventService  *service.EventService
 	mainRouter    *gin.Engine
@@ -124,6 +125,9 @@ func (a *Application) Close() {
 	if a.dlqProducer != nil {
 		a.dlqProducer.Close()
 	}
+	if a.eventProducer != nil {
+		a.eventProducer.Close()
+	}
 	if a.neo4jClient != nil {
 		_ = a.neo4jClient.Close(context.Background())
 	}
@@ -164,6 +168,7 @@ func (a *Application) bootstrap() error {
 	friendshipRepo := integration.NewFriendshipLocalRepository(a.db)
 
 	notificationProducer := producer.NewNotificationProducer(a.cfg.KafkaBrokers, "notifications")
+	a.eventProducer = producer.NewEventProducer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic)
 	eventCache := cache.NewEventCache(a.redisClient)
 
 	a.eventService = service.NewEventService(
@@ -174,7 +179,7 @@ func (a *Application) bootstrap() error {
 		eventPostRepo,
 		notificationProducer,
 		eventCache,
-		nil, // broadcaster
+		a.eventProducer,
 	)
 
 	eventRecommendationService := service.NewEventRecommendationService(

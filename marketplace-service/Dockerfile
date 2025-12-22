@@ -3,12 +3,17 @@ FROM golang:1.25.1-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache git
+
+COPY shared-entity ./shared-entity
+
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY marketplace-service/go.mod marketplace-service/go.sum ./marketplace-service/
+WORKDIR /app/marketplace-service
 RUN go mod download
 
 # Copy source code
-COPY . .
+COPY marketplace-service .
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux go build -o marketplace-service ./cmd/api
@@ -18,7 +23,7 @@ FROM gcr.io/distroless/base-debian12
 
 WORKDIR /
 
-COPY --from=builder /app/marketplace-service /marketplace-service
+COPY --from=builder /app/marketplace-service/marketplace-service /marketplace-service
 
 USER nonroot:nonroot
 

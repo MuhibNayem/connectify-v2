@@ -167,6 +167,67 @@ type EventRSVPEvent struct {
 	Stats     EventStats `json:"stats,omitempty"` // Included to update counts
 }
 
+// EventUpdatedEvent represents a WebSocket event for event updates
+type EventUpdatedEvent struct {
+	ID          string       `json:"id"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	StartDate   time.Time    `json:"start_date"`
+	EndDate     time.Time    `json:"end_date"`
+	Location    string       `json:"location"`
+	IsOnline    bool         `json:"is_online"`
+	Privacy     EventPrivacy `json:"privacy"`
+	Category    string       `json:"category"`
+	CoverImage  string       `json:"cover_image"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+}
+
+// EventDeletedEvent represents a WebSocket event for event deletion
+type EventDeletedEvent struct {
+	ID        string    `json:"id"`
+	DeletedAt time.Time `json:"deleted_at"`
+}
+
+// EventPostCreatedEvent represents a WebSocket event for new posts
+type EventPostCreatedEvent struct {
+	Post    EventPostResponse `json:"post"`
+	EventID string            `json:"event_id"`
+}
+
+// EventPostReactionEvent represents a WebSocket event for reactions on posts
+type EventPostReactionEvent struct {
+	PostID    string    `json:"post_id"`
+	EventID   string    `json:"event_id"`
+	User      UserShort `json:"user"`
+	Emoji     string    `json:"emoji"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// EventInvitationUpdatedEvent represents a WebSocket event for invitation status changes
+type EventInvitationUpdatedEvent struct {
+	InvitationID string                `json:"invitation_id"`
+	EventID      string                `json:"event_id"`
+	InviteeID    string                `json:"invitee_id"`
+	Status       EventInvitationStatus `json:"status"`
+	Timestamp    time.Time             `json:"timestamp"`
+}
+
+// EventCoHostAddedEvent represents a WebSocket event for adding a co-host
+type EventCoHostAddedEvent struct {
+	EventID   string    `json:"event_id"`
+	CoHost    UserShort `json:"co_host"`
+	AddedBy   string    `json:"added_by"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// EventCoHostRemovedEvent represents a WebSocket event for removing a co-host
+type EventCoHostRemovedEvent struct {
+	EventID   string    `json:"event_id"`
+	CoHostID  string    `json:"co_host_id"`
+	RemovedBy string    `json:"removed_by"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 type EventInvitationResponse struct {
 	ID        string                `json:"id"`
 	Event     EventShort            `json:"event"`

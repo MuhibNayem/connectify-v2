@@ -78,6 +78,8 @@ func (h *Hub) run() {
 			h.handleCallSignal(signal)
 		case rsvpEvent := <-h.EventRSVPEvents:
 			go h.handleEventRSVPEvent(rsvpEvent)
+		case event := <-h.EventUpdates:
+			go h.handleEventUpdate(event)
 		}
 	}
 }
@@ -575,6 +577,29 @@ func (h *Hub) subscribeToRedis() {
 	}
 }
 
+func (h *Hub) subscribeToGlobalEvents() {
+	pubsub := h.redisClient.Subscribe(h.ctx, "global_events")
+	defer pubsub.Close()
+	ch := pubsub.Channel()
+
+	for {
+		select {
+		case <-h.ctx.Done():
+			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			var event models.WebSocketEvent
+			if err := json.Unmarshal([]byte(msg.Payload), &event); err != nil {
+				log.Printf("Error unmarshaling Redis global event: %v", err)
+				continue
+			}
+			h.broadcastToAllUsers(event)
+		}
+	}
+}
+
 func (h *Hub) getGroupMembers(groupID string) ([]string, error) {
 	return h.redisClient.SMembers(context.Background(), "group:members:"+groupID).Result()
 }
@@ -976,6 +1001,25 @@ func (h *Hub) handleEventRSVPEvent(event models.EventRSVPEvent) {
 		Type: "EVENT_RSVP_UPDATE",
 		Data: eventBytes,
 	}
-	// broadcast to all users
-	h.broadcastToAllUsers(wsEvent)
+	// Publish to Redis for global distribution
+	wsEventBytes, err := json.Marshal(wsEvent)
+	if err != nil {
+		log.Printf("Error marshaling WebSocketEvent for Redis publish: %v", err)
+		return
+	}
+	if err := h.redisClient.Publish(h.ctx, "global_events", wsEventBytes); err != nil {
+		log.Printf("Error publishing global event to Redis: %v", err)
+	}
+}
+
+func (h *Hub) handleEventUpdate(event models.WebSocketEvent) {
+	// Publish to Redis for global distribution
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Error marshaling UpdateEvent for Redis publish: %v", err)
+		return
+	}
+	if err := h.redisClient.Publish(h.ctx, "global_events", eventBytes); err != nil {
+		log.Printf("Error publishing global event to Redis: %v", err)
+	}
 }

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: realtime/v1/realtime.proto
+// source: proto/realtime/v1/realtime.proto
 
 package realtimepb
 
@@ -34,7 +34,7 @@ type RSVPStats struct {
 
 func (x *RSVPStats) Reset() {
 	*x = RSVPStats{}
-	mi := &file_realtime_v1_realtime_proto_msgTypes[0]
+	mi := &file_proto_realtime_v1_realtime_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *RSVPStats) String() string {
 func (*RSVPStats) ProtoMessage() {}
 
 func (x *RSVPStats) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_v1_realtime_proto_msgTypes[0]
+	mi := &file_proto_realtime_v1_realtime_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *RSVPStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RSVPStats.ProtoReflect.Descriptor instead.
 func (*RSVPStats) Descriptor() ([]byte, []int) {
-	return file_realtime_v1_realtime_proto_rawDescGZIP(), []int{0}
+	return file_proto_realtime_v1_realtime_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RSVPStats) GetGoingCount() int64 {
@@ -96,7 +96,7 @@ type ReportRSVPEventRequest struct {
 
 func (x *ReportRSVPEventRequest) Reset() {
 	*x = ReportRSVPEventRequest{}
-	mi := &file_realtime_v1_realtime_proto_msgTypes[1]
+	mi := &file_proto_realtime_v1_realtime_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -108,7 +108,7 @@ func (x *ReportRSVPEventRequest) String() string {
 func (*ReportRSVPEventRequest) ProtoMessage() {}
 
 func (x *ReportRSVPEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_realtime_v1_realtime_proto_msgTypes[1]
+	mi := &file_proto_realtime_v1_realtime_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -121,7 +121,7 @@ func (x *ReportRSVPEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportRSVPEventRequest.ProtoReflect.Descriptor instead.
 func (*ReportRSVPEventRequest) Descriptor() ([]byte, []int) {
-	return file_realtime_v1_realtime_proto_rawDescGZIP(), []int{1}
+	return file_proto_realtime_v1_realtime_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ReportRSVPEventRequest) GetEventId() string {
@@ -159,11 +159,11 @@ func (x *ReportRSVPEventRequest) GetStats() *RSVPStats {
 	return nil
 }
 
-var File_realtime_v1_realtime_proto protoreflect.FileDescriptor
+var File_proto_realtime_v1_realtime_proto protoreflect.FileDescriptor
 
-const file_realtime_v1_realtime_proto_rawDesc = "" +
+const file_proto_realtime_v1_realtime_proto_rawDesc = "" +
 	"\n" +
-	"\x1arealtime/v1/realtime.proto\x12\vrealtime.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"|\n" +
+	" proto/realtime/v1/realtime.proto\x12\vrealtime.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"|\n" +
 	"\tRSVPStats\x12\x1f\n" +
 	"\vgoing_count\x18\x01 \x01(\x03R\n" +
 	"goingCount\x12)\n" +
@@ -176,28 +176,28 @@ const file_realtime_v1_realtime_proto_rawDesc = "" +
 	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12,\n" +
 	"\x05stats\x18\x05 \x01(\v2\x16.realtime.v1.RSVPStatsR\x05stats2a\n" +
 	"\x0fRealtimeService\x12N\n" +
-	"\x0fReportRSVPEvent\x12#.realtime.v1.ReportRSVPEventRequest\x1a\x16.google.protobuf.EmptyB0Z.gitlab.com/spydotech-group/shared-entity/proto/realtime/v1;realtimepbb\x06proto3"
+	"\x0fReportRSVPEvent\x12#.realtime.v1.ReportRSVPEventRequest\x1a\x16.google.protobuf.EmptyBGZEgitlab.com/spydotech-group/shared-entity/proto/realtime/v1;realtimepbb\x06proto3"
 
 var (
-	file_realtime_v1_realtime_proto_rawDescOnce sync.Once
-	file_realtime_v1_realtime_proto_rawDescData []byte
+	file_proto_realtime_v1_realtime_proto_rawDescOnce sync.Once
+	file_proto_realtime_v1_realtime_proto_rawDescData []byte
 )
 
-func file_realtime_v1_realtime_proto_rawDescGZIP() []byte {
-	file_realtime_v1_realtime_proto_rawDescOnce.Do(func() {
-		file_realtime_v1_realtime_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_realtime_v1_realtime_proto_rawDesc), len(file_realtime_v1_realtime_proto_rawDesc)))
+func file_proto_realtime_v1_realtime_proto_rawDescGZIP() []byte {
+	file_proto_realtime_v1_realtime_proto_rawDescOnce.Do(func() {
+		file_proto_realtime_v1_realtime_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_realtime_v1_realtime_proto_rawDesc), len(file_proto_realtime_v1_realtime_proto_rawDesc)))
 	})
-	return file_realtime_v1_realtime_proto_rawDescData
+	return file_proto_realtime_v1_realtime_proto_rawDescData
 }
 
-var file_realtime_v1_realtime_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_realtime_v1_realtime_proto_goTypes = []any{
+var file_proto_realtime_v1_realtime_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_realtime_v1_realtime_proto_goTypes = []any{
 	(*RSVPStats)(nil),              // 0: realtime.v1.RSVPStats
 	(*ReportRSVPEventRequest)(nil), // 1: realtime.v1.ReportRSVPEventRequest
 	(*timestamppb.Timestamp)(nil),  // 2: google.protobuf.Timestamp
 	(*emptypb.Empty)(nil),          // 3: google.protobuf.Empty
 }
-var file_realtime_v1_realtime_proto_depIdxs = []int32{
+var file_proto_realtime_v1_realtime_proto_depIdxs = []int32{
 	2, // 0: realtime.v1.ReportRSVPEventRequest.timestamp:type_name -> google.protobuf.Timestamp
 	0, // 1: realtime.v1.ReportRSVPEventRequest.stats:type_name -> realtime.v1.RSVPStats
 	1, // 2: realtime.v1.RealtimeService.ReportRSVPEvent:input_type -> realtime.v1.ReportRSVPEventRequest
@@ -209,26 +209,26 @@ var file_realtime_v1_realtime_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_realtime_v1_realtime_proto_init() }
-func file_realtime_v1_realtime_proto_init() {
-	if File_realtime_v1_realtime_proto != nil {
+func init() { file_proto_realtime_v1_realtime_proto_init() }
+func file_proto_realtime_v1_realtime_proto_init() {
+	if File_proto_realtime_v1_realtime_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_realtime_v1_realtime_proto_rawDesc), len(file_realtime_v1_realtime_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_realtime_v1_realtime_proto_rawDesc), len(file_proto_realtime_v1_realtime_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_realtime_v1_realtime_proto_goTypes,
-		DependencyIndexes: file_realtime_v1_realtime_proto_depIdxs,
-		MessageInfos:      file_realtime_v1_realtime_proto_msgTypes,
+		GoTypes:           file_proto_realtime_v1_realtime_proto_goTypes,
+		DependencyIndexes: file_proto_realtime_v1_realtime_proto_depIdxs,
+		MessageInfos:      file_proto_realtime_v1_realtime_proto_msgTypes,
 	}.Build()
-	File_realtime_v1_realtime_proto = out.File
-	file_realtime_v1_realtime_proto_goTypes = nil
-	file_realtime_v1_realtime_proto_depIdxs = nil
+	File_proto_realtime_v1_realtime_proto = out.File
+	file_proto_realtime_v1_realtime_proto_goTypes = nil
+	file_proto_realtime_v1_realtime_proto_depIdxs = nil
 }

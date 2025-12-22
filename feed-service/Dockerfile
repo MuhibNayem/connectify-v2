@@ -5,10 +5,16 @@ WORKDIR /app
 
 RUN apk add --no-cache git
 
-COPY go.mod go.sum ./
+# Copy shared entity first (for go.mod replace)
+COPY shared-entity ./shared-entity
+
+# Copy feed-service go.mod
+COPY feed-service/go.mod feed-service/go.sum ./feed-service/
+WORKDIR /app/feed-service
 RUN go mod download
 
-COPY . .
+# Copy source
+COPY feed-service .
 
 # Verify source files
 RUN test -d cmd/api && test -f cmd/api/main.go || \
@@ -25,7 +31,7 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /app/feed-service .
+COPY --from=builder /app/feed-service/feed-service .
 
 RUN addgroup -S appgroup && \
     adduser -S appuser -G appgroup && \

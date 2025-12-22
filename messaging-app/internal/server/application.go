@@ -19,17 +19,14 @@ import (
 	"messaging-app/internal/graph"
 	"messaging-app/internal/kafka"
 	"messaging-app/internal/marketplaceclient"
-	"messaging-app/internal/realtime"
 	"messaging-app/internal/services"
 	"messaging-app/internal/websocket"
 
 	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
-	realtimepb "gitlab.com/spydotech-group/shared-entity/proto/realtime/v1"
 	"gitlab.com/spydotech-group/shared-entity/redis"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
-	"google.golang.org/grpc"
 )
 
 type Application struct {
@@ -63,8 +60,6 @@ type Application struct {
 	httpServer              *http.Server
 	wsServer                *http.Server
 	metricsServer           *http.Server
-	realtimeServer          *grpc.Server
-	realtimeListener        net.Listener
 	backgroundWorkers       []func()
 	backgroundWorkerCancel  context.CancelFunc
 
@@ -106,14 +101,6 @@ func (a *Application) Run() error {
 	startServer(a.httpServer, "HTTP server")
 	startServer(a.wsServer, "WebSocket server")
 	startServer(a.metricsServer, "Metrics server")
-	if a.realtimeServer != nil && a.realtimeListener != nil {
-		go func() {
-			log.Printf("Realtime gRPC server starting on %s", a.realtimeListener.Addr())
-			if err := a.realtimeServer.Serve(a.realtimeListener); err != nil {
-				errCh <- fmt.Errorf("Realtime gRPC server failed: %w", err)
-			}
-		}()
-	}
 
 	select {
 	case <-quit:
@@ -148,12 +135,6 @@ func (a *Application) Shutdown() error {
 		if err := a.metricsServer.Shutdown(ctx); err != nil {
 			log.Printf("Metrics server shutdown error: %v", err)
 			shutdownErr = err
-		}
-		if a.realtimeServer != nil {
-			a.realtimeServer.GracefulStop()
-		}
-		if a.realtimeListener != nil {
-			_ = a.realtimeListener.Close()
 		}
 
 		a.Close()
@@ -298,23 +279,6 @@ func (a *Application) initDomain() error {
 		Addr:    net.JoinHostPort("", a.cfg.PrometheusPort),
 		Handler: metricsMux,
 	}
-	if err := a.initRealtimeServer(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *Application) initRealtimeServer() error {
-	if a.hub == nil {
-		return fmt.Errorf("hub is not initialized")
-	}
-	listener, err := net.Listen("tcp", net.JoinHostPort("", a.cfg.RealtimeGRPCPort))
-	if err != nil {
-		return fmt.Errorf("failed to bind realtime gRPC listener: %w", err)
-	}
-	a.realtimeListener = listener
-	a.realtimeServer = grpc.NewServer()
-	realtimepb.RegisterRealtimeServiceServer(a.realtimeServer, realtime.NewServer(a.hub))
 	return nil
 }
 

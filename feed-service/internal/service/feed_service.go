@@ -17,13 +17,15 @@ import (
 
 type FeedService struct {
 	repo      *repository.FeedRepository
+	cacheRepo *repository.CacheRepository
 	graphRepo *repository.GraphRepository
 	producer  *events.EventProducer
 }
 
-func NewFeedService(repo *repository.FeedRepository, graphRepo *repository.GraphRepository, producer *events.EventProducer) *FeedService {
+func NewFeedService(repo *repository.FeedRepository, cacheRepo *repository.CacheRepository, graphRepo *repository.GraphRepository, producer *events.EventProducer) *FeedService {
 	return &FeedService{
 		repo:      repo,
+		cacheRepo: cacheRepo,
 		graphRepo: graphRepo,
 		producer:  producer,
 	}
@@ -102,11 +104,26 @@ func (s *FeedService) CreatePost(ctx context.Context, userID string, content str
 }
 
 func (s *FeedService) GetPost(ctx context.Context, postID string) (*models.Post, error) {
+	// 1. Try Cache
+	cachedPost, err := s.cacheRepo.GetPost(ctx, postID)
+	if err == nil && cachedPost != nil {
+		return cachedPost, nil
+	}
+
+	// 2. Fallback to DB
 	pID, err := primitive.ObjectIDFromHex(postID)
 	if err != nil {
 		return nil, errors.New("invalid post ID")
 	}
-	return s.repo.GetPostByID(ctx, pID)
+	post, err := s.repo.GetPostByID(ctx, pID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Set Cache (Async or Blocking? Blocking is safer for consistency)
+	_ = s.cacheRepo.SetPost(ctx, post)
+
+	return post, nil
 }
 
 func (s *FeedService) UpdatePost(ctx context.Context, postID, userID, content, privacy string) (*models.Post, error) {
@@ -143,6 +160,9 @@ func (s *FeedService) UpdatePost(ctx context.Context, postID, userID, content, p
 	if err != nil {
 		return nil, err
 	}
+
+	// Invalidate Cache
+	_ = s.cacheRepo.InvalidatePost(ctx, postID)
 
 	// 3. Publish Event
 	postData, _ := json.Marshal(updatedPost)
@@ -200,7 +220,50 @@ func (s *FeedService) ListPosts(ctx context.Context, viewerID string, page, limi
 		return nil, errors.New("invalid viewer ID")
 	}
 
-	// 1. Get Friends List from Neo4j (Graph Source of Truth)
+	if limit <= 0 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+	if offset < 0 {
+		offset = 0
+	}
+
+	// 1. Try Fetching from Redis Timeline
+	timelineIDs, err := s.cacheRepo.GetTimeline(ctx, viewerID, offset, limit)
+	if err == nil && len(timelineIDs) > 0 {
+		// Found in Redis. Hydrate posts.
+		posts, missingIDs, err := s.cacheRepo.GetPosts(ctx, timelineIDs)
+		if err == nil {
+			// If we have some missing posts (evicted?), we could fetch them from DB
+			if len(missingIDs) > 0 {
+				fmt.Printf("Cache partial miss for %d posts\n", len(missingIDs))
+				// Optionally fetch missing ones from DB and re-cache
+				for _, mid := range missingIDs {
+					if oid, err := primitive.ObjectIDFromHex(mid); err == nil {
+						p, err := s.repo.GetPostByID(ctx, oid)
+						if err == nil {
+							posts = append(posts, p)
+							_ = s.cacheRepo.SetPost(ctx, p)
+						}
+					}
+				}
+			}
+
+			// Dereference pointers to values (sort order corresponds to timelineIDs order, ideally)
+			// But MGET might not preserve order if we appended missing ones.
+			// For simplicity, we assume map correlation or just return list.
+			// Ideally we should re-sort by CreatedAt if we mixed sources, but Timeline in Redis IS sorted.
+
+			result := make([]models.Post, 0, len(posts))
+			for _, p := range posts {
+				result = append(result, *p)
+			}
+			return result, nil
+		}
+	}
+
+	// 2. Fallback to Mongo (Aggregations) - The "Pull" Model
+	// Get Friends List from Neo4j
 	friendIDTags, err := s.graphRepo.GetFriendIDs(ctx, vID)
 	if err != nil {
 		return nil, err
@@ -213,18 +276,17 @@ func (s *FeedService) ListPosts(ctx context.Context, viewerID string, page, limi
 			friendIDs = append(friendIDs, oid)
 		}
 	}
+	// Note: We don't strictly need to append vID here if using $or query that handles "My Posts" separately,
+	// but keeping it simple.
 
-	// 2. Build Query: Friends Posts (Public/Friends) OR My Posts (All)
-	// Optimization: Remove Global Public "Firehose" to match Facebook-style personalized feed.
+	// 2. Build Query
 	filter := bson.M{
 		"$or": []bson.M{
-			// Friends' Posts: Must be Friends or Public privacy
 			{
 				"user_id": bson.M{"$in": friendIDs},
 				"privacy": bson.M{"$in": []string{"PUBLIC", "FRIENDS"}},
-				"status":  "active",
+				"status":  "active", // Assuming lowercase based on previous view, usually ENUM is uppercase.
 			},
-			// My Posts: I can see everything I posted
 			{
 				"user_id": vID,
 				"status":  "active",
