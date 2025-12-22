@@ -446,17 +446,25 @@ services:
       - "9091:9091"  # Metrics
     env_file:
       - ".env"
+    environment:
+      EVENTS_GRPC_HOST: events-service
     depends_on:
       mongodb3:
         condition: service_healthy
       redis3:
         condition: service_healthy
+      redis-init:
+        condition: service_completed_successfully
       kafka3:
         condition: service_healthy
       neo4j:
         condition: service_healthy
       cassandra:
         condition: service_healthy
+      events-service:
+        condition: service_started
+      marketplace-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
@@ -465,7 +473,50 @@ services:
     networks:
       - messaging-net
 
+  events-service:
+    build:
+      context: ../events-service
+      dockerfile: Dockerfile
+    image: messaging-events-service:latest
+    container_name: events-service
+    env_file:
+      - ".env"
+    environment:
+      REALTIME_GRPC_HOST: app
+    ports:
+      - "9096:9096"
+      - "9100:9100"
+    depends_on:
+      mongodb3:
+        condition: service_healthy
+      redis3:
+        condition: service_healthy
+      redis-init:
+        condition: service_completed_successfully
+      kafka3:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
+    networks:
+      - messaging-net
 
+  marketplace-service:
+    build:
+      context: ../marketplace-service
+      dockerfile: Dockerfile
+    container_name: marketplace-service
+    ports:
+      - "9097:9097"
+      - "9198:9198"
+    env_file:
+      - ".env"
+    depends_on:
+      mongodb3:
+        condition: service_healthy
+    networks:
+      - messaging-net
 
   # MinIO Service
   minio:

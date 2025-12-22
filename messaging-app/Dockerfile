@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 
 WORKDIR /app
 
@@ -10,6 +10,7 @@ RUN go mod download
 
 COPY . .
 
+# Verify source files
 RUN test -d cmd/server && test -f cmd/server/main.go || \
     (echo "Source files missing" && exit 1)
 
