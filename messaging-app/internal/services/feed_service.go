@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"messaging-app/internal/kafka"
-	"gitlab.com/spydotech-group/shared-entity/models"
 	notifications "messaging-app/internal/notifications"
 	"messaging-app/internal/repositories"
-	"gitlab.com/spydotech-group/shared-entity/utils"
 	"strings"
 	"time"
+
+	"gitlab.com/spydotech-group/shared-entity/models"
+	"gitlab.com/spydotech-group/shared-entity/utils"
 
 	kafkago "github.com/segmentio/kafka-go"
 
@@ -1260,7 +1261,7 @@ func (s *FeedService) GetRepliesByCommentID(ctx context.Context, commentID primi
 func (s *FeedService) CreateAlbum(ctx context.Context, userID primitive.ObjectID, req *models.CreateAlbumRequest) (*models.Album, error) {
 	album := &models.Album{
 		UserID:      userID,
-		Name:        req.Name,
+		Title:       req.Title,
 		Description: req.Description,
 		Type:        models.AlbumTypeCustom,
 		Privacy:     req.Privacy,
@@ -1307,7 +1308,7 @@ func (s *FeedService) EnsureAlbumExists(ctx context.Context, userID primitive.Ob
 		// Create if not exists
 		newAlbum := &models.Album{
 			UserID:  userID,
-			Name:    defaultName,
+			Title:   defaultName,
 			Type:    albumType,
 			Privacy: models.PrivacySettingPublic, // Default to public for profile/cover
 		}
@@ -1445,8 +1446,8 @@ func (s *FeedService) UpdateAlbum(ctx context.Context, userID, albumID primitive
 
 	// Build update map from request
 	update := bson.M{}
-	if req.Name != "" {
-		update["name"] = req.Name
+	if req.Title != "" {
+		update["title"] = req.Title
 	}
 	if req.Description != "" {
 		update["description"] = req.Description

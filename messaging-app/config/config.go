@@ -35,8 +35,10 @@ type Config struct {
 	StorageBucket       string
 	StorageUseSSL       bool
 	StoragePublicURL    string
-	FeedServiceURL      string
-	UserServiceURL      string
+	FeedServiceHost     string
+	FeedServicePort     string
+	UserServiceHost     string
+	UserServicePort     string
 	EventsGRPCPort      string
 	EventsGRPCHost      string
 	EventsMetricsPort   string
@@ -91,6 +93,10 @@ func LoadConfig() *Config {
 	marketplaceGRPCHost := getEnv("MARKETPLACE_GRPC_HOST", "localhost")
 	realtimeGRPCPort := getEnv("REALTIME_GRPC_PORT", "9099")
 	realtimeGRPCHost := getEnv("REALTIME_GRPC_HOST", "localhost")
+	feedServiceHost := getEnv("FEED_SERVICE_HOST", "localhost")
+	feedServicePort := getEnv("FEED_SERVICE_PORT", "9098")
+	userServiceHost := getEnv("USER_SERVICE_HOST", "localhost")
+	userServicePort := getEnv("USER_SERVICE_PORT", "9083")
 
 	return &Config{
 		MongoURI:            getEnv("MONGO_URI", "mongodb://localhost:27017"),
@@ -117,8 +123,10 @@ func LoadConfig() *Config {
 		StorageBucket:       getEnv("STORAGE_BUCKET", "connectify-uploads"),
 		StorageUseSSL:       storageUseSSL,
 		StoragePublicURL:    getEnv("STORAGE_PUBLIC_URL", "http://localhost:9000"),
-		FeedServiceURL:      getEnv("FEED_SERVICE_URL", "localhost:9090"),
-		UserServiceURL:      getEnv("USER_SERVICE_URL", "localhost:9083"),
+		FeedServiceHost:     feedServiceHost,
+		FeedServicePort:     feedServicePort,
+		UserServiceHost:     userServiceHost,
+		UserServicePort:     userServicePort,
 		EventsGRPCPort:      eventsGRPCPort,
 		EventsGRPCHost:      eventsGRPCHost,
 		EventsMetricsPort:   eventsMetricsPort,

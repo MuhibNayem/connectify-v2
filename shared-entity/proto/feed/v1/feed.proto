@@ -29,11 +29,24 @@ service FeedService {
   rpc GetReply(GetReplyRequest) returns (ReplyResponse);
   rpc UpdateReply(UpdateReplyRequest) returns (ReplyResponse);
   rpc DeleteReply(DeleteReplyRequest) returns (google.protobuf.Empty);
+  rpc ListReplies(ListRepliesRequest) returns (ListRepliesResponse);
 
   // Reaction Operations
   rpc ReactToPost(ReactToPostRequest) returns (google.protobuf.Empty);
   rpc ReactToComment(ReactToCommentRequest) returns (google.protobuf.Empty);
   rpc ReactToReply(ReactToReplyRequest) returns (google.protobuf.Empty);
+
+  // Album Operations
+  rpc CreateAlbum(CreateAlbumRequest) returns (AlbumResponse);
+  rpc GetAlbum(GetAlbumRequest) returns (AlbumResponse);
+  rpc UpdateAlbum(UpdateAlbumRequest) returns (AlbumResponse);
+  rpc DeleteAlbum(DeleteAlbumRequest) returns (google.protobuf.Empty);
+  rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsResponse);
+
+  // Album Media Operations
+  rpc AddMediaToAlbum(AddMediaToAlbumRequest) returns (AlbumMediaResponse);
+  rpc RemoveMediaFromAlbum(RemoveMediaFromAlbumRequest) returns (google.protobuf.Empty);
+  rpc GetAlbumMedia(GetAlbumMediaRequest) returns (GetAlbumMediaResponse);
 }
 
 // Common Types
@@ -104,6 +117,37 @@ message FeedResponse {
 
 message ListCommentsResponse {
   repeated CommentResponse comments = 1;
+}
+
+message ListRepliesResponse {
+  repeated ReplyResponse replies = 1;
+}
+
+message AlbumResponse {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string description = 4;
+  string privacy = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message AlbumMediaResponse {
+  string id = 1;
+  string album_id = 2;
+  string url = 3;
+  string type = 4;
+  string description = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ListAlbumsResponse {
+  repeated AlbumResponse albums = 1;
+}
+
+message GetAlbumMediaResponse {
+  repeated AlbumMediaResponse media = 1;
 }
 
 // Requests
@@ -227,6 +271,12 @@ message DeleteReplyRequest {
   string user_id = 3;
 }
 
+message ListRepliesRequest {
+    string comment_id = 1;
+    int64 page = 2;
+    int64 limit = 3;
+}
+
 message ReactToPostRequest {
   string post_id = 1;
   string user_id = 2;
@@ -243,4 +293,51 @@ message ReactToReplyRequest {
   string reply_id = 1;
   string user_id = 2;
   string emoji = 3;
+}
+
+message CreateAlbumRequest {
+  string user_id = 1;
+  string title = 2;
+  string description = 3;
+  string privacy = 4;
+}
+
+message GetAlbumRequest {
+  string album_id = 1;
+}
+
+message UpdateAlbumRequest {
+  string album_id = 1;
+  string title = 2;
+  string description = 3;
+  string privacy = 4;
+}
+
+message DeleteAlbumRequest {
+  string user_id = 1;
+  string album_id = 2;
+}
+
+message ListAlbumsRequest {
+  string user_id = 1;
+  int64 page = 2;
+  int64 limit = 3;
+}
+
+message AddMediaToAlbumRequest {
+  string album_id = 1;
+  string url = 2;
+  string type = 3;
+  string description = 4;
+}
+
+message RemoveMediaFromAlbumRequest {
+  string album_id = 1;
+  string media_id = 2;
+}
+
+message GetAlbumMediaRequest {
+  string album_id = 1;
+  int64 page = 2;
+  int64 limit = 3;
 }
