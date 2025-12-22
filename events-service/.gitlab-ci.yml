@@ -1,0 +1,48 @@
+stages:
+  - test
+  - release
+
+# Run tests on every push
+test:
+  stage: test
+  script:
+    - go mod download
+    - go test -v ./...
+    - go vet ./...
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+# Automatic semantic versioning and release
+release:
+  stage: release
+  script:
+    # Get the latest tag, default to v0.0.0 if none exists
+    - |
+      git fetch --tags
+      LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+      echo "Latest tag: $LATEST_TAG"
+      
+      # Extract version numbers
+      VERSION=${LATEST_TAG#v}
+      MAJOR=$(echo $VERSION | cut -d. -f1)
+      MINOR=$(echo $VERSION | cut -d. -f2)
+      PATCH=$(echo $VERSION | cut -d. -f3)
+      
+      # Increment patch version
+      NEW_PATCH=$((PATCH + 1))
+      NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+      
+      echo "New version: $NEW_VERSION"
+      
+      # Configure git
+      git config user.name "GitLab CI"
+      git config user.email "ci@gitlab.com"
+      
+      # Create and push the new tag
+      git tag -a $NEW_VERSION -m "Release $NEW_VERSION"
+      git push https://oauth2:${GITLAB_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git $NEW_VERSION
+      
+      echo "Created and pushed tag: $NEW_VERSION"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      when: on_success

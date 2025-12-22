@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package marketplace.v1;
+
+option go_package = "gitlab.com/spydotech-group/marketplace-service/proto/marketplace/v1;marketplacepb";
+
+// Marketplace Service Definition
+service MarketplaceService {
+  // Product Management
+  rpc CreateProduct(CreateProductRequest) returns (ProductResponse);
+  rpc GetProduct(GetProductRequest) returns (ProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (ProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (Empty);
+  rpc MarkProductSold(MarkProductSoldRequest) returns (Empty);
+  
+  // Product Discovery
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+  rpc GetCategories(GetCategoriesRequest) returns (GetCategoriesResponse);
+  
+  // User Actions
+  rpc ToggleSaveProduct(ToggleSaveProductRequest) returns (ToggleSaveProductResponse);
+  rpc GetSavedProducts(GetSavedProductsRequest) returns (SearchProductsResponse);
+  
+  // Conversations
+  rpc GetMarketplaceConversations(GetConversationsRequest) returns (GetConversationsResponse);
+}
+
+// Messages
+message Empty {}
+
+message Location {
+  string city = 1;
+  string state = 2;
+  string country = 3;
+  double latitude = 4;
+  double longitude = 5;
+}
+
+message UserShort {
+  string id = 1;
+  string username = 2;
+  string full_name = 3;
+  string avatar = 4;
+}
+
+message Category {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string icon = 4;
+  int32 order = 5;
+}
+
+message ProductResponse {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  double price = 4;
+  string currency = 5;
+  repeated string images = 6;
+  Location location = 7;
+  string status = 8;
+  repeated string tags = 9;
+  int64 views = 10;
+  UserShort seller = 11;
+  Category category = 12;
+  bool is_saved = 13;
+  int64 created_at = 14;
+}
+
+message CreateProductRequest {
+  string user_id = 1;
+  string category_id = 2;
+  string title = 3;
+  string description = 4;
+  double price = 5;
+  string currency = 6;
+  repeated string images = 7;
+  Location location = 8;
+  repeated string tags = 9;
+}
+
+message GetProductRequest {
+  string product_id = 1;
+  string viewer_id = 2;
+}
+
+message UpdateProductRequest {
+  string product_id = 1;
+  string user_id = 2;
+  string title = 3;
+  string description = 4;
+  double price = 5;
+  repeated string images = 6;
+  Location location = 7;
+}
+
+message DeleteProductRequest {
+  string product_id = 1;
+  string user_id = 2;
+}
+
+message MarkProductSoldRequest {
+  string product_id = 1;
+  string user_id = 2;
+}
+
+message SearchProductsRequest {
+  string category_id = 1;
+  string query = 2;
+  double min_price = 3;
+  double max_price = 4;
+  string location = 5;
+  string status = 6;
+  string sort_by = 7;
+  int64 page = 8;
+  int64 limit = 9;
+}
+
+message SearchProductsResponse {
+  repeated ProductResponse products = 1;
+  int64 total = 2;
+  int64 page = 3;
+  int64 limit = 4;
+}
+
+message GetCategoriesRequest {}
+
+message GetCategoriesResponse {
+  repeated Category categories = 1;
+}
+
+message ToggleSaveProductRequest {
+  string product_id = 1;
+  string user_id = 2;
+}
+
+message ToggleSaveProductResponse {
+  bool is_saved = 1;
+}
+
+message GetSavedProductsRequest {
+  string user_id = 1;
+  int64 page = 2;
+  int64 limit = 3;
+}
+
+message ConversationSummary {
+  string id = 1;
+  string name = 2;
+  string avatar = 3;
+  bool is_group = 4;
+  string last_message_content = 5;
+  int64 last_message_timestamp = 6;
+  string last_message_sender_id = 7;
+  int32 unread_count = 8;
+  bool last_message_is_encrypted = 9;
+}
+
+message GetConversationsRequest {
+  string user_id = 1;
+}
+
+message GetConversationsResponse {
+  repeated ConversationSummary conversations = 1;
+}
