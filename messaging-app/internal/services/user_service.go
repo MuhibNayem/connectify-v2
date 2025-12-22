@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"log"
 	"messaging-app/internal/kafka"
-	"gitlab.com/spydotech-group/shared-entity/models"
 	"messaging-app/internal/repositories"
-	"gitlab.com/spydotech-group/shared-entity/events"
+	"messaging-app/internal/userclient"
 	"time"
+
+	"gitlab.com/spydotech-group/shared-entity/events"
+	"gitlab.com/spydotech-group/shared-entity/models"
 
 	"github.com/redis/go-redis/v9"
 	kafkago "github.com/segmentio/kafka-go"
@@ -26,10 +28,27 @@ type UserService struct {
 	redisClient   *redis.ClusterClient
 	feedService   *FeedService
 	kafkaProducer *kafka.MessageProducer
+
+	// New gRPC Client
+	grpcClient *userclient.Client
 }
 
-func NewUserService(userRepo *repositories.UserRepository, reelRepo *repositories.ReelRepository, redisClient *redis.ClusterClient, feedService *FeedService, kafkaProducer *kafka.MessageProducer) *UserService {
-	return &UserService{userRepo: userRepo, reelRepo: reelRepo, redisClient: redisClient, feedService: feedService, kafkaProducer: kafkaProducer}
+func NewUserService(
+	userRepo *repositories.UserRepository,
+	reelRepo *repositories.ReelRepository,
+	redisClient *redis.ClusterClient,
+	feedService *FeedService,
+	kafkaProducer *kafka.MessageProducer,
+	grpcClient *userclient.Client, // Inject client
+) *UserService {
+	return &UserService{
+		userRepo:      userRepo,
+		reelRepo:      reelRepo,
+		redisClient:   redisClient,
+		feedService:   feedService,
+		kafkaProducer: kafkaProducer,
+		grpcClient:    grpcClient,
+	}
 }
 
 // UserUpdatedEvent represents a user profile update event
@@ -42,11 +61,10 @@ type UserUpdatedEvent struct {
 }
 
 func (s *UserService) GetUserStatus(ctx context.Context, userID primitive.ObjectID) (map[string]interface{}, error) {
-	// ... existing GetUserStatus implementation ...
+	// ... (Keep existing implementation for Redis presence)
 	key := fmt.Sprintf("presence:%s", userID.Hex())
 	val, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
-		// If key not found, assume offline
 		if err == redis.Nil {
 			return map[string]interface{}{"status": "offline"}, nil
 		}
@@ -61,8 +79,143 @@ func (s *UserService) GetUserStatus(ctx context.Context, userID primitive.Object
 	return statusData, nil
 }
 
+// GetUserByID now with Read-Through Caching
 func (s *UserService) GetUserByID(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
-	return s.userRepo.FindUserByID(ctx, id)
+	// 1. Try Cache
+	cacheKey := fmt.Sprintf("user:profile:%s", id.Hex())
+	val, err := s.redisClient.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var user models.User
+		if err := json.Unmarshal([]byte(val), &user); err == nil {
+			return &user, nil
+		}
+	}
+
+	var user *models.User
+	// 2. Try gRPC
+	if s.grpcClient != nil {
+		user, err = s.grpcClient.GetUserByID(ctx, id)
+		if err != nil {
+			// Fail "safe" - fallback to local repo if gRPC fails (Robustness)
+			log.Printf("gRPC GetUserByID failed, falling back to local repo: %v", err)
+			user, err = s.userRepo.FindUserByID(ctx, id)
+		}
+	} else {
+		// Fallback to local repo
+		user, err = s.userRepo.FindUserByID(ctx, id)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	// 3. Set Cache (Async)
+	go func(u *models.User) {
+		bytes, _ := json.Marshal(u)
+		s.redisClient.Set(context.Background(), cacheKey, bytes, time.Hour*24) // 24h TTL, relies on Event Invalidation
+	}(user)
+
+	return user, nil
+}
+
+// GetUsersByIDs - Batch with Caching (MGET Optimized)
+func (s *UserService) GetUsersByIDs(ctx context.Context, ids []primitive.ObjectID) ([]models.User, error) {
+	if len(ids) == 0 {
+		return []models.User{}, nil
+	}
+
+	users := make([]models.User, 0, len(ids))
+	missIDs := make([]primitive.ObjectID, 0)
+
+	// Deduplicate IDs to avoid redundant work
+	idSet := make(map[string]struct{})
+	uniqueIDs := make([]primitive.ObjectID, 0, len(ids))
+
+	for _, id := range ids {
+		hex := id.Hex()
+		if _, exists := idSet[hex]; !exists {
+			idSet[hex] = struct{}{}
+			uniqueIDs = append(uniqueIDs, id)
+		}
+	}
+
+	// 1. Check Cache with MGET (O(1) RTT)
+	keys := make([]string, len(uniqueIDs))
+	for i, id := range uniqueIDs {
+		keys[i] = fmt.Sprintf("user:profile:%s", id.Hex())
+	}
+
+	vals, err := s.redisClient.MGet(ctx, keys...).Result()
+	if err != nil {
+		// Log error and fallback to fetching all from source
+		log.Printf("Redis MGET failed: %v", err)
+		missIDs = uniqueIDs
+	} else {
+		for i, val := range vals {
+			if val == nil {
+				missIDs = append(missIDs, uniqueIDs[i])
+				continue
+			}
+
+			var user models.User
+			if valStr, ok := val.(string); ok {
+				if err := json.Unmarshal([]byte(valStr), &user); err == nil {
+					users = append(users, user)
+					continue
+				}
+			}
+			// If invalid or error, treat as miss
+			missIDs = append(missIDs, uniqueIDs[i])
+		}
+	}
+
+	if len(missIDs) == 0 {
+		return users, nil
+	}
+
+	// 2. Fetch Misses from Source
+	var fetchedUsers []models.User
+	if s.grpcClient != nil {
+		fetchedUsers, err = s.grpcClient.GetUsersByIDs(ctx, missIDs)
+		if err != nil {
+			log.Printf("gRPC GetUsersByIDs failed, falling back to local repo: %v", err)
+			fetchedUsers, err = s.userRepo.FindUsersByIDs(ctx, missIDs)
+		}
+	} else {
+		fetchedUsers, err = s.userRepo.FindUsersByIDs(ctx, missIDs)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Cache Misses & Combine (Pipeline SET)
+	if len(fetchedUsers) > 0 {
+		pipe := s.redisClient.Pipeline()
+		for _, u := range fetchedUsers {
+			users = append(users, u)
+
+			bytes, _ := json.Marshal(u)
+			cacheKey := fmt.Sprintf("user:profile:%s", u.ID.Hex())
+			pipe.Set(ctx, cacheKey, bytes, time.Hour*24)
+		}
+
+		// Exec non-blocking or blocking?
+		// Context is critical. If we want this to be async, we launch a goroutine.
+		// Async is better for user latency.
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if _, err := pipe.Exec(ctx); err != nil {
+				log.Printf("Failed to pipeline cache updates: %v", err)
+			}
+		}()
+	}
+
+	return users, nil
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, update *models.UserUpdateRequest) (*models.User, error) {

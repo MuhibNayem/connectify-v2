@@ -482,6 +482,22 @@ services:
     networks:
       - messaging-net
 
+  user-service:
+    build:
+      context: ../
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8083:8083"
+    depends_on:
+      - mongodb3
+      - kafka3
+      - neo4j
+      - redis3 # Changed from 'redis' to 'redis3' to match existing services
+    networks:
+      - messaging-net # Changed from 'app-network' to 'messaging-net' to match existing networks
+    env_file:
+      - .env
+
   marketplace-service:
     build:
       context: ../marketplace-service

@@ -18,7 +18,8 @@ type Config struct {
 	KafkaBrokers        []string
 	JWTSecret           string
 	ServerPort          string
-	KafkaTopic          string
+	KafkaTopic          string // General messages topic
+	UserUpdatedTopic    string
 	WebSocketPort       string
 	RedisURLs           []string
 	RedisPass           string
@@ -34,6 +35,8 @@ type Config struct {
 	StorageBucket       string
 	StorageUseSSL       bool
 	StoragePublicURL    string
+	FeedServiceURL      string
+	UserServiceURL      string
 	EventsGRPCPort      string
 	EventsGRPCHost      string
 	EventsMetricsPort   string
@@ -98,6 +101,7 @@ func LoadConfig() *Config {
 		JWTSecret:           getEnv("JWT_SECRET", "very-secret-key"),
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
 		KafkaTopic:          getEnv("KAFKA_TOPIC", "messages"),
+		UserUpdatedTopic:    getEnv("KAFKA_USER_UPDATED_TOPIC", "user-updated"),
 		WebSocketPort:       getEnv("WS_PORT", "8081"),
 		RedisURLs:           strings.Split(getEnv("REDIS_URL", "localhost:6379"), ","),
 		RedisPass:           getEnv("REDIS_PASS", ""),
@@ -113,6 +117,8 @@ func LoadConfig() *Config {
 		StorageBucket:       getEnv("STORAGE_BUCKET", "connectify-uploads"),
 		StorageUseSSL:       storageUseSSL,
 		StoragePublicURL:    getEnv("STORAGE_PUBLIC_URL", "http://localhost:9000"),
+		FeedServiceURL:      getEnv("FEED_SERVICE_URL", "localhost:9090"),
+		UserServiceURL:      getEnv("USER_SERVICE_URL", "localhost:9083"),
 		EventsGRPCPort:      eventsGRPCPort,
 		EventsGRPCHost:      eventsGRPCHost,
 		EventsMetricsPort:   eventsMetricsPort,

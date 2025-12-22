@@ -51,6 +51,7 @@ type Application struct {
 	dlqProducer             *pkgkafka.DLQProducer
 	kafkaConsumer           *kafka.MessageConsumer
 	notificationConsumer    *kafka.NotificationConsumer
+	cacheInvalidator        *kafka.CacheInvalidator
 	eventsClient            *eventsclient.Client
 	marketplaceClient       *marketplaceclient.Client
 	feedClient              *feedclient.Client
@@ -167,6 +168,9 @@ func (a *Application) Close() {
 	if a.notificationConsumer != nil {
 		_ = a.notificationConsumer.Close()
 	}
+	if a.cacheInvalidator != nil {
+		a.cacheInvalidator.Close()
+	}
 	if a.kafkaProducer != nil {
 		_ = a.kafkaProducer.Close()
 	}
@@ -271,6 +275,12 @@ func (a *Application) initDomain() error {
 	a.kafkaConsumer = kafka.NewMessageConsumer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, "message-group", a.hub)
 	a.notificationConsumer = kafka.NewNotificationConsumer(a.cfg.KafkaBrokers, "notifications_events", "notification-group", a.hub, repos.Notification, a.dlqProducer)
 
+	// Cache Invalidator (Group ID unique-ish or shared? Shared for load balancing if multiple instances)
+	a.cacheInvalidator = kafka.NewCacheInvalidator(a.cfg.KafkaBrokers, a.cfg.UserUpdatedTopic, "cache-invalidator-group", a.redisClient.GetClient()) // Need GetClient if it returns *redis.ClusterClient directly?
+	// Wait, Application struct has `redisClient *redis.ClusterClient`. InitRedis returns *redis.ClusterClient.
+	// NewCacheInvalidator expects *redis.ClusterClient.
+	a.cacheInvalidator = kafka.NewCacheInvalidator(a.cfg.KafkaBrokers, a.cfg.UserUpdatedTopic, "cache-invalidator-group", a.redisClient.GetClient())
+
 	a.mainRouter, a.websocketRouter = a.buildRouters(controllerConfig)
 
 	a.httpServer = &http.Server{
@@ -317,5 +327,6 @@ func (a *Application) startBackgroundWorkers() {
 	}
 	go a.kafkaConsumer.ConsumeMessages(ctx)
 	go a.notificationConsumer.Start(ctx)
+	go a.cacheInvalidator.Start(ctx)
 	go a.cleanupService.StartCleanupWorker(ctx)
 }

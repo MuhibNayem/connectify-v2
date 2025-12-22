@@ -15,6 +15,7 @@ import (
 	"messaging-app/internal/repositories"
 	"messaging-app/internal/seeds"
 	"messaging-app/internal/services"
+	"messaging-app/internal/userclient"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -124,8 +125,21 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 		repos.MessageCassandra.SetArchiveFetcher(a.messageArchiveService)
 	}
 
+	// Initialize User Service Client
+	userClient, err := userclient.New(context.Background(), a.cfg)
+	if err != nil {
+		// Log error but maybe don't fail startup if soft dependency?
+		// For now, let's treat it as critical if we want to migrate.
+		// But to keep monolith running if service down, maybe nil?
+		// We'll log and continue, userService handles nil client gracefully.
+		log.Printf("Failed to create user service client: %v", err)
+	} else {
+		// Ensure closure on shutdown if needed, but here we build services.
+		// Usually we'd register closer.
+	}
+
 	feedService := services.NewFeedService(repos.Feed, repos.User, repos.Friendship, repos.Community, repos.Privacy, a.kafkaProducer, notificationService, storageService)
-	userService := services.NewUserService(repos.User, repos.Reel, a.redisClient.GetClient(), feedService, a.userKafkaProducer)
+	userService := services.NewUserService(repos.User, repos.Reel, a.redisClient.GetClient(), feedService, a.userKafkaProducer, userClient)
 	groupService := services.NewGroupService(repos.Group, repos.User, repos.GroupActivity, a.cassandra, a.kafkaProducer, a.redisClient.GetClient(), graphs.GroupGraph)
 	friendshipService := services.NewFriendshipService(repos.Friendship, repos.User, graphs.UserGraph, a.friendshipKafkaProducer)
 	messageService := services.NewMessageService(repos.Message, repos.Group, repos.Friendship, a.kafkaProducer, a.redisClient.GetClient(), repos.User, notificationService, repos.MessageCassandra, repos.GroupActivity)
