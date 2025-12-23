@@ -63,7 +63,7 @@ func main() {
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo, graphRepo, redisClient, cfg)
-	userService := service.NewUserService(userRepo, producer, cfg)
+	userService := service.NewUserService(userRepo, producer, redisClient, cfg)
 	// friendshipService := service.NewFriendshipService(friendRepo, graphRepo, userRepo, producer, cfg) // Unused in handlers yet
 
 	// 5. Handlers

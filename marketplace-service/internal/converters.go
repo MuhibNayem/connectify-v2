@@ -207,6 +207,7 @@ func ToProtoConversations(conversations []models.ConversationSummary) []*marketp
 			LastMessageContent:     conv.LastMessageContent,
 			LastMessageTimestamp:   timestamp,
 			LastMessageSenderId:    conv.LastMessageSenderID.Hex(),
+			LastMessageSenderName:  conv.LastMessageSenderName,
 			UnreadCount:            int32(conv.UnreadCount),
 			LastMessageIsEncrypted: conv.LastMessageIsEncrypted,
 		})

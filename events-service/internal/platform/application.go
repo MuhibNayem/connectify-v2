@@ -26,6 +26,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc"
+
+	eventgrpc "gitlab.com/spydotech-group/events-service/internal/grpc"
+	eventspb "gitlab.com/spydotech-group/shared-entity/proto/events/v1"
 )
 
 type Application struct {
@@ -47,6 +51,7 @@ type Application struct {
 	mainRouter    *gin.Engine
 	httpServer    *http.Server
 	metricsServer *http.Server
+	grpcServer    *grpc.Server
 
 	shutdownOnce sync.Once
 }
@@ -86,6 +91,19 @@ func (a *Application) Run() error {
 	}
 	startServer(a.metricsServer, "Metrics server")
 
+	// Start gRPC server
+	go func() {
+		lis, err := net.Listen("tcp", net.JoinHostPort("", a.cfg.EventsGRPCPort))
+		if err != nil {
+			errCh <- fmt.Errorf("failed to listen for gRPC: %w", err)
+			return
+		}
+		log.Printf("gRPC server starting on %s", lis.Addr())
+		if err := a.grpcServer.Serve(lis); err != nil {
+			errCh <- fmt.Errorf("gRPC server failed: %w", err)
+		}
+	}()
+
 	select {
 	case <-quit:
 		log.Println("Received shutdown signal")
@@ -114,6 +132,11 @@ func (a *Application) Shutdown() error {
 		if err := a.metricsServer.Shutdown(ctx); err != nil {
 			log.Printf("Metrics server shutdown error: %v", err)
 			shutdownErr = err
+		}
+
+		if a.grpcServer != nil {
+			log.Println("Stopping gRPC server...")
+			a.grpcServer.GracefulStop()
 		}
 
 		a.Close()
@@ -208,5 +231,11 @@ func (a *Application) bootstrap() error {
 		Addr:    net.JoinHostPort("", a.cfg.PrometheusPort),
 		Handler: metricsMux,
 	}
+
+	// Initialize gRPC Server
+	a.grpcServer = grpc.NewServer()
+	grpcEventHandler := eventgrpc.NewServer(a.eventService, eventRecommendationService)
+	eventspb.RegisterEventsServiceServer(a.grpcServer, grpcEventHandler)
+
 	return nil
 }

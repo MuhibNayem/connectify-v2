@@ -138,3 +138,26 @@ func (r *UserRepository) RemoveFriend(ctx context.Context, userID, friendID prim
 	_, err := r.db.Collection("users").UpdateOne(ctx, bson.M{"_id": userID}, bson.M{"$pull": bson.M{"friends": friendID}})
 	return err
 }
+
+func (r *UserRepository) CountUsers(ctx context.Context, filter bson.M) (int64, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return r.db.Collection("users").CountDocuments(ctx, filter)
+}
+
+func (r *UserRepository) FindUsers(ctx context.Context, filter bson.M, opts *options.FindOptions) ([]models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	cursor, err := r.db.Collection("users").Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []models.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
+}

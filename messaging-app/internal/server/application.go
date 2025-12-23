@@ -20,6 +20,7 @@ import (
 	"messaging-app/internal/kafka"
 	"messaging-app/internal/marketplaceclient"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storyclient"
 	"messaging-app/internal/websocket"
 
 	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
@@ -48,10 +49,12 @@ type Application struct {
 	dlqProducer             *pkgkafka.DLQProducer
 	kafkaConsumer           *kafka.MessageConsumer
 	notificationConsumer    *kafka.NotificationConsumer
+	storyConsumer           *kafka.StoryConsumer
 	cacheInvalidator        *kafka.CacheInvalidator
 	eventsClient            *eventsclient.Client
 	marketplaceClient       *marketplaceclient.Client
 	feedClient              *feedclient.Client
+	storyClient             *storyclient.Client
 	messageArchiveService   *services.MessageArchiveService
 	cleanupService          *services.CleanupService
 	hub                     *websocket.Hub
@@ -251,10 +254,20 @@ func (a *Application) initDomain() error {
 	}
 	a.feedClient = feedClient
 
-	controllerConfig := buildControllers(a.cfg, servicesBundle, a.marketplaceClient, a.feedClient)
+	// Initialize story gRPC client
+	storyClient, err := storyclient.NewClient(a.cfg.StoryGRPCHost, a.cfg.StoryGRPCPort)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to story service: %v - using fallback", err)
+		// Don't fail startup, story might be optional
+	} else {
+		a.storyClient = storyClient
+	}
+
+	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient)
 
 	a.kafkaConsumer = kafka.NewMessageConsumer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, "message-group", a.hub)
 	a.notificationConsumer = kafka.NewNotificationConsumer(a.cfg.KafkaBrokers, "notifications_events", "notification-group", a.hub, repos.Notification, a.dlqProducer)
+	a.storyConsumer = kafka.NewStoryConsumer(a.cfg.KafkaBrokers, "story-events", "story-consumer-group", a.hub)
 
 	// Cache Invalidator (Group ID unique-ish or shared? Shared for load balancing if multiple instances)
 	a.cacheInvalidator = kafka.NewCacheInvalidator(a.cfg.KafkaBrokers, a.cfg.UserUpdatedTopic, "cache-invalidator-group", a.redisClient.GetClient()) // Need GetClient if it returns *redis.ClusterClient directly?
@@ -291,6 +304,7 @@ func (a *Application) startBackgroundWorkers() {
 	}
 	go a.kafkaConsumer.ConsumeMessages(ctx)
 	go a.notificationConsumer.Start(ctx)
+	go a.storyConsumer.Start(ctx)
 	go a.cacheInvalidator.Start(ctx)
 	go a.cleanupService.StartCleanupWorker(ctx)
 }

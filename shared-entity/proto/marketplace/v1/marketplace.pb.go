@@ -1180,6 +1180,7 @@ type ConversationSummary struct {
 	LastMessageSenderId    string                 `protobuf:"bytes,7,opt,name=last_message_sender_id,json=lastMessageSenderId,proto3" json:"last_message_sender_id,omitempty"`
 	UnreadCount            int32                  `protobuf:"varint,8,opt,name=unread_count,json=unreadCount,proto3" json:"unread_count,omitempty"`
 	LastMessageIsEncrypted bool                   `protobuf:"varint,9,opt,name=last_message_is_encrypted,json=lastMessageIsEncrypted,proto3" json:"last_message_is_encrypted,omitempty"`
+	LastMessageSenderName  string                 `protobuf:"bytes,10,opt,name=last_message_sender_name,json=lastMessageSenderName,proto3" json:"last_message_sender_name,omitempty"` // Added to match model
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -1275,6 +1276,13 @@ func (x *ConversationSummary) GetLastMessageIsEncrypted() bool {
 		return x.LastMessageIsEncrypted
 	}
 	return false
+}
+
+func (x *ConversationSummary) GetLastMessageSenderName() string {
+	if x != nil {
+		return x.LastMessageSenderName
+	}
+	return ""
 }
 
 type GetConversationsRequest struct {
@@ -1467,7 +1475,7 @@ const file_proto_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x17GetSavedProductsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x03R\x04page\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x03R\x05limit\"\x83\x03\n" +
+	"\x05limit\x18\x03 \x01(\x03R\x05limit\"\xbc\x03\n" +
 	"\x13ConversationSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1477,7 +1485,9 @@ const file_proto_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\x16last_message_timestamp\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x14lastMessageTimestamp\x123\n" +
 	"\x16last_message_sender_id\x18\a \x01(\tR\x13lastMessageSenderId\x12!\n" +
 	"\funread_count\x18\b \x01(\x05R\vunreadCount\x129\n" +
-	"\x19last_message_is_encrypted\x18\t \x01(\bR\x16lastMessageIsEncrypted\"2\n" +
+	"\x19last_message_is_encrypted\x18\t \x01(\bR\x16lastMessageIsEncrypted\x127\n" +
+	"\x18last_message_sender_name\x18\n" +
+	" \x01(\tR\x15lastMessageSenderName\"2\n" +
 	"\x17GetConversationsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"e\n" +
 	"\x18GetConversationsResponse\x12I\n" +

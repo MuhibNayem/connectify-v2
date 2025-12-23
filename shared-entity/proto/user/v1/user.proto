@@ -4,10 +4,28 @@ package user.v1;
 
 option go_package = "messaging-app/proto/user/v1;userv1";
 
+import "google/protobuf/timestamp.proto";
+
 service UserService {
+  // Read Operations
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
   rpc GetUsers (GetUsersRequest) returns (GetUsersResponse);
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+  rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse);
+  rpc GetUsersPresence (GetUsersPresenceRequest) returns (GetUsersPresenceResponse);
+  
+  // Write Operations
+  rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
+  rpc UpdateEmail (UpdateEmailRequest) returns (UpdateEmailResponse);
+  rpc UpdatePassword (UpdatePasswordRequest) returns (UpdatePasswordResponse);
+  rpc ToggleTwoFactor (ToggleTwoFactorRequest) returns (ToggleTwoFactorResponse);
+  rpc DeactivateAccount (DeactivateAccountRequest) returns (DeactivateAccountResponse);
+  rpc UpdatePublicKey (UpdatePublicKeyRequest) returns (UpdatePublicKeyResponse);
+  rpc UpdatePrivacySettings (UpdatePrivacySettingsRequest) returns (UpdatePrivacySettingsResponse);
+  rpc UpdateNotificationSettings (UpdateNotificationSettingsRequest) returns (UpdateNotificationSettingsResponse);
 }
+
+// ==================== READ OPERATIONS ====================
 
 message GetUserRequest {
   string user_id = 1;
@@ -25,6 +43,141 @@ message GetUsersResponse {
   repeated User users = 1;
 }
 
+message ListUsersRequest {
+  int64 page = 1;
+  int64 limit = 2;
+  string search = 3;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int64 total = 2;
+  int64 page = 3;
+  int64 limit = 4;
+}
+
+message GetUserStatusRequest {
+  string user_id = 1;
+}
+
+message GetUserStatusResponse {
+  string status = 1;  // "online" or "offline"
+  int64 last_seen = 2;  // Unix timestamp
+}
+
+message GetUsersPresenceRequest {
+  repeated string user_ids = 1;
+}
+
+message GetUsersPresenceResponse {
+  map<string, UserPresence> presence = 1;
+}
+
+message UserPresence {
+  string status = 1;
+  int64 last_seen = 2;
+}
+
+// ==================== WRITE OPERATIONS ====================
+
+message UpdateUserRequest {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  string full_name = 4;
+  string bio = 5;
+  string avatar = 6;
+  string cover_picture = 7;
+  string gender = 8;
+  string location = 9;
+  string phone_number = 10;
+  google.protobuf.Timestamp date_of_birth = 11;
+  optional bool is_encryption_enabled = 12;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message UpdateEmailRequest {
+  string user_id = 1;
+  string new_email = 2;
+}
+
+message UpdateEmailResponse {
+  bool success = 1;
+}
+
+message UpdatePasswordRequest {
+  string user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message UpdatePasswordResponse {
+  bool success = 1;
+}
+
+message ToggleTwoFactorRequest {
+  string user_id = 1;
+  bool enable = 2;
+}
+
+message ToggleTwoFactorResponse {
+  bool success = 1;
+}
+
+message DeactivateAccountRequest {
+  string user_id = 1;
+}
+
+message DeactivateAccountResponse {
+  bool success = 1;
+}
+
+message UpdatePublicKeyRequest {
+  string user_id = 1;
+  string public_key = 2;
+  string encrypted_private_key = 3;
+  string key_backup_iv = 4;
+  string key_backup_salt = 5;
+}
+
+message UpdatePublicKeyResponse {
+  bool success = 1;
+}
+
+message UpdatePrivacySettingsRequest {
+  string user_id = 1;
+  string default_post_privacy = 2;
+  string can_see_my_friends_list = 3;
+  string can_send_me_friend_requests = 4;
+  string can_tag_me_in_posts = 5;
+}
+
+message UpdatePrivacySettingsResponse {
+  bool success = 1;
+}
+
+message UpdateNotificationSettingsRequest {
+  string user_id = 1;
+  optional bool email_notifications = 2;
+  optional bool push_notifications = 3;
+  optional bool notify_on_friend_request = 4;
+  optional bool notify_on_comment = 5;
+  optional bool notify_on_like = 6;
+  optional bool notify_on_tag = 7;
+  optional bool notify_on_message = 8;
+  optional bool notify_on_birthday = 9;
+  optional bool notify_on_event_invite = 10;
+}
+
+message UpdateNotificationSettingsResponse {
+  bool success = 1;
+}
+
+// ==================== CORE TYPES ====================
+
 message User {
   string id = 1;
   string username = 2;
@@ -32,12 +185,40 @@ message User {
   string full_name = 4;
   string avatar = 5;
   string bio = 6;
-  string role = 7; // e.g., "user", "admin"
+  string role = 7;
   bool is_verified = 8;
   PrivacySettings privacy_settings = 9;
+  string cover_picture = 10;
+  google.protobuf.Timestamp date_of_birth = 11;
+  string gender = 12;
+  string location = 13;
+  string phone_number = 14;
+  bool two_factor_enabled = 15;
+  bool email_verified = 16;
+  bool is_active = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+  NotificationSettings notification_settings = 20;
+  bool is_encryption_enabled = 21;
 }
 
 message PrivacySettings {
-    bool profile_visible = 1;
-    bool search_visible = 2;
+    string default_post_privacy = 1;
+    string can_see_my_friends_list = 2;
+    string can_send_me_friend_requests = 3;
+    string can_tag_me_in_posts = 4;
+    google.protobuf.Timestamp last_updated = 5;
 }
+
+message NotificationSettings {
+    bool email_notifications = 1;
+    bool push_notifications = 2;
+    bool notify_on_friend_request = 3;
+    bool notify_on_comment = 4;
+    bool notify_on_like = 5;
+    bool notify_on_tag = 6;
+    bool notify_on_message = 7;
+    bool notify_on_birthday = 8;
+    bool notify_on_event_invite = 9;
+}
+

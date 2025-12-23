@@ -15,6 +15,7 @@ import (
 	"messaging-app/internal/repositories"
 	"messaging-app/internal/seeds"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storyclient"
 	"messaging-app/internal/userclient"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -97,7 +98,6 @@ type serviceBundle struct {
 	Search              *services.SearchService
 	Conversation        *services.ConversationService
 	Community           *services.CommunityService
-	Story               *services.StoryService
 	Reel                *services.ReelService
 	Marketplace         *services.MarketplaceService
 	Event               services.EventServiceContract
@@ -147,7 +147,6 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	searchService := services.NewSearchService(repos.User, repos.Feed, repos.Friendship)
 	conversationService := services.NewConversationService(repos.Conversation, repos.MessageCassandra, repos.User, repos.Group)
 	communityService := services.NewCommunityService(repos.Community, repos.User)
-	storyService := services.NewStoryService(repos.Story, repos.User, repos.Friendship)
 	reelService := services.NewReelService(repos.Reel, repos.User, repos.Friendship)
 	marketplaceService := services.NewMarketplaceService(repos.Marketplace, repos.User, repos.MessageCassandra)
 
@@ -167,7 +166,6 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 		Search:              searchService,
 		Conversation:        conversationService,
 		Community:           communityService,
-		Story:               storyService,
 		Reel:                reelService,
 		Marketplace:         marketplaceService,
 		EventCache:          eventCache,
@@ -177,7 +175,7 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	}, nil
 }
 
-func buildControllers(cfg *config.Config, services serviceBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client) routerConfig {
+func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client) routerConfig {
 	return routerConfig{
 		authController:         controllers.NewAuthController(services.Auth, cfg),
 		userController:         controllers.NewUserController(services.User),
@@ -191,7 +189,7 @@ func buildControllers(cfg *config.Config, services serviceBundle, marketplaceCli
 		conversationController: controllers.NewConversationController(services.Conversation),
 		uploadController:       controllers.NewUploadController(services.Storage),
 		communityController:    controllers.NewCommunityController(services.Community),
-		storyController:        controllers.NewStoryController(services.Story),
+		storyController:        controllers.NewStoryController(storyClient, repos.Friendship),
 		reelController:         controllers.NewReelController(services.Reel),
 		marketplaceController:  controllers.NewMarketplaceController(marketplaceClient),
 		eventController:        controllers.NewEventController(services.Event, services.EventRecommendation),

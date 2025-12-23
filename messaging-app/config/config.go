@@ -44,6 +44,8 @@ type Config struct {
 	EventsMetricsPort   string
 	MarketplaceGRPCPort string
 	MarketplaceGRPCHost string
+	StoryGRPCPort       string
+	StoryGRPCHost       string
 	RealtimeGRPCPort    string
 	RealtimeGRPCHost    string
 
@@ -89,8 +91,10 @@ func LoadConfig() *Config {
 	eventsGRPCPort := getEnv("EVENTS_GRPC_PORT", "9096")
 	eventsGRPCHost := getEnv("EVENTS_GRPC_HOST", "localhost")
 	eventsMetricsPort := getEnv("EVENTS_METRICS_PORT", "9100")
-	marketplaceGRPCPort := getEnv("MARKETPLACE_GRPC_PORT", "9097")
+	marketplaceGRPCPort := getEnv("MARKETPLACE_GRPC_PORT", "9098")
 	marketplaceGRPCHost := getEnv("MARKETPLACE_GRPC_HOST", "localhost")
+	storyGRPCPort := getEnv("STORY_GRPC_PORT", "9097")
+	storyGRPCHost := getEnv("STORY_GRPC_HOST", "localhost")
 	realtimeGRPCPort := getEnv("REALTIME_GRPC_PORT", "9099")
 	realtimeGRPCHost := getEnv("REALTIME_GRPC_HOST", "localhost")
 	feedServiceHost := getEnv("FEED_SERVICE_HOST", "localhost")
@@ -132,6 +136,8 @@ func LoadConfig() *Config {
 		EventsMetricsPort:   eventsMetricsPort,
 		MarketplaceGRPCPort: marketplaceGRPCPort,
 		MarketplaceGRPCHost: marketplaceGRPCHost,
+		StoryGRPCPort:       storyGRPCPort,
+		StoryGRPCHost:       storyGRPCHost,
 		RealtimeGRPCPort:    realtimeGRPCPort,
 		RealtimeGRPCHost:    realtimeGRPCHost,
 		CORSAllowedOrigins:  corsOrigins,

@@ -55,11 +55,17 @@ func (c *Client) SearchProducts(ctx context.Context, filter models.ProductFilter
 	req := &marketplacepb.SearchProductsRequest{
 		CategoryId: filter.CategoryID,
 		Query:      filter.Query,
-		MinPrice:   *filter.MinPrice,
-		MaxPrice:   *filter.MaxPrice,
 		SortBy:     filter.SortBy,
 		Page:       filter.Page,
 		Limit:      filter.Limit,
+	}
+
+	// Handle optional price filters (avoid nil pointer dereference)
+	if filter.MinPrice != nil {
+		req.MinPrice = *filter.MinPrice
+	}
+	if filter.MaxPrice != nil {
+		req.MaxPrice = *filter.MaxPrice
 	}
 
 	resp, err := c.client.SearchProducts(ctx, req)
@@ -162,6 +168,7 @@ func (c *Client) GetMarketplaceConversations(ctx context.Context, userID primiti
 			LastMessageContent:     conv.LastMessageContent,
 			LastMessageTimestamp:   timestamp,
 			LastMessageSenderID:    senderID,
+			LastMessageSenderName:  conv.LastMessageSenderName,
 			UnreadCount:            int64(conv.UnreadCount),
 			LastMessageIsEncrypted: conv.LastMessageIsEncrypted,
 		}

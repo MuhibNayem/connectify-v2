@@ -1,20 +1,25 @@
 package controllers
 
 import (
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"messaging-app/internal/services"
+	"messaging-app/internal/repositories"
+	"messaging-app/internal/storyclient"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/spydotech-group/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type StoryController struct {
-	storyService *services.StoryService
+	storyClient    *storyclient.Client
+	friendshipRepo *repositories.FriendshipRepository
 }
 
-func NewStoryController(storyService *services.StoryService) *StoryController {
-	return &StoryController{storyService: storyService}
+func NewStoryController(storyClient *storyclient.Client, friendshipRepo *repositories.FriendshipRepository) *StoryController {
+	return &StoryController{
+		storyClient:    storyClient,
+		friendshipRepo: friendshipRepo,
+	}
 }
 
 func (c *StoryController) CreateStory(ctx *gin.Context) {
@@ -36,7 +41,7 @@ func (c *StoryController) CreateStory(ctx *gin.Context) {
 		return
 	}
 
-	story, err := c.storyService.CreateStory(ctx.Request.Context(), objUserID, &req)
+	story, err := c.storyClient.CreateStory(ctx.Request.Context(), objUserID, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -63,7 +68,6 @@ func (c *StoryController) GetStoriesFeed(ctx *gin.Context) {
 		Offset int `form:"offset"`
 	}
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		// Default values if binding fails or params missing (though ShouldBindQuery usually doesn't error on missing optional fields if not 'binding:"required"')
 		req.Limit = 10
 		req.Offset = 0
 	}
@@ -74,7 +78,19 @@ func (c *StoryController) GetStoriesFeed(ctx *gin.Context) {
 		req.Offset = 0
 	}
 
-	stories, err := c.storyService.GetStoriesFeed(ctx.Request.Context(), objUserID, req.Limit, req.Offset)
+	// Get friends for privacy filtering
+	friends, err := c.friendshipRepo.GetFriends(ctx.Request.Context(), objUserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	friendIDs := make([]primitive.ObjectID, len(friends))
+	for i, friend := range friends {
+		friendIDs[i] = friend.ID
+	}
+
+	stories, err := c.storyClient.GetStoriesFeed(ctx.Request.Context(), objUserID, friendIDs, req.Limit, req.Offset)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -91,7 +107,7 @@ func (c *StoryController) GetUserStories(ctx *gin.Context) {
 		return
 	}
 
-	stories, err := c.storyService.GetUserStories(ctx.Request.Context(), targetUserID)
+	stories, err := c.storyClient.GetUserStories(ctx.Request.Context(), targetUserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -100,8 +116,22 @@ func (c *StoryController) GetUserStories(ctx *gin.Context) {
 }
 
 func (c *StoryController) DeleteStory(ctx *gin.Context) {
-	// TODO: implement delete
-	ctx.Status(http.StatusNotImplemented)
+	storyIDStr := ctx.Param("id")
+	storyID, err := primitive.ObjectIDFromHex(storyIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid story ID"})
+		return
+	}
+
+	userID, _ := ctx.Get("userID")
+	objUserID, _ := primitive.ObjectIDFromHex(userID.(string))
+
+	if err := c.storyClient.DeleteStory(ctx.Request.Context(), storyID, objUserID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func (c *StoryController) ViewStory(ctx *gin.Context) {
@@ -115,7 +145,7 @@ func (c *StoryController) ViewStory(ctx *gin.Context) {
 	userID, _ := ctx.Get("userID")
 	objUserID, _ := primitive.ObjectIDFromHex(userID.(string))
 
-	if err := c.storyService.RecordView(ctx.Request.Context(), storyID, objUserID); err != nil {
+	if err := c.storyClient.RecordView(ctx.Request.Context(), storyID, objUserID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -142,7 +172,7 @@ func (c *StoryController) ReactToStory(ctx *gin.Context) {
 	userID, _ := ctx.Get("userID")
 	objUserID, _ := primitive.ObjectIDFromHex(userID.(string))
 
-	if err := c.storyService.ReactToStory(ctx.Request.Context(), storyID, objUserID, req.Type); err != nil {
+	if err := c.storyClient.ReactToStory(ctx.Request.Context(), storyID, objUserID, req.Type); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -161,7 +191,7 @@ func (c *StoryController) GetStoryViewers(ctx *gin.Context) {
 	userID, _ := ctx.Get("userID")
 	objUserID, _ := primitive.ObjectIDFromHex(userID.(string))
 
-	viewers, err := c.storyService.GetStoryViewers(ctx.Request.Context(), storyID, objUserID)
+	viewers, err := c.storyClient.GetStoryViewers(ctx.Request.Context(), storyID, objUserID)
 	if err != nil {
 		// unauthorized or not found
 		ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})

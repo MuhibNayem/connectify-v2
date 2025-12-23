@@ -730,10 +730,15 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			log.Printf("Error getting post %s for comment %s: %v", comment.PostID.Hex(), comment.ID.Hex(), err)
 			return
 		}
+
+		// Always send to post author
 		h.sendToUser(post.UserID.Hex(), event.Data)
 
 		switch post.Privacy {
-		case models.PrivacySettingPublic, models.PrivacySettingFriends:
+		case models.PrivacySettingPublic:
+			// For public posts, everyone should see the new comment
+			h.broadcastToAllUsers(event)
+		case models.PrivacySettingFriends:
 			friends, err := h.friendshipRepo.GetFriends(context.Background(), post.UserID)
 			if err == nil {
 				for _, friend := range friends {
@@ -755,12 +760,15 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			log.Printf("Error getting comment %s for reply %s: %v", reply.CommentID.Hex(), reply.ID.Hex(), err)
 			return
 		}
+
+		// Always send to comment author
 		h.sendToUser(comment.UserID.Hex(), event.Data)
 
 		post, err := h.feedRepo.GetPostByID(context.Background(), comment.PostID)
 		if err != nil {
 			log.Printf("Error getting post %s for reply broadcast: %v", comment.PostID.Hex(), err)
 		} else {
+			// Always send to post author
 			h.sendToUser(post.UserID.Hex(), event.Data)
 
 			switch post.Privacy {
@@ -784,8 +792,140 @@ func (h *Hub) handleFeedEvent(event models.WebSocketEvent) {
 			log.Printf("Error unmarshaling %s data: %v", event.Type, err)
 			return
 		}
-		h.broadcastToAllUsers(event)
-		log.Printf("Broadcasted %s event for reaction %s on target %s (type: %s)", event.Type, reaction.ID.Hex(), reaction.TargetID.Hex(), reaction.TargetType)
+
+		// Determine privacy based on target
+		var privacy models.PrivacySettingType = models.PrivacySettingPublic // Default to public if unknown
+		var ownerID primitive.ObjectID
+
+		// Helper to get privacy from post
+		getPostPrivacy := func(postID primitive.ObjectID) (models.PrivacySettingType, primitive.ObjectID) {
+			p, err := h.feedRepo.GetPostByID(context.Background(), postID)
+			if err != nil {
+				return models.PrivacySettingPublic, primitive.NilObjectID
+			}
+			return p.Privacy, p.UserID
+		}
+
+		switch reaction.TargetType {
+		case "post":
+			privacy, ownerID = getPostPrivacy(reaction.TargetID)
+		case "comment":
+			c, err := h.feedRepo.GetCommentByID(context.Background(), reaction.TargetID)
+			if err == nil {
+				privacy, ownerID = getPostPrivacy(c.PostID)
+			}
+		case "reply":
+			r, err := h.feedRepo.GetReplyByID(context.Background(), reaction.TargetID)
+			if err == nil {
+				c, err := h.feedRepo.GetCommentByID(context.Background(), r.CommentID)
+				if err == nil {
+					privacy, ownerID = getPostPrivacy(c.PostID)
+				}
+			}
+		}
+
+		// Always send to owner (if found)
+		if !ownerID.IsZero() {
+			h.sendToUser(ownerID.Hex(), event.Data)
+		}
+
+		switch privacy {
+		case models.PrivacySettingPublic:
+			h.broadcastToAllUsers(event)
+		case models.PrivacySettingFriends:
+			if !ownerID.IsZero() {
+				friends, err := h.friendshipRepo.GetFriends(context.Background(), ownerID)
+				if err == nil {
+					for _, friend := range friends {
+						h.sendToUser(friend.ID.Hex(), event.Data)
+					}
+				}
+			} else {
+				// Fallback if owner lookup failed but privacy presumed friends (unlikely path)
+				h.broadcastToAllUsers(event)
+			}
+		case models.PrivacySettingOnlyMe:
+			// Already sent to owner above
+		default:
+			h.broadcastToAllUsers(event)
+		}
+
+		log.Printf("Broadcasted %s event for reaction %s on target %s (Privacy: %s)", event.Type, reaction.ID.Hex(), reaction.TargetID.Hex(), privacy)
+
+	case "STORY_CREATED":
+		// Parse story created event
+		var storyEvent models.StoryCreatedEvent
+		if err := json.Unmarshal(event.Data, &storyEvent); err != nil {
+			log.Printf("Error unmarshaling STORY_CREATED data: %v", err)
+			return
+		}
+
+		userID, err := primitive.ObjectIDFromHex(storyEvent.UserID)
+		if err != nil {
+			log.Printf("Invalid user ID in STORY_CREATED: %v", err)
+			return
+		}
+
+		// Send to story author
+		h.sendToUser(storyEvent.UserID, event.Data)
+
+		// Send to author's friends
+		friends, err := h.friendshipRepo.GetFriends(context.Background(), userID)
+		if err == nil {
+			for _, friend := range friends {
+				h.sendToUser(friend.ID.Hex(), event.Data)
+			}
+		}
+		log.Printf("Broadcasted STORY_CREATED event for story %s to %d friends", storyEvent.StoryID, len(friends))
+
+	case "STORY_DELETED":
+		var storyEvent models.StoryDeletedEvent
+		if err := json.Unmarshal(event.Data, &storyEvent); err != nil {
+			log.Printf("Error unmarshaling STORY_DELETED data: %v", err)
+			return
+		}
+
+		userID, err := primitive.ObjectIDFromHex(storyEvent.UserID)
+		if err != nil {
+			log.Printf("Invalid user ID in STORY_DELETED: %v", err)
+			return
+		}
+
+		// Send to story author
+		h.sendToUser(storyEvent.UserID, event.Data)
+
+		// Send to author's friends
+		friends, err := h.friendshipRepo.GetFriends(context.Background(), userID)
+		if err == nil {
+			for _, friend := range friends {
+				h.sendToUser(friend.ID.Hex(), event.Data)
+			}
+		}
+		log.Printf("Broadcasted STORY_DELETED event for story %s", storyEvent.StoryID)
+
+	case "STORY_VIEWED":
+		var storyEvent models.StoryViewedEvent
+		if err := json.Unmarshal(event.Data, &storyEvent); err != nil {
+			log.Printf("Error unmarshaling STORY_VIEWED data: %v", err)
+			return
+		}
+		// STORY_VIEWED requires story owner lookup - check if OwnerID is populated
+		if storyEvent.OwnerID != "" {
+			h.sendToUser(storyEvent.OwnerID, event.Data)
+			log.Printf("Sent STORY_VIEWED event to story owner for story %s", storyEvent.StoryID)
+		} else {
+			log.Printf("STORY_VIEWED event missing OwnerID for story %s", storyEvent.StoryID)
+		}
+
+	case "STORY_REACTION":
+		var storyEvent models.StoryReactionAddedEvent
+		if err := json.Unmarshal(event.Data, &storyEvent); err != nil {
+			log.Printf("Error unmarshaling STORY_REACTION data: %v", err)
+			return
+		}
+		// Story reaction events go only to the story author
+		h.sendToUser(storyEvent.UserID, event.Data)
+		log.Printf("Sent STORY_REACTION event to story owner for story %s", storyEvent.StoryID)
 
 	default:
 		log.Printf("Received unknown WebSocket event type: %s, data: %s", event.Type, string(event.Data))

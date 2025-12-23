@@ -13,12 +13,12 @@ import (
 
 	"gitlab.com/spydotech-group/shared-entity/events"
 	"gitlab.com/spydotech-group/shared-entity/models"
+	pb "gitlab.com/spydotech-group/shared-entity/proto/user/v1"
 
 	"github.com/redis/go-redis/v9"
 	kafkago "github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -331,6 +331,14 @@ func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, upd
 		return nil, err
 	}
 
+	// Invalidate user profile cache
+	cacheKey := fmt.Sprintf("user:profile:%s", id.Hex())
+	if err := s.redisClient.Del(ctx, cacheKey).Err(); err != nil {
+		log.Printf("Failed to invalidate user cache for %s: %v", id.Hex(), err)
+	} else {
+		log.Printf("Invalidated user cache for %s", id.Hex())
+	}
+
 	// Publish UserUpdated event
 	if s.kafkaProducer != nil {
 		event := events.UserUpdatedEvent{
@@ -380,232 +388,138 @@ func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, upd
 	return updatedUser, nil
 }
 
-// UpdateNotificationSettings updates a user's notification settings
+// UpdateNotificationSettings updates a user's notification settings via gRPC
 func (s *UserService) UpdateNotificationSettings(ctx context.Context, userID primitive.ObjectID, req *models.UpdateNotificationSettingsRequest) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
-	if err != nil {
-		return err
+	grpcReq := &pb.UpdateNotificationSettingsRequest{
+		UserId: userID.Hex(),
 	}
-	if user == nil {
-		return errors.New("user not found")
-	}
-
-	updateFields := bson.M{}
 
 	if req.EmailNotifications != nil {
-		updateFields["notification_settings.email_notifications"] = *req.EmailNotifications
+		grpcReq.EmailNotifications = req.EmailNotifications
 	}
 	if req.PushNotifications != nil {
-		updateFields["notification_settings.push_notifications"] = *req.PushNotifications
+		grpcReq.PushNotifications = req.PushNotifications
 	}
 	if req.NotifyOnFriendRequest != nil {
-		updateFields["notification_settings.notify_on_friend_request"] = *req.NotifyOnFriendRequest
+		grpcReq.NotifyOnFriendRequest = req.NotifyOnFriendRequest
 	}
 	if req.NotifyOnComment != nil {
-		updateFields["notification_settings.notify_on_comment"] = *req.NotifyOnComment
+		grpcReq.NotifyOnComment = req.NotifyOnComment
 	}
 	if req.NotifyOnLike != nil {
-		updateFields["notification_settings.notify_on_like"] = *req.NotifyOnLike
+		grpcReq.NotifyOnLike = req.NotifyOnLike
 	}
 	if req.NotifyOnTag != nil {
-		updateFields["notification_settings.notify_on_tag"] = *req.NotifyOnTag
+		grpcReq.NotifyOnTag = req.NotifyOnTag
 	}
 	if req.NotifyOnMessage != nil {
-		updateFields["notification_settings.notify_on_message"] = *req.NotifyOnMessage
+		grpcReq.NotifyOnMessage = req.NotifyOnMessage
 	}
 
-	if len(updateFields) == 0 {
-		return nil // No updates
-	}
-
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateFields)
+	_, err := s.grpcClient.UpdateNotificationSettings(ctx, grpcReq)
 	if err != nil {
-		return fmt.Errorf("failed to update notification settings: %w", err)
+		return fmt.Errorf("failed to update notification settings via gRPC: %w", err)
 	}
+
+	// Invalidate cache
+	cacheKey := fmt.Sprintf("user_profile:%s", userID.Hex())
+	s.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }
 
+// ListUsers retrieves a paginated list of users via gRPC
 func (s *UserService) ListUsers(ctx context.Context, page, limit int64, search string) (*models.UserListResponse, error) {
-	filter := bson.M{}
-	if search != "" {
-		filter["$or"] = []bson.M{
-			{"username": bson.M{"$regex": search, "$options": "i"}},
-			{"email": bson.M{"$regex": search, "$options": "i"}},
+	resp, err := s.grpcClient.ListUsers(ctx, page, limit, search)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list users via gRPC: %w", err)
+	}
+
+	// Convert proto users to models
+	users := make([]models.User, len(resp.Users))
+	for i, pu := range resp.Users {
+		oid, _ := primitive.ObjectIDFromHex(pu.Id)
+		users[i] = models.User{
+			ID:       oid,
+			Username: pu.Username,
+			Email:    pu.Email,
+			FullName: pu.FullName,
+			Avatar:   pu.Avatar,
+			Bio:      pu.Bio,
+			IsActive: pu.IsActive,
 		}
-	}
-
-	// Get total count
-	total, err := s.userRepo.CountUsers(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	// Pagination options
-	opts := options.Find().
-		SetSkip((page - 1) * limit).
-		SetLimit(limit).
-		SetSort(bson.D{{Key: "username", Value: 1}})
-
-	users, err := s.userRepo.FindUsers(ctx, filter, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	// Clear passwords
-	for i := range users {
-		users[i].Password = ""
 	}
 
 	return &models.UserListResponse{
 		Users: users,
-		Total: total,
-		Page:  page,
-		Limit: limit,
+		Total: resp.Total,
+		Page:  resp.Page,
+		Limit: resp.Limit,
 	}, nil
 }
 
-// UpdateEmail updates a user's email address
+// UpdateEmail updates a user's email address via gRPC
 func (s *UserService) UpdateEmail(ctx context.Context, userID primitive.ObjectID, req *models.UpdateEmailRequest) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
+	_, err := s.grpcClient.UpdateEmail(ctx, userID.Hex(), req.NewEmail)
 	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("failed to update email via gRPC: %w", err)
 	}
 
-	// Check if new email already exists
-	existingUser, err := s.userRepo.FindUserByEmail(ctx, req.NewEmail)
-	if err != nil {
-		return err
-	}
-	if existingUser != nil && existingUser.ID != userID {
-		return errors.New("email already in use by another account")
-	}
-
-	updateData := bson.M{
-		"email":          req.NewEmail,
-		"email_verified": false, // New email needs verification
-		"updated_at":     time.Now(),
-	}
-
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateData)
-	if err != nil {
-		return fmt.Errorf("failed to update email: %w", err)
-	}
-
-	// TODO: Trigger email verification process
+	// Invalidate cache
+	cacheKey := fmt.Sprintf("user_profile:%s", userID.Hex())
+	s.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }
 
-// UpdatePassword updates a user's password
+// UpdatePassword updates a user's password via gRPC
 func (s *UserService) UpdatePassword(ctx context.Context, userID primitive.ObjectID, req *models.UpdatePasswordRequest) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
+	_, err := s.grpcClient.UpdatePassword(ctx, userID.Hex(), req.CurrentPassword, req.NewPassword)
 	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("user not found")
-	}
-
-	// Verify current password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword)); err != nil {
-		return errors.New("current password is incorrect")
-	}
-
-	// Hash new password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("failed to hash new password: %w", err)
-	}
-
-	updateData := bson.M{
-		"password":   string(hashedPassword),
-		"updated_at": time.Now(),
-	}
-
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateData)
-	if err != nil {
-		return fmt.Errorf("failed to update password: %w", err)
+		return fmt.Errorf("failed to update password via gRPC: %w", err)
 	}
 
 	return nil
 }
 
-// ToggleTwoFactor enables or disables two-factor authentication for a user
+// ToggleTwoFactor enables or disables two-factor authentication via gRPC
 func (s *UserService) ToggleTwoFactor(ctx context.Context, userID primitive.ObjectID, enable bool) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
+	_, err := s.grpcClient.ToggleTwoFactor(ctx, userID.Hex(), enable)
 	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("failed to toggle two-factor authentication via gRPC: %w", err)
 	}
 
-	// TODO: Implement actual 2FA setup/teardown logic (e.g., generate/verify TOTP secret)
-
-	updateData := bson.M{
-		"two_factor_enabled": enable,
-		"updated_at":         time.Now(),
-	}
-
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateData)
-	if err != nil {
-		return fmt.Errorf("failed to toggle two-factor authentication: %w", err)
-	}
+	// Invalidate cache
+	cacheKey := fmt.Sprintf("user_profile:%s", userID.Hex())
+	s.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }
 
-// DeactivateAccount deactivates a user's account
+// DeactivateAccount deactivates a user's account via gRPC
 func (s *UserService) DeactivateAccount(ctx context.Context, userID primitive.ObjectID) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
+	_, err := s.grpcClient.DeactivateAccount(ctx, userID.Hex())
 	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("failed to deactivate account via gRPC: %w", err)
 	}
 
-	updateData := bson.M{
-		"is_active":  false,
-		"updated_at": time.Now(),
-	}
-
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateData)
-	if err != nil {
-		return fmt.Errorf("failed to deactivate account: %w", err)
-	}
-
-	// TODO: Invalidate user sessions, log out user, etc.
+	// Invalidate cache
+	cacheKey := fmt.Sprintf("user_profile:%s", userID.Hex())
+	s.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }
 
-// UpdatePublicKey updates a user's E2EE public key and encrypted private key backup
+// UpdatePublicKey updates a user's E2EE public key via gRPC
 func (s *UserService) UpdatePublicKey(ctx context.Context, userID primitive.ObjectID, publicKey, encryptedPrivateKey, iv, salt string) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
+	_, err := s.grpcClient.UpdatePublicKey(ctx, userID.Hex(), publicKey, encryptedPrivateKey, iv, salt)
 	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("user not found")
+		return fmt.Errorf("failed to update keys via gRPC: %w", err)
 	}
 
-	updateData := bson.M{
-		"public_key":            publicKey,
-		"encrypted_private_key": encryptedPrivateKey,
-		"key_backup_iv":         iv,
-		"key_backup_salt":       salt,
-		"updated_at":            time.Now(),
-	}
-
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateData)
-	if err != nil {
-		return fmt.Errorf("failed to update keys: %w", err)
-	}
+	// Invalidate cache
+	cacheKey := fmt.Sprintf("user_profile:%s", userID.Hex())
+	s.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }
@@ -645,37 +559,34 @@ func (s *UserService) GetUsersPresence(ctx context.Context, userIDs []primitive.
 	return presenceMap, nil
 }
 
-// UpdatePrivacySettings updates a user's privacy settings
+// UpdatePrivacySettings updates a user's privacy settings via gRPC
 func (s *UserService) UpdatePrivacySettings(ctx context.Context, userID primitive.ObjectID, req *models.UpdatePrivacySettingsRequest) error {
-	user, err := s.userRepo.FindUserByID(ctx, userID)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("user not found")
-	}
-
-	updateFields := bson.M{
-		"privacy_settings.last_updated": time.Now(),
-	}
-
+	settings := map[string]string{}
 	if req.DefaultPostPrivacy != "" {
-		updateFields["privacy_settings.default_post_privacy"] = req.DefaultPostPrivacy
+		settings["default_post_privacy"] = string(req.DefaultPostPrivacy)
 	}
 	if req.CanSeeMyFriendsList != "" {
-		updateFields["privacy_settings.can_see_my_friends_list"] = req.CanSeeMyFriendsList
+		settings["can_see_my_friends_list"] = string(req.CanSeeMyFriendsList)
 	}
 	if req.CanSendMeFriendRequests != "" {
-		updateFields["privacy_settings.can_send_me_friend_requests"] = req.CanSendMeFriendRequests
+		settings["can_send_me_friend_requests"] = string(req.CanSendMeFriendRequests)
 	}
 	if req.CanTagMeInPosts != "" {
-		updateFields["privacy_settings.can_tag_me_in_posts"] = req.CanTagMeInPosts
+		settings["can_tag_me_in_posts"] = string(req.CanTagMeInPosts)
 	}
 
-	_, err = s.userRepo.UpdateUser(ctx, userID, updateFields)
-	if err != nil {
-		return fmt.Errorf("failed to update privacy settings: %w", err)
+	if len(settings) == 0 {
+		return nil // No updates
 	}
+
+	_, err := s.grpcClient.UpdatePrivacySettings(ctx, userID.Hex(), settings)
+	if err != nil {
+		return fmt.Errorf("failed to update privacy settings via gRPC: %w", err)
+	}
+
+	// Invalidate cache
+	cacheKey := fmt.Sprintf("user_profile:%s", userID.Hex())
+	s.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }

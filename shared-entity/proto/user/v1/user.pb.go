@@ -9,6 +9,7 @@ package userv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -197,24 +198,1360 @@ func (x *GetUsersResponse) GetUsers() []*User {
 	return nil
 }
 
-type User struct {
+type ListUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int64                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Search        string                 `protobuf:"bytes,3,opt,name=search,proto3" json:"search,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUsersRequest) Reset() {
+	*x = ListUsersRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUsersRequest) ProtoMessage() {}
+
+func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
+func (*ListUsersRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListUsersRequest) GetPage() int64 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListUsersRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListUsersRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+type ListUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int64                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	Limit         int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUsersResponse) Reset() {
+	*x = ListUsersResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUsersResponse) ProtoMessage() {}
+
+func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUsersResponse.ProtoReflect.Descriptor instead.
+func (*ListUsersResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListUsersResponse) GetUsers() []*User {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *ListUsersResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListUsersResponse) GetPage() int64 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListUsersResponse) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetUserStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserStatusRequest) Reset() {
+	*x = GetUserStatusRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserStatusRequest) ProtoMessage() {}
+
+func (x *GetUserStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetUserStatusRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetUserStatusRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetUserStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`                      // "online" or "offline"
+	LastSeen      int64                  `protobuf:"varint,2,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"` // Unix timestamp
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserStatusResponse) Reset() {
+	*x = GetUserStatusResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserStatusResponse) ProtoMessage() {}
+
+func (x *GetUserStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetUserStatusResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetUserStatusResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *GetUserStatusResponse) GetLastSeen() int64 {
+	if x != nil {
+		return x.LastSeen
+	}
+	return 0
+}
+
+type GetUsersPresenceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUsersPresenceRequest) Reset() {
+	*x = GetUsersPresenceRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUsersPresenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUsersPresenceRequest) ProtoMessage() {}
+
+func (x *GetUsersPresenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUsersPresenceRequest.ProtoReflect.Descriptor instead.
+func (*GetUsersPresenceRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetUsersPresenceRequest) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type GetUsersPresenceResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Presence      map[string]*UserPresence `protobuf:"bytes,1,rep,name=presence,proto3" json:"presence,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUsersPresenceResponse) Reset() {
+	*x = GetUsersPresenceResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUsersPresenceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUsersPresenceResponse) ProtoMessage() {}
+
+func (x *GetUsersPresenceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUsersPresenceResponse.ProtoReflect.Descriptor instead.
+func (*GetUsersPresenceResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetUsersPresenceResponse) GetPresence() map[string]*UserPresence {
+	if x != nil {
+		return x.Presence
+	}
+	return nil
+}
+
+type UserPresence struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	LastSeen      int64                  `protobuf:"varint,2,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserPresence) Reset() {
+	*x = UserPresence{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserPresence) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserPresence) ProtoMessage() {}
+
+func (x *UserPresence) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserPresence.ProtoReflect.Descriptor instead.
+func (*UserPresence) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UserPresence) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *UserPresence) GetLastSeen() int64 {
+	if x != nil {
+		return x.LastSeen
+	}
+	return 0
+}
+
+type UpdateUserRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	UserId              string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Username            string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Email               string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	FullName            string                 `protobuf:"bytes,4,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	Bio                 string                 `protobuf:"bytes,5,opt,name=bio,proto3" json:"bio,omitempty"`
+	Avatar              string                 `protobuf:"bytes,6,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	CoverPicture        string                 `protobuf:"bytes,7,opt,name=cover_picture,json=coverPicture,proto3" json:"cover_picture,omitempty"`
+	Gender              string                 `protobuf:"bytes,8,opt,name=gender,proto3" json:"gender,omitempty"`
+	Location            string                 `protobuf:"bytes,9,opt,name=location,proto3" json:"location,omitempty"`
+	PhoneNumber         string                 `protobuf:"bytes,10,opt,name=phone_number,json=phoneNumber,proto3" json:"phone_number,omitempty"`
+	DateOfBirth         *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_of_birth,json=dateOfBirth,proto3" json:"date_of_birth,omitempty"`
+	IsEncryptionEnabled *bool                  `protobuf:"varint,12,opt,name=is_encryption_enabled,json=isEncryptionEnabled,proto3,oneof" json:"is_encryption_enabled,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UpdateUserRequest) Reset() {
+	*x = UpdateUserRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserRequest) ProtoMessage() {}
+
+func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UpdateUserRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetFullName() string {
+	if x != nil {
+		return x.FullName
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetBio() string {
+	if x != nil {
+		return x.Bio
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetAvatar() string {
+	if x != nil {
+		return x.Avatar
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetCoverPicture() string {
+	if x != nil {
+		return x.CoverPicture
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetGender() string {
+	if x != nil {
+		return x.Gender
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetPhoneNumber() string {
+	if x != nil {
+		return x.PhoneNumber
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetDateOfBirth() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DateOfBirth
+	}
+	return nil
+}
+
+func (x *UpdateUserRequest) GetIsEncryptionEnabled() bool {
+	if x != nil && x.IsEncryptionEnabled != nil {
+		return *x.IsEncryptionEnabled
+	}
+	return false
+}
+
+type UpdateUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserResponse) Reset() {
+	*x = UpdateUserResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserResponse) ProtoMessage() {}
+
+func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *UpdateUserResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type UpdateEmailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	NewEmail      string                 `protobuf:"bytes,2,opt,name=new_email,json=newEmail,proto3" json:"new_email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEmailRequest) Reset() {
+	*x = UpdateEmailRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEmailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEmailRequest) ProtoMessage() {}
+
+func (x *UpdateEmailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEmailRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEmailRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateEmailRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdateEmailRequest) GetNewEmail() string {
+	if x != nil {
+		return x.NewEmail
+	}
+	return ""
+}
+
+type UpdateEmailResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEmailResponse) Reset() {
+	*x = UpdateEmailResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEmailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEmailResponse) ProtoMessage() {}
+
+func (x *UpdateEmailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEmailResponse.ProtoReflect.Descriptor instead.
+func (*UpdateEmailResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateEmailResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type UpdatePasswordRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Username        string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	Email           string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	FullName        string                 `protobuf:"bytes,4,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
-	Avatar          string                 `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
-	Bio             string                 `protobuf:"bytes,6,opt,name=bio,proto3" json:"bio,omitempty"`
-	Role            string                 `protobuf:"bytes,7,opt,name=role,proto3" json:"role,omitempty"` // e.g., "user", "admin"
-	IsVerified      bool                   `protobuf:"varint,8,opt,name=is_verified,json=isVerified,proto3" json:"is_verified,omitempty"`
-	PrivacySettings *PrivacySettings       `protobuf:"bytes,9,opt,name=privacy_settings,json=privacySettings,proto3" json:"privacy_settings,omitempty"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	CurrentPassword string                 `protobuf:"bytes,2,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	NewPassword     string                 `protobuf:"bytes,3,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
+func (x *UpdatePasswordRequest) Reset() {
+	*x = UpdatePasswordRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePasswordRequest) ProtoMessage() {}
+
+func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePasswordRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePasswordRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdatePasswordRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdatePasswordRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *UpdatePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
+type UpdatePasswordResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePasswordResponse) Reset() {
+	*x = UpdatePasswordResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePasswordResponse) ProtoMessage() {}
+
+func (x *UpdatePasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePasswordResponse.ProtoReflect.Descriptor instead.
+func (*UpdatePasswordResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UpdatePasswordResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ToggleTwoFactorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Enable        bool                   `protobuf:"varint,2,opt,name=enable,proto3" json:"enable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ToggleTwoFactorRequest) Reset() {
+	*x = ToggleTwoFactorRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToggleTwoFactorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToggleTwoFactorRequest) ProtoMessage() {}
+
+func (x *ToggleTwoFactorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToggleTwoFactorRequest.ProtoReflect.Descriptor instead.
+func (*ToggleTwoFactorRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ToggleTwoFactorRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ToggleTwoFactorRequest) GetEnable() bool {
+	if x != nil {
+		return x.Enable
+	}
+	return false
+}
+
+type ToggleTwoFactorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ToggleTwoFactorResponse) Reset() {
+	*x = ToggleTwoFactorResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToggleTwoFactorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToggleTwoFactorResponse) ProtoMessage() {}
+
+func (x *ToggleTwoFactorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToggleTwoFactorResponse.ProtoReflect.Descriptor instead.
+func (*ToggleTwoFactorResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ToggleTwoFactorResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type DeactivateAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeactivateAccountRequest) Reset() {
+	*x = DeactivateAccountRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeactivateAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeactivateAccountRequest) ProtoMessage() {}
+
+func (x *DeactivateAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeactivateAccountRequest.ProtoReflect.Descriptor instead.
+func (*DeactivateAccountRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DeactivateAccountRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type DeactivateAccountResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeactivateAccountResponse) Reset() {
+	*x = DeactivateAccountResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeactivateAccountResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeactivateAccountResponse) ProtoMessage() {}
+
+func (x *DeactivateAccountResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeactivateAccountResponse.ProtoReflect.Descriptor instead.
+func (*DeactivateAccountResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *DeactivateAccountResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type UpdatePublicKeyRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	UserId              string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PublicKey           string                 `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	EncryptedPrivateKey string                 `protobuf:"bytes,3,opt,name=encrypted_private_key,json=encryptedPrivateKey,proto3" json:"encrypted_private_key,omitempty"`
+	KeyBackupIv         string                 `protobuf:"bytes,4,opt,name=key_backup_iv,json=keyBackupIv,proto3" json:"key_backup_iv,omitempty"`
+	KeyBackupSalt       string                 `protobuf:"bytes,5,opt,name=key_backup_salt,json=keyBackupSalt,proto3" json:"key_backup_salt,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UpdatePublicKeyRequest) Reset() {
+	*x = UpdatePublicKeyRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePublicKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePublicKeyRequest) ProtoMessage() {}
+
+func (x *UpdatePublicKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePublicKeyRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePublicKeyRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *UpdatePublicKeyRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdatePublicKeyRequest) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *UpdatePublicKeyRequest) GetEncryptedPrivateKey() string {
+	if x != nil {
+		return x.EncryptedPrivateKey
+	}
+	return ""
+}
+
+func (x *UpdatePublicKeyRequest) GetKeyBackupIv() string {
+	if x != nil {
+		return x.KeyBackupIv
+	}
+	return ""
+}
+
+func (x *UpdatePublicKeyRequest) GetKeyBackupSalt() string {
+	if x != nil {
+		return x.KeyBackupSalt
+	}
+	return ""
+}
+
+type UpdatePublicKeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePublicKeyResponse) Reset() {
+	*x = UpdatePublicKeyResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePublicKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePublicKeyResponse) ProtoMessage() {}
+
+func (x *UpdatePublicKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePublicKeyResponse.ProtoReflect.Descriptor instead.
+func (*UpdatePublicKeyResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UpdatePublicKeyResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type UpdatePrivacySettingsRequest struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	UserId                  string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DefaultPostPrivacy      string                 `protobuf:"bytes,2,opt,name=default_post_privacy,json=defaultPostPrivacy,proto3" json:"default_post_privacy,omitempty"`
+	CanSeeMyFriendsList     string                 `protobuf:"bytes,3,opt,name=can_see_my_friends_list,json=canSeeMyFriendsList,proto3" json:"can_see_my_friends_list,omitempty"`
+	CanSendMeFriendRequests string                 `protobuf:"bytes,4,opt,name=can_send_me_friend_requests,json=canSendMeFriendRequests,proto3" json:"can_send_me_friend_requests,omitempty"`
+	CanTagMeInPosts         string                 `protobuf:"bytes,5,opt,name=can_tag_me_in_posts,json=canTagMeInPosts,proto3" json:"can_tag_me_in_posts,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *UpdatePrivacySettingsRequest) Reset() {
+	*x = UpdatePrivacySettingsRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePrivacySettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePrivacySettingsRequest) ProtoMessage() {}
+
+func (x *UpdatePrivacySettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePrivacySettingsRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePrivacySettingsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdatePrivacySettingsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdatePrivacySettingsRequest) GetDefaultPostPrivacy() string {
+	if x != nil {
+		return x.DefaultPostPrivacy
+	}
+	return ""
+}
+
+func (x *UpdatePrivacySettingsRequest) GetCanSeeMyFriendsList() string {
+	if x != nil {
+		return x.CanSeeMyFriendsList
+	}
+	return ""
+}
+
+func (x *UpdatePrivacySettingsRequest) GetCanSendMeFriendRequests() string {
+	if x != nil {
+		return x.CanSendMeFriendRequests
+	}
+	return ""
+}
+
+func (x *UpdatePrivacySettingsRequest) GetCanTagMeInPosts() string {
+	if x != nil {
+		return x.CanTagMeInPosts
+	}
+	return ""
+}
+
+type UpdatePrivacySettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePrivacySettingsResponse) Reset() {
+	*x = UpdatePrivacySettingsResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePrivacySettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePrivacySettingsResponse) ProtoMessage() {}
+
+func (x *UpdatePrivacySettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePrivacySettingsResponse.ProtoReflect.Descriptor instead.
+func (*UpdatePrivacySettingsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UpdatePrivacySettingsResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type UpdateNotificationSettingsRequest struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	UserId                string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	EmailNotifications    *bool                  `protobuf:"varint,2,opt,name=email_notifications,json=emailNotifications,proto3,oneof" json:"email_notifications,omitempty"`
+	PushNotifications     *bool                  `protobuf:"varint,3,opt,name=push_notifications,json=pushNotifications,proto3,oneof" json:"push_notifications,omitempty"`
+	NotifyOnFriendRequest *bool                  `protobuf:"varint,4,opt,name=notify_on_friend_request,json=notifyOnFriendRequest,proto3,oneof" json:"notify_on_friend_request,omitempty"`
+	NotifyOnComment       *bool                  `protobuf:"varint,5,opt,name=notify_on_comment,json=notifyOnComment,proto3,oneof" json:"notify_on_comment,omitempty"`
+	NotifyOnLike          *bool                  `protobuf:"varint,6,opt,name=notify_on_like,json=notifyOnLike,proto3,oneof" json:"notify_on_like,omitempty"`
+	NotifyOnTag           *bool                  `protobuf:"varint,7,opt,name=notify_on_tag,json=notifyOnTag,proto3,oneof" json:"notify_on_tag,omitempty"`
+	NotifyOnMessage       *bool                  `protobuf:"varint,8,opt,name=notify_on_message,json=notifyOnMessage,proto3,oneof" json:"notify_on_message,omitempty"`
+	NotifyOnBirthday      *bool                  `protobuf:"varint,9,opt,name=notify_on_birthday,json=notifyOnBirthday,proto3,oneof" json:"notify_on_birthday,omitempty"`
+	NotifyOnEventInvite   *bool                  `protobuf:"varint,10,opt,name=notify_on_event_invite,json=notifyOnEventInvite,proto3,oneof" json:"notify_on_event_invite,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *UpdateNotificationSettingsRequest) Reset() {
+	*x = UpdateNotificationSettingsRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateNotificationSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateNotificationSettingsRequest) ProtoMessage() {}
+
+func (x *UpdateNotificationSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateNotificationSettingsRequest.ProtoReflect.Descriptor instead.
+func (*UpdateNotificationSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *UpdateNotificationSettingsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdateNotificationSettingsRequest) GetEmailNotifications() bool {
+	if x != nil && x.EmailNotifications != nil {
+		return *x.EmailNotifications
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetPushNotifications() bool {
+	if x != nil && x.PushNotifications != nil {
+		return *x.PushNotifications
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnFriendRequest() bool {
+	if x != nil && x.NotifyOnFriendRequest != nil {
+		return *x.NotifyOnFriendRequest
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnComment() bool {
+	if x != nil && x.NotifyOnComment != nil {
+		return *x.NotifyOnComment
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnLike() bool {
+	if x != nil && x.NotifyOnLike != nil {
+		return *x.NotifyOnLike
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnTag() bool {
+	if x != nil && x.NotifyOnTag != nil {
+		return *x.NotifyOnTag
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnMessage() bool {
+	if x != nil && x.NotifyOnMessage != nil {
+		return *x.NotifyOnMessage
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnBirthday() bool {
+	if x != nil && x.NotifyOnBirthday != nil {
+		return *x.NotifyOnBirthday
+	}
+	return false
+}
+
+func (x *UpdateNotificationSettingsRequest) GetNotifyOnEventInvite() bool {
+	if x != nil && x.NotifyOnEventInvite != nil {
+		return *x.NotifyOnEventInvite
+	}
+	return false
+}
+
+type UpdateNotificationSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateNotificationSettingsResponse) Reset() {
+	*x = UpdateNotificationSettingsResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateNotificationSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateNotificationSettingsResponse) ProtoMessage() {}
+
+func (x *UpdateNotificationSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateNotificationSettingsResponse.ProtoReflect.Descriptor instead.
+func (*UpdateNotificationSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *UpdateNotificationSettingsResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type User struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Username             string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Email                string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	FullName             string                 `protobuf:"bytes,4,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	Avatar               string                 `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Bio                  string                 `protobuf:"bytes,6,opt,name=bio,proto3" json:"bio,omitempty"`
+	Role                 string                 `protobuf:"bytes,7,opt,name=role,proto3" json:"role,omitempty"`
+	IsVerified           bool                   `protobuf:"varint,8,opt,name=is_verified,json=isVerified,proto3" json:"is_verified,omitempty"`
+	PrivacySettings      *PrivacySettings       `protobuf:"bytes,9,opt,name=privacy_settings,json=privacySettings,proto3" json:"privacy_settings,omitempty"`
+	CoverPicture         string                 `protobuf:"bytes,10,opt,name=cover_picture,json=coverPicture,proto3" json:"cover_picture,omitempty"`
+	DateOfBirth          *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_of_birth,json=dateOfBirth,proto3" json:"date_of_birth,omitempty"`
+	Gender               string                 `protobuf:"bytes,12,opt,name=gender,proto3" json:"gender,omitempty"`
+	Location             string                 `protobuf:"bytes,13,opt,name=location,proto3" json:"location,omitempty"`
+	PhoneNumber          string                 `protobuf:"bytes,14,opt,name=phone_number,json=phoneNumber,proto3" json:"phone_number,omitempty"`
+	TwoFactorEnabled     bool                   `protobuf:"varint,15,opt,name=two_factor_enabled,json=twoFactorEnabled,proto3" json:"two_factor_enabled,omitempty"`
+	EmailVerified        bool                   `protobuf:"varint,16,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified,omitempty"`
+	IsActive             bool                   `protobuf:"varint,17,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	CreatedAt            *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt            *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	NotificationSettings *NotificationSettings  `protobuf:"bytes,20,opt,name=notification_settings,json=notificationSettings,proto3" json:"notification_settings,omitempty"`
+	IsEncryptionEnabled  bool                   `protobuf:"varint,21,opt,name=is_encryption_enabled,json=isEncryptionEnabled,proto3" json:"is_encryption_enabled,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_proto_user_v1_user_proto_msgTypes[4]
+	mi := &file_proto_user_v1_user_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -226,7 +1563,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_user_v1_user_proto_msgTypes[4]
+	mi := &file_proto_user_v1_user_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -239,7 +1576,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{4}
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *User) GetId() string {
@@ -305,17 +1642,104 @@ func (x *User) GetPrivacySettings() *PrivacySettings {
 	return nil
 }
 
+func (x *User) GetCoverPicture() string {
+	if x != nil {
+		return x.CoverPicture
+	}
+	return ""
+}
+
+func (x *User) GetDateOfBirth() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DateOfBirth
+	}
+	return nil
+}
+
+func (x *User) GetGender() string {
+	if x != nil {
+		return x.Gender
+	}
+	return ""
+}
+
+func (x *User) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *User) GetPhoneNumber() string {
+	if x != nil {
+		return x.PhoneNumber
+	}
+	return ""
+}
+
+func (x *User) GetTwoFactorEnabled() bool {
+	if x != nil {
+		return x.TwoFactorEnabled
+	}
+	return false
+}
+
+func (x *User) GetEmailVerified() bool {
+	if x != nil {
+		return x.EmailVerified
+	}
+	return false
+}
+
+func (x *User) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+func (x *User) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *User) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *User) GetNotificationSettings() *NotificationSettings {
+	if x != nil {
+		return x.NotificationSettings
+	}
+	return nil
+}
+
+func (x *User) GetIsEncryptionEnabled() bool {
+	if x != nil {
+		return x.IsEncryptionEnabled
+	}
+	return false
+}
+
 type PrivacySettings struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ProfileVisible bool                   `protobuf:"varint,1,opt,name=profile_visible,json=profileVisible,proto3" json:"profile_visible,omitempty"`
-	SearchVisible  bool                   `protobuf:"varint,2,opt,name=search_visible,json=searchVisible,proto3" json:"search_visible,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	DefaultPostPrivacy      string                 `protobuf:"bytes,1,opt,name=default_post_privacy,json=defaultPostPrivacy,proto3" json:"default_post_privacy,omitempty"`
+	CanSeeMyFriendsList     string                 `protobuf:"bytes,2,opt,name=can_see_my_friends_list,json=canSeeMyFriendsList,proto3" json:"can_see_my_friends_list,omitempty"`
+	CanSendMeFriendRequests string                 `protobuf:"bytes,3,opt,name=can_send_me_friend_requests,json=canSendMeFriendRequests,proto3" json:"can_send_me_friend_requests,omitempty"`
+	CanTagMeInPosts         string                 `protobuf:"bytes,4,opt,name=can_tag_me_in_posts,json=canTagMeInPosts,proto3" json:"can_tag_me_in_posts,omitempty"`
+	LastUpdated             *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_updated,json=lastUpdated,proto3" json:"last_updated,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *PrivacySettings) Reset() {
 	*x = PrivacySettings{}
-	mi := &file_proto_user_v1_user_proto_msgTypes[5]
+	mi := &file_proto_user_v1_user_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -327,7 +1751,7 @@ func (x *PrivacySettings) String() string {
 func (*PrivacySettings) ProtoMessage() {}
 
 func (x *PrivacySettings) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_user_v1_user_proto_msgTypes[5]
+	mi := &file_proto_user_v1_user_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -340,19 +1764,148 @@ func (x *PrivacySettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrivacySettings.ProtoReflect.Descriptor instead.
 func (*PrivacySettings) Descriptor() ([]byte, []int) {
-	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{5}
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{28}
 }
 
-func (x *PrivacySettings) GetProfileVisible() bool {
+func (x *PrivacySettings) GetDefaultPostPrivacy() string {
 	if x != nil {
-		return x.ProfileVisible
+		return x.DefaultPostPrivacy
+	}
+	return ""
+}
+
+func (x *PrivacySettings) GetCanSeeMyFriendsList() string {
+	if x != nil {
+		return x.CanSeeMyFriendsList
+	}
+	return ""
+}
+
+func (x *PrivacySettings) GetCanSendMeFriendRequests() string {
+	if x != nil {
+		return x.CanSendMeFriendRequests
+	}
+	return ""
+}
+
+func (x *PrivacySettings) GetCanTagMeInPosts() string {
+	if x != nil {
+		return x.CanTagMeInPosts
+	}
+	return ""
+}
+
+func (x *PrivacySettings) GetLastUpdated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUpdated
+	}
+	return nil
+}
+
+type NotificationSettings struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	EmailNotifications    bool                   `protobuf:"varint,1,opt,name=email_notifications,json=emailNotifications,proto3" json:"email_notifications,omitempty"`
+	PushNotifications     bool                   `protobuf:"varint,2,opt,name=push_notifications,json=pushNotifications,proto3" json:"push_notifications,omitempty"`
+	NotifyOnFriendRequest bool                   `protobuf:"varint,3,opt,name=notify_on_friend_request,json=notifyOnFriendRequest,proto3" json:"notify_on_friend_request,omitempty"`
+	NotifyOnComment       bool                   `protobuf:"varint,4,opt,name=notify_on_comment,json=notifyOnComment,proto3" json:"notify_on_comment,omitempty"`
+	NotifyOnLike          bool                   `protobuf:"varint,5,opt,name=notify_on_like,json=notifyOnLike,proto3" json:"notify_on_like,omitempty"`
+	NotifyOnTag           bool                   `protobuf:"varint,6,opt,name=notify_on_tag,json=notifyOnTag,proto3" json:"notify_on_tag,omitempty"`
+	NotifyOnMessage       bool                   `protobuf:"varint,7,opt,name=notify_on_message,json=notifyOnMessage,proto3" json:"notify_on_message,omitempty"`
+	NotifyOnBirthday      bool                   `protobuf:"varint,8,opt,name=notify_on_birthday,json=notifyOnBirthday,proto3" json:"notify_on_birthday,omitempty"`
+	NotifyOnEventInvite   bool                   `protobuf:"varint,9,opt,name=notify_on_event_invite,json=notifyOnEventInvite,proto3" json:"notify_on_event_invite,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *NotificationSettings) Reset() {
+	*x = NotificationSettings{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationSettings) ProtoMessage() {}
+
+func (x *NotificationSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationSettings.ProtoReflect.Descriptor instead.
+func (*NotificationSettings) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *NotificationSettings) GetEmailNotifications() bool {
+	if x != nil {
+		return x.EmailNotifications
 	}
 	return false
 }
 
-func (x *PrivacySettings) GetSearchVisible() bool {
+func (x *NotificationSettings) GetPushNotifications() bool {
 	if x != nil {
-		return x.SearchVisible
+		return x.PushNotifications
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnFriendRequest() bool {
+	if x != nil {
+		return x.NotifyOnFriendRequest
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnComment() bool {
+	if x != nil {
+		return x.NotifyOnComment
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnLike() bool {
+	if x != nil {
+		return x.NotifyOnLike
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnTag() bool {
+	if x != nil {
+		return x.NotifyOnTag
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnMessage() bool {
+	if x != nil {
+		return x.NotifyOnMessage
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnBirthday() bool {
+	if x != nil {
+		return x.NotifyOnBirthday
+	}
+	return false
+}
+
+func (x *NotificationSettings) GetNotifyOnEventInvite() bool {
+	if x != nil {
+		return x.NotifyOnEventInvite
 	}
 	return false
 }
@@ -361,7 +1914,7 @@ var File_proto_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_proto_user_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/user/v1/user.proto\x12\auser.v1\")\n" +
+	"\x18proto/user/v1/user.proto\x12\auser.v1\x1a\x1fgoogle/protobuf/timestamp.proto\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"4\n" +
 	"\x0fGetUserResponse\x12!\n" +
@@ -369,7 +1922,108 @@ const file_proto_user_v1_user_proto_rawDesc = "" +
 	"\x0fGetUsersRequest\x12\x19\n" +
 	"\buser_ids\x18\x01 \x03(\tR\auserIds\"7\n" +
 	"\x10GetUsersResponse\x12#\n" +
-	"\x05users\x18\x01 \x03(\v2\r.user.v1.UserR\x05users\"\x89\x02\n" +
+	"\x05users\x18\x01 \x03(\v2\r.user.v1.UserR\x05users\"T\n" +
+	"\x10ListUsersRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x03R\x04page\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x03R\x05limit\x12\x16\n" +
+	"\x06search\x18\x03 \x01(\tR\x06search\"x\n" +
+	"\x11ListUsersResponse\x12#\n" +
+	"\x05users\x18\x01 \x03(\v2\r.user.v1.UserR\x05users\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x03R\x04page\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x03R\x05limit\"/\n" +
+	"\x14GetUserStatusRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"L\n" +
+	"\x15GetUserStatusResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1b\n" +
+	"\tlast_seen\x18\x02 \x01(\x03R\blastSeen\"4\n" +
+	"\x17GetUsersPresenceRequest\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\"\xbb\x01\n" +
+	"\x18GetUsersPresenceResponse\x12K\n" +
+	"\bpresence\x18\x01 \x03(\v2/.user.v1.GetUsersPresenceResponse.PresenceEntryR\bpresence\x1aR\n" +
+	"\rPresenceEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12+\n" +
+	"\x05value\x18\x02 \x01(\v2\x15.user.v1.UserPresenceR\x05value:\x028\x01\"C\n" +
+	"\fUserPresence\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1b\n" +
+	"\tlast_seen\x18\x02 \x01(\x03R\blastSeen\"\xb4\x03\n" +
+	"\x11UpdateUserRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1b\n" +
+	"\tfull_name\x18\x04 \x01(\tR\bfullName\x12\x10\n" +
+	"\x03bio\x18\x05 \x01(\tR\x03bio\x12\x16\n" +
+	"\x06avatar\x18\x06 \x01(\tR\x06avatar\x12#\n" +
+	"\rcover_picture\x18\a \x01(\tR\fcoverPicture\x12\x16\n" +
+	"\x06gender\x18\b \x01(\tR\x06gender\x12\x1a\n" +
+	"\blocation\x18\t \x01(\tR\blocation\x12!\n" +
+	"\fphone_number\x18\n" +
+	" \x01(\tR\vphoneNumber\x12>\n" +
+	"\rdate_of_birth\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\vdateOfBirth\x127\n" +
+	"\x15is_encryption_enabled\x18\f \x01(\bH\x00R\x13isEncryptionEnabled\x88\x01\x01B\x18\n" +
+	"\x16_is_encryption_enabled\"7\n" +
+	"\x12UpdateUserResponse\x12!\n" +
+	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"J\n" +
+	"\x12UpdateEmailRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tnew_email\x18\x02 \x01(\tR\bnewEmail\"/\n" +
+	"\x13UpdateEmailResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"~\n" +
+	"\x15UpdatePasswordRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12)\n" +
+	"\x10current_password\x18\x02 \x01(\tR\x0fcurrentPassword\x12!\n" +
+	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"2\n" +
+	"\x16UpdatePasswordResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"I\n" +
+	"\x16ToggleTwoFactorRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06enable\x18\x02 \x01(\bR\x06enable\"3\n" +
+	"\x17ToggleTwoFactorResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"3\n" +
+	"\x18DeactivateAccountRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"5\n" +
+	"\x19DeactivateAccountResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xd0\x01\n" +
+	"\x16UpdatePublicKeyRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\tR\tpublicKey\x122\n" +
+	"\x15encrypted_private_key\x18\x03 \x01(\tR\x13encryptedPrivateKey\x12\"\n" +
+	"\rkey_backup_iv\x18\x04 \x01(\tR\vkeyBackupIv\x12&\n" +
+	"\x0fkey_backup_salt\x18\x05 \x01(\tR\rkeyBackupSalt\"3\n" +
+	"\x17UpdatePublicKeyResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x8b\x02\n" +
+	"\x1cUpdatePrivacySettingsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x120\n" +
+	"\x14default_post_privacy\x18\x02 \x01(\tR\x12defaultPostPrivacy\x124\n" +
+	"\x17can_see_my_friends_list\x18\x03 \x01(\tR\x13canSeeMyFriendsList\x12<\n" +
+	"\x1bcan_send_me_friend_requests\x18\x04 \x01(\tR\x17canSendMeFriendRequests\x12,\n" +
+	"\x13can_tag_me_in_posts\x18\x05 \x01(\tR\x0fcanTagMeInPosts\"9\n" +
+	"\x1dUpdatePrivacySettingsResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xd6\x05\n" +
+	"!UpdateNotificationSettingsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x124\n" +
+	"\x13email_notifications\x18\x02 \x01(\bH\x00R\x12emailNotifications\x88\x01\x01\x122\n" +
+	"\x12push_notifications\x18\x03 \x01(\bH\x01R\x11pushNotifications\x88\x01\x01\x12<\n" +
+	"\x18notify_on_friend_request\x18\x04 \x01(\bH\x02R\x15notifyOnFriendRequest\x88\x01\x01\x12/\n" +
+	"\x11notify_on_comment\x18\x05 \x01(\bH\x03R\x0fnotifyOnComment\x88\x01\x01\x12)\n" +
+	"\x0enotify_on_like\x18\x06 \x01(\bH\x04R\fnotifyOnLike\x88\x01\x01\x12'\n" +
+	"\rnotify_on_tag\x18\a \x01(\bH\x05R\vnotifyOnTag\x88\x01\x01\x12/\n" +
+	"\x11notify_on_message\x18\b \x01(\bH\x06R\x0fnotifyOnMessage\x88\x01\x01\x121\n" +
+	"\x12notify_on_birthday\x18\t \x01(\bH\aR\x10notifyOnBirthday\x88\x01\x01\x128\n" +
+	"\x16notify_on_event_invite\x18\n" +
+	" \x01(\bH\bR\x13notifyOnEventInvite\x88\x01\x01B\x16\n" +
+	"\x14_email_notificationsB\x15\n" +
+	"\x13_push_notificationsB\x1b\n" +
+	"\x19_notify_on_friend_requestB\x14\n" +
+	"\x12_notify_on_commentB\x11\n" +
+	"\x0f_notify_on_likeB\x10\n" +
+	"\x0e_notify_on_tagB\x14\n" +
+	"\x12_notify_on_messageB\x15\n" +
+	"\x13_notify_on_birthdayB\x19\n" +
+	"\x17_notify_on_event_invite\">\n" +
+	"\"UpdateNotificationSettingsResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xb5\x06\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
@@ -380,13 +2034,53 @@ const file_proto_user_v1_user_proto_rawDesc = "" +
 	"\x04role\x18\a \x01(\tR\x04role\x12\x1f\n" +
 	"\vis_verified\x18\b \x01(\bR\n" +
 	"isVerified\x12C\n" +
-	"\x10privacy_settings\x18\t \x01(\v2\x18.user.v1.PrivacySettingsR\x0fprivacySettings\"a\n" +
-	"\x0fPrivacySettings\x12'\n" +
-	"\x0fprofile_visible\x18\x01 \x01(\bR\x0eprofileVisible\x12%\n" +
-	"\x0esearch_visible\x18\x02 \x01(\bR\rsearchVisible2\x8c\x01\n" +
+	"\x10privacy_settings\x18\t \x01(\v2\x18.user.v1.PrivacySettingsR\x0fprivacySettings\x12#\n" +
+	"\rcover_picture\x18\n" +
+	" \x01(\tR\fcoverPicture\x12>\n" +
+	"\rdate_of_birth\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\vdateOfBirth\x12\x16\n" +
+	"\x06gender\x18\f \x01(\tR\x06gender\x12\x1a\n" +
+	"\blocation\x18\r \x01(\tR\blocation\x12!\n" +
+	"\fphone_number\x18\x0e \x01(\tR\vphoneNumber\x12,\n" +
+	"\x12two_factor_enabled\x18\x0f \x01(\bR\x10twoFactorEnabled\x12%\n" +
+	"\x0eemail_verified\x18\x10 \x01(\bR\remailVerified\x12\x1b\n" +
+	"\tis_active\x18\x11 \x01(\bR\bisActive\x129\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12R\n" +
+	"\x15notification_settings\x18\x14 \x01(\v2\x1d.user.v1.NotificationSettingsR\x14notificationSettings\x122\n" +
+	"\x15is_encryption_enabled\x18\x15 \x01(\bR\x13isEncryptionEnabled\"\xa4\x02\n" +
+	"\x0fPrivacySettings\x120\n" +
+	"\x14default_post_privacy\x18\x01 \x01(\tR\x12defaultPostPrivacy\x124\n" +
+	"\x17can_see_my_friends_list\x18\x02 \x01(\tR\x13canSeeMyFriendsList\x12<\n" +
+	"\x1bcan_send_me_friend_requests\x18\x03 \x01(\tR\x17canSendMeFriendRequests\x12,\n" +
+	"\x13can_tag_me_in_posts\x18\x04 \x01(\tR\x0fcanTagMeInPosts\x12=\n" +
+	"\flast_updated\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vlastUpdated\"\xb4\x03\n" +
+	"\x14NotificationSettings\x12/\n" +
+	"\x13email_notifications\x18\x01 \x01(\bR\x12emailNotifications\x12-\n" +
+	"\x12push_notifications\x18\x02 \x01(\bR\x11pushNotifications\x127\n" +
+	"\x18notify_on_friend_request\x18\x03 \x01(\bR\x15notifyOnFriendRequest\x12*\n" +
+	"\x11notify_on_comment\x18\x04 \x01(\bR\x0fnotifyOnComment\x12$\n" +
+	"\x0enotify_on_like\x18\x05 \x01(\bR\fnotifyOnLike\x12\"\n" +
+	"\rnotify_on_tag\x18\x06 \x01(\bR\vnotifyOnTag\x12*\n" +
+	"\x11notify_on_message\x18\a \x01(\bR\x0fnotifyOnMessage\x12,\n" +
+	"\x12notify_on_birthday\x18\b \x01(\bR\x10notifyOnBirthday\x123\n" +
+	"\x16notify_on_event_invite\x18\t \x01(\bR\x13notifyOnEventInvite2\xc4\b\n" +
 	"\vUserService\x12<\n" +
 	"\aGetUser\x12\x17.user.v1.GetUserRequest\x1a\x18.user.v1.GetUserResponse\x12?\n" +
-	"\bGetUsers\x12\x18.user.v1.GetUsersRequest\x1a\x19.user.v1.GetUsersResponseB$Z\"messaging-app/proto/user/v1;userv1b\x06proto3"
+	"\bGetUsers\x12\x18.user.v1.GetUsersRequest\x1a\x19.user.v1.GetUsersResponse\x12B\n" +
+	"\tListUsers\x12\x19.user.v1.ListUsersRequest\x1a\x1a.user.v1.ListUsersResponse\x12N\n" +
+	"\rGetUserStatus\x12\x1d.user.v1.GetUserStatusRequest\x1a\x1e.user.v1.GetUserStatusResponse\x12W\n" +
+	"\x10GetUsersPresence\x12 .user.v1.GetUsersPresenceRequest\x1a!.user.v1.GetUsersPresenceResponse\x12E\n" +
+	"\n" +
+	"UpdateUser\x12\x1a.user.v1.UpdateUserRequest\x1a\x1b.user.v1.UpdateUserResponse\x12H\n" +
+	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponse\x12Q\n" +
+	"\x0eUpdatePassword\x12\x1e.user.v1.UpdatePasswordRequest\x1a\x1f.user.v1.UpdatePasswordResponse\x12T\n" +
+	"\x0fToggleTwoFactor\x12\x1f.user.v1.ToggleTwoFactorRequest\x1a .user.v1.ToggleTwoFactorResponse\x12Z\n" +
+	"\x11DeactivateAccount\x12!.user.v1.DeactivateAccountRequest\x1a\".user.v1.DeactivateAccountResponse\x12T\n" +
+	"\x0fUpdatePublicKey\x12\x1f.user.v1.UpdatePublicKeyRequest\x1a .user.v1.UpdatePublicKeyResponse\x12f\n" +
+	"\x15UpdatePrivacySettings\x12%.user.v1.UpdatePrivacySettingsRequest\x1a&.user.v1.UpdatePrivacySettingsResponse\x12u\n" +
+	"\x1aUpdateNotificationSettings\x12*.user.v1.UpdateNotificationSettingsRequest\x1a+.user.v1.UpdateNotificationSettingsResponseB$Z\"messaging-app/proto/user/v1;userv1b\x06proto3"
 
 var (
 	file_proto_user_v1_user_proto_rawDescOnce sync.Once
@@ -400,28 +2094,86 @@ func file_proto_user_v1_user_proto_rawDescGZIP() []byte {
 	return file_proto_user_v1_user_proto_rawDescData
 }
 
-var file_proto_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_proto_user_v1_user_proto_goTypes = []any{
-	(*GetUserRequest)(nil),   // 0: user.v1.GetUserRequest
-	(*GetUserResponse)(nil),  // 1: user.v1.GetUserResponse
-	(*GetUsersRequest)(nil),  // 2: user.v1.GetUsersRequest
-	(*GetUsersResponse)(nil), // 3: user.v1.GetUsersResponse
-	(*User)(nil),             // 4: user.v1.User
-	(*PrivacySettings)(nil),  // 5: user.v1.PrivacySettings
+	(*GetUserRequest)(nil),                     // 0: user.v1.GetUserRequest
+	(*GetUserResponse)(nil),                    // 1: user.v1.GetUserResponse
+	(*GetUsersRequest)(nil),                    // 2: user.v1.GetUsersRequest
+	(*GetUsersResponse)(nil),                   // 3: user.v1.GetUsersResponse
+	(*ListUsersRequest)(nil),                   // 4: user.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),                  // 5: user.v1.ListUsersResponse
+	(*GetUserStatusRequest)(nil),               // 6: user.v1.GetUserStatusRequest
+	(*GetUserStatusResponse)(nil),              // 7: user.v1.GetUserStatusResponse
+	(*GetUsersPresenceRequest)(nil),            // 8: user.v1.GetUsersPresenceRequest
+	(*GetUsersPresenceResponse)(nil),           // 9: user.v1.GetUsersPresenceResponse
+	(*UserPresence)(nil),                       // 10: user.v1.UserPresence
+	(*UpdateUserRequest)(nil),                  // 11: user.v1.UpdateUserRequest
+	(*UpdateUserResponse)(nil),                 // 12: user.v1.UpdateUserResponse
+	(*UpdateEmailRequest)(nil),                 // 13: user.v1.UpdateEmailRequest
+	(*UpdateEmailResponse)(nil),                // 14: user.v1.UpdateEmailResponse
+	(*UpdatePasswordRequest)(nil),              // 15: user.v1.UpdatePasswordRequest
+	(*UpdatePasswordResponse)(nil),             // 16: user.v1.UpdatePasswordResponse
+	(*ToggleTwoFactorRequest)(nil),             // 17: user.v1.ToggleTwoFactorRequest
+	(*ToggleTwoFactorResponse)(nil),            // 18: user.v1.ToggleTwoFactorResponse
+	(*DeactivateAccountRequest)(nil),           // 19: user.v1.DeactivateAccountRequest
+	(*DeactivateAccountResponse)(nil),          // 20: user.v1.DeactivateAccountResponse
+	(*UpdatePublicKeyRequest)(nil),             // 21: user.v1.UpdatePublicKeyRequest
+	(*UpdatePublicKeyResponse)(nil),            // 22: user.v1.UpdatePublicKeyResponse
+	(*UpdatePrivacySettingsRequest)(nil),       // 23: user.v1.UpdatePrivacySettingsRequest
+	(*UpdatePrivacySettingsResponse)(nil),      // 24: user.v1.UpdatePrivacySettingsResponse
+	(*UpdateNotificationSettingsRequest)(nil),  // 25: user.v1.UpdateNotificationSettingsRequest
+	(*UpdateNotificationSettingsResponse)(nil), // 26: user.v1.UpdateNotificationSettingsResponse
+	(*User)(nil),                               // 27: user.v1.User
+	(*PrivacySettings)(nil),                    // 28: user.v1.PrivacySettings
+	(*NotificationSettings)(nil),               // 29: user.v1.NotificationSettings
+	nil,                                        // 30: user.v1.GetUsersPresenceResponse.PresenceEntry
+	(*timestamppb.Timestamp)(nil),              // 31: google.protobuf.Timestamp
 }
 var file_proto_user_v1_user_proto_depIdxs = []int32{
-	4, // 0: user.v1.GetUserResponse.user:type_name -> user.v1.User
-	4, // 1: user.v1.GetUsersResponse.users:type_name -> user.v1.User
-	5, // 2: user.v1.User.privacy_settings:type_name -> user.v1.PrivacySettings
-	0, // 3: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
-	2, // 4: user.v1.UserService.GetUsers:input_type -> user.v1.GetUsersRequest
-	1, // 5: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	3, // 6: user.v1.UserService.GetUsers:output_type -> user.v1.GetUsersResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	27, // 0: user.v1.GetUserResponse.user:type_name -> user.v1.User
+	27, // 1: user.v1.GetUsersResponse.users:type_name -> user.v1.User
+	27, // 2: user.v1.ListUsersResponse.users:type_name -> user.v1.User
+	30, // 3: user.v1.GetUsersPresenceResponse.presence:type_name -> user.v1.GetUsersPresenceResponse.PresenceEntry
+	31, // 4: user.v1.UpdateUserRequest.date_of_birth:type_name -> google.protobuf.Timestamp
+	27, // 5: user.v1.UpdateUserResponse.user:type_name -> user.v1.User
+	28, // 6: user.v1.User.privacy_settings:type_name -> user.v1.PrivacySettings
+	31, // 7: user.v1.User.date_of_birth:type_name -> google.protobuf.Timestamp
+	31, // 8: user.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	31, // 9: user.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 10: user.v1.User.notification_settings:type_name -> user.v1.NotificationSettings
+	31, // 11: user.v1.PrivacySettings.last_updated:type_name -> google.protobuf.Timestamp
+	10, // 12: user.v1.GetUsersPresenceResponse.PresenceEntry.value:type_name -> user.v1.UserPresence
+	0,  // 13: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
+	2,  // 14: user.v1.UserService.GetUsers:input_type -> user.v1.GetUsersRequest
+	4,  // 15: user.v1.UserService.ListUsers:input_type -> user.v1.ListUsersRequest
+	6,  // 16: user.v1.UserService.GetUserStatus:input_type -> user.v1.GetUserStatusRequest
+	8,  // 17: user.v1.UserService.GetUsersPresence:input_type -> user.v1.GetUsersPresenceRequest
+	11, // 18: user.v1.UserService.UpdateUser:input_type -> user.v1.UpdateUserRequest
+	13, // 19: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	15, // 20: user.v1.UserService.UpdatePassword:input_type -> user.v1.UpdatePasswordRequest
+	17, // 21: user.v1.UserService.ToggleTwoFactor:input_type -> user.v1.ToggleTwoFactorRequest
+	19, // 22: user.v1.UserService.DeactivateAccount:input_type -> user.v1.DeactivateAccountRequest
+	21, // 23: user.v1.UserService.UpdatePublicKey:input_type -> user.v1.UpdatePublicKeyRequest
+	23, // 24: user.v1.UserService.UpdatePrivacySettings:input_type -> user.v1.UpdatePrivacySettingsRequest
+	25, // 25: user.v1.UserService.UpdateNotificationSettings:input_type -> user.v1.UpdateNotificationSettingsRequest
+	1,  // 26: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	3,  // 27: user.v1.UserService.GetUsers:output_type -> user.v1.GetUsersResponse
+	5,  // 28: user.v1.UserService.ListUsers:output_type -> user.v1.ListUsersResponse
+	7,  // 29: user.v1.UserService.GetUserStatus:output_type -> user.v1.GetUserStatusResponse
+	9,  // 30: user.v1.UserService.GetUsersPresence:output_type -> user.v1.GetUsersPresenceResponse
+	12, // 31: user.v1.UserService.UpdateUser:output_type -> user.v1.UpdateUserResponse
+	14, // 32: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	16, // 33: user.v1.UserService.UpdatePassword:output_type -> user.v1.UpdatePasswordResponse
+	18, // 34: user.v1.UserService.ToggleTwoFactor:output_type -> user.v1.ToggleTwoFactorResponse
+	20, // 35: user.v1.UserService.DeactivateAccount:output_type -> user.v1.DeactivateAccountResponse
+	22, // 36: user.v1.UserService.UpdatePublicKey:output_type -> user.v1.UpdatePublicKeyResponse
+	24, // 37: user.v1.UserService.UpdatePrivacySettings:output_type -> user.v1.UpdatePrivacySettingsResponse
+	26, // 38: user.v1.UserService.UpdateNotificationSettings:output_type -> user.v1.UpdateNotificationSettingsResponse
+	26, // [26:39] is the sub-list for method output_type
+	13, // [13:26] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_proto_user_v1_user_proto_init() }
@@ -429,13 +2181,15 @@ func file_proto_user_v1_user_proto_init() {
 	if File_proto_user_v1_user_proto != nil {
 		return
 	}
+	file_proto_user_v1_user_proto_msgTypes[11].OneofWrappers = []any{}
+	file_proto_user_v1_user_proto_msgTypes[25].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_user_v1_user_proto_rawDesc), len(file_proto_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -138,6 +138,7 @@ message ConversationSummary {
   string last_message_sender_id = 7;
   int32 unread_count = 8;
   bool last_message_is_encrypted = 9;
+  string last_message_sender_name = 10; // Added to match model
 }
 
 message GetConversationsRequest {

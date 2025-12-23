@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package story.v1;
+
+option go_package = "gitlab.com/spydotech-group/shared-entity/proto/story/v1;storypb";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// StoryService provides story management APIs
+service StoryService {
+  // Create a new story
+  rpc CreateStory(CreateStoryRequest) returns (StoryResponse);
+  
+  // Get a single story by ID
+  rpc GetStory(GetStoryRequest) returns (StoryResponse);
+  
+  // Delete a story
+  rpc DeleteStory(DeleteStoryRequest) returns (google.protobuf.Empty);
+  
+  // Get stories feed for a user (paginated, with privacy filtering)
+  rpc GetStoriesFeed(GetStoriesFeedRequest) returns (StoriesFeedResponse);
+  
+  // Get all stories for a specific user
+  rpc GetUserStories(GetUserStoriesRequest) returns (StoriesResponse);
+  
+  // Record a view on a story
+  rpc RecordView(RecordViewRequest) returns (google.protobuf.Empty);
+  
+  // Add a reaction to a story
+  rpc ReactToStory(ReactToStoryRequest) returns (google.protobuf.Empty);
+  
+  // Get story viewers with their reactions
+  rpc GetStoryViewers(GetStoryViewersRequest) returns (StoryViewersResponse);
+}
+
+// ===============================
+// Messages
+// ===============================
+
+message Author {
+  string id = 1;
+  string username = 2;
+  string full_name = 3;
+  string avatar = 4;
+}
+
+message Story {
+  string id = 1;
+  string user_id = 2;
+  Author author = 3;
+  string media_url = 4;
+  string media_type = 5; // "image" or "video"
+  string privacy = 6; // "public", "friends", "friends_except", "custom"
+  repeated string allowed_viewers = 7;
+  repeated string blocked_viewers = 8;
+  int32 view_count = 9;
+  int32 reaction_count = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp expires_at = 12;
+}
+
+message StoryResponse {
+  Story story = 1;
+}
+
+message StoriesResponse {
+  repeated Story stories = 1;
+}
+
+// ===============================
+// Create Story
+// ===============================
+
+message CreateStoryRequest {
+  string user_id = 1;
+  string media_url = 2;
+  string media_type = 3;
+  string privacy = 4;
+  repeated string allowed_viewers = 5;
+  repeated string blocked_viewers = 6;
+}
+
+// ===============================
+// Get Story
+// ===============================
+
+message GetStoryRequest {
+  string story_id = 1;
+}
+
+// ===============================
+// Delete Story
+// ===============================
+
+message DeleteStoryRequest {
+  string story_id = 1;
+  string user_id = 2;
+}
+
+// ===============================
+// Get Stories Feed
+// ===============================
+
+message GetStoriesFeedRequest {
+  string user_id = 1;
+  repeated string friend_ids = 2; // Friend IDs for privacy filtering
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message StoriesFeedResponse {
+  repeated Story stories = 1;
+  int32 total = 2;
+}
+
+// ===============================
+// Get User Stories
+// ===============================
+
+message GetUserStoriesRequest {
+  string user_id = 1;
+  string viewer_id = 2; // For privacy filtering
+}
+
+// ===============================
+// Record View
+// ===============================
+
+message RecordViewRequest {
+  string story_id = 1;
+  string viewer_id = 2;
+}
+
+// ===============================
+// React to Story
+// ===============================
+
+message ReactToStoryRequest {
+  string story_id = 1;
+  string user_id = 2;
+  string reaction_type = 3; // "LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY"
+}
+
+// ===============================
+// Get Story Viewers
+// ===============================
+
+message GetStoryViewersRequest {
+  string story_id = 1;
+  string user_id = 2; // Must be story owner
+}
+
+message StoryViewer {
+  Author user = 1;
+  string reaction_type = 2;
+  google.protobuf.Timestamp viewed_at = 3;
+}
+
+message StoryViewersResponse {
+  repeated StoryViewer viewers = 1;
+}

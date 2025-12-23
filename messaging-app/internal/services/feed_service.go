@@ -1094,35 +1094,46 @@ func (s *FeedService) CreateReaction(ctx context.Context, userID primitive.Objec
 		targetOwnerID = reply.UserID
 	}
 
-	if targetOwnerID != userID { // Don't notify if user reacts to their own content
-		// Fetch sender's user details
-		senderUser, err := s.userRepo.FindUserByID(ctx, userID)
-		if err != nil {
-			fmt.Printf("Failed to find sender user %s for reaction notification: %v\n", userID.Hex(), err)
-			return createdReaction, nil // Continue without notification if sender not found
-		}
+	// Fetch sender's user details
+	senderUser, err := s.userRepo.FindUserByID(ctx, userID)
+	if err != nil {
+		fmt.Printf("Failed to find sender user %s for reaction notification: %v\n", userID.Hex(), err)
+		// Continue without notification/enrichment if sender not found
+	}
 
-		notificationReq := &models.CreateNotificationRequest{
-			RecipientID: targetOwnerID,
-			SenderID:    userID,
-			Type:        models.NotificationTypeLike, // Using LIKE for all reactions for now
-			TargetID:    createdReaction.TargetID,
-			TargetType:  createdReaction.TargetType,
-			Content:     fmt.Sprintf("%s reacted to your %s with %s.", senderUser.Username, createdReaction.TargetType, createdReaction.Type),
-			Data: map[string]interface{}{
-				"sender_username": senderUser.Username,
-				"sender_avatar":   senderUser.Avatar,
-				"reaction_type":   createdReaction.Type,
-				"target_type":     createdReaction.TargetType,
-			},
-		}
-		_, err = s.notificationService.CreateNotification(ctx, notificationReq)
-		if err != nil {
-			fmt.Printf("Failed to create reaction notification for user %s: %v\n", targetOwnerID.Hex(), err)
+	if targetOwnerID != userID { // Don't notify if user reacts to their own content
+		if senderUser != nil {
+			notificationReq := &models.CreateNotificationRequest{
+				RecipientID: targetOwnerID,
+				SenderID:    userID,
+				Type:        models.NotificationTypeLike, // Using LIKE for all reactions for now
+				TargetID:    createdReaction.TargetID,
+				TargetType:  createdReaction.TargetType,
+				Content:     fmt.Sprintf("%s reacted to your %s with %s.", senderUser.Username, createdReaction.TargetType, createdReaction.Type),
+				Data: map[string]interface{}{
+					"sender_username": senderUser.Username,
+					"sender_avatar":   senderUser.Avatar,
+					"reaction_type":   createdReaction.Type,
+					"target_type":     createdReaction.TargetType,
+				},
+			}
+			_, err = s.notificationService.CreateNotification(ctx, notificationReq)
+			if err != nil {
+				fmt.Printf("Failed to create reaction notification for user %s: %v\n", targetOwnerID.Hex(), err)
+			}
 		}
 	}
 
 	// Publish ReactionCreated event to Kafka
+	if senderUser != nil {
+		createdReaction.User = models.PostAuthor{
+			ID:       senderUser.ID.Hex(),
+			Username: senderUser.Username,
+			Avatar:   senderUser.Avatar,
+			FullName: senderUser.FullName,
+		}
+	}
+
 	reactionDataBytes, err := json.Marshal(createdReaction)
 	if err != nil {
 		fmt.Printf("Failed to marshal createdReaction for WebSocketEvent: %v\n", err)

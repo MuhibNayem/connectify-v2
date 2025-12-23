@@ -51,3 +51,36 @@ type StoryViewerResponse struct {
 	ReactionType string            `json:"reaction_type,omitempty" bson:"reaction_type"` // "LIKE", "LOVE", etc. or empty
 	ViewedAt     time.Time         `json:"viewed_at,omitempty" bson:"viewed_at"`         // (Optional, if we track view time later, for now just useful for structure)
 }
+
+// ===============================
+// Story WebSocket Events
+// ===============================
+
+type StoryCreatedEvent struct {
+	StoryID   string     `json:"story_id"`
+	UserID    string     `json:"user_id"`
+	Author    PostAuthor `json:"author"`
+	MediaURL  string     `json:"media_url"`
+	MediaType string     `json:"media_type"`
+	CreatedAt time.Time  `json:"created_at"`
+	ExpiresAt time.Time  `json:"expires_at"`
+}
+
+type StoryDeletedEvent struct {
+	StoryID string `json:"story_id"`
+	UserID  string `json:"user_id"`
+}
+
+type StoryViewedEvent struct {
+	StoryID  string    `json:"story_id"`
+	OwnerID  string    `json:"owner_id"` // Story owner to be notified
+	ViewerID string    `json:"viewer_id"`
+	ViewedAt time.Time `json:"viewed_at"`
+}
+
+type StoryReactionAddedEvent struct {
+	StoryID      string    `json:"story_id"`
+	UserID       string    `json:"user_id"`
+	ReactionType string    `json:"reaction_type"`
+	CreatedAt    time.Time `json:"created_at"`
+}

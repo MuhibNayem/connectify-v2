@@ -277,7 +277,18 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_MIN_INSYNC_REPLICAS: 2
       KAFKA_NUM_PARTITIONS: 3
+
       KAFKA_LOG_RETENTION_HOURS: 168
+    command:
+      - "bash"
+      - "-c"
+      - |
+        echo 'Waiting for Zookeeper...'
+        cub zk-ready zookeeper:2181 30
+        echo 'Clearing broker ID 1 from Zookeeper...'
+        zookeeper-shell zookeeper:2181 delete /brokers/ids/1 || true
+        echo 'Starting Kafka...'
+        /etc/confluent/docker/run
     volumes:
       - kafka1_data:/var/lib/kafka/data
     healthcheck:
@@ -309,6 +320,16 @@ services:
       KAFKA_MIN_INSYNC_REPLICAS: 2
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_LOG_RETENTION_HOURS: 168
+    command:
+      - "bash"
+      - "-c"
+      - |
+        echo 'Waiting for Zookeeper...'
+        cub zk-ready zookeeper:2181 30
+        echo 'Clearing broker ID 2 from Zookeeper...'
+        zookeeper-shell zookeeper:2181 delete /brokers/ids/2 || true
+        echo 'Starting Kafka...'
+        /etc/confluent/docker/run
     volumes:
       - kafka2_data:/var/lib/kafka/data
     healthcheck:
@@ -340,6 +361,16 @@ services:
       KAFKA_MIN_INSYNC_REPLICAS: 2
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_LOG_RETENTION_HOURS: 168
+    command:
+      - "bash"
+      - "-c"
+      - |
+        echo 'Waiting for Zookeeper...'
+        cub zk-ready zookeeper:2181 30
+        echo 'Clearing broker ID 3 from Zookeeper...'
+        zookeeper-shell zookeeper:2181 delete /brokers/ids/3 || true
+        echo 'Starting Kafka...'
+        /etc/confluent/docker/run
     volumes:
       - kafka3_data:/var/lib/kafka/data
     healthcheck:
@@ -404,6 +435,8 @@ services:
       - ".env"
     environment:
       EVENTS_GRPC_HOST: events-service
+      STORY_GRPC_HOST: story-service
+      STORY_GRPC_PORT: "9097"
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -424,6 +457,8 @@ services:
       feed-service:
         condition: service_started
       user-service:
+        condition: service_started
+      story-service:
         condition: service_started
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
@@ -512,12 +547,32 @@ services:
       dockerfile: marketplace-service/Dockerfile
     container_name: marketplace-service
     ports:
-      - "9097:9097"
+      - "9098:9098"
       - "9198:9198"
     env_file:
       - ".env"
     depends_on:
       mongodb3:
+        condition: service_healthy
+    networks:
+      - messaging-net
+
+  story-service:
+    build:
+      context: .
+      dockerfile: story-service/Dockerfile
+    container_name: story-service
+    ports:
+      - "9097:9097"
+    env_file:
+      - ".env"
+    environment:
+      GRPC_PORT: 9097
+      KAFKA_TOPIC: story-events
+    depends_on:
+      mongodb3:
+        condition: service_healthy
+      kafka3:
         condition: service_healthy
     networks:
       - messaging-net

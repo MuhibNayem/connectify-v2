@@ -104,6 +104,7 @@ type Reaction struct {
 	TargetID   primitive.ObjectID `bson:"target_id" json:"target_id"`     // ID of the post, comment, or reply
 	TargetType string             `bson:"target_type" json:"target_type"` // "post", "comment", "reply"
 	Type       ReactionType       `bson:"type" json:"type"`
+	User       PostAuthor         `bson:"-" json:"user,omitempty"` // Populated for events/responses, not stored
 	CreatedAt  time.Time          `bson:"created_at" json:"created_at"`
 }
 

@@ -1,0 +1,32 @@
+/* Liquid Glass Utilities */
+
+@layer utilities {
+    .glass-panel {
+        @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl;
+    }
+
+    .glass-card {
+        @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg rounded-2xl transition-all duration-300 hover:bg-white/10 hover:shadow-2xl hover:scale-[1.02] hover:border-white/20;
+    }
+
+    .glass-button {
+        @apply bg-white/20 hover:bg-white/30 active:bg-white/40 text-white backdrop-blur-md border border-white/30 rounded-lg shadow-sm transition-all duration-200;
+    }
+
+    .glass-input {
+        @apply bg-black/5 focus:bg-white/10 border-black/5 focus:border-white/20 text-gray-800 placeholder:text-gray-500 rounded-lg outline-none transition-all duration-200;
+    }
+}
+
+/* For dark mode adaptations if needed, though glass usually relies on the background image/color */
+.dark .glass-panel {
+    @apply bg-black/30 border-white/10;
+}
+
+.dark .glass-card {
+    @apply bg-black/20 border-white/5 hover:bg-black/30;
+}
+
+.dark .glass-input {
+    @apply bg-white/5 focus:bg-white/10 border-white/10 text-gray-100 placeholder:text-gray-400;
+}

@@ -3,8 +3,9 @@ package repositories
 import (
 	"context"
 	"log"
-	"gitlab.com/spydotech-group/shared-entity/models"
 	"time"
+
+	"gitlab.com/spydotech-group/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,7 +25,8 @@ func NewUserRepository(db *mongo.Database) *UserRepository {
 			Options: options.Index().SetUnique(true),
 		},
 		{
-			Keys: bson.D{{Key: "username", Value: 1}},
+			Keys:    bson.D{{Key: "username", Value: 1}},
+			Options: options.Index().SetUnique(true),
 		},
 	})
 	if err != nil {

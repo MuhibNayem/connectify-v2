@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -13,6 +14,7 @@ type Config struct {
 	MongoURI          string
 	DBName            string
 	RedisAddrs        []string
+	RedisPassword     string
 	KafkaBrokers      []string
 	KafkaTopic        string
 	NotificationTopic string
@@ -32,8 +34,9 @@ func LoadConfig() *Config {
 		GRPCPort:          getEnv("GRPC_PORT", "9098"),   // New port for feed-service
 		MongoURI:          getEnv("MONGO_URI", "mongodb://localhost:27017"),
 		DBName:            getEnv("DB_NAME", "messaging_app"), // Shared DB
-		RedisAddrs:        []string{getEnv("REDIS_ADDR", "localhost:6379")},
-		KafkaBrokers:      []string{getEnv("KAFKA_BROKER", "localhost:9092")},
+		RedisAddrs:        splitEnv("REDIS_URL", "localhost:6379"),
+		RedisPassword:     getEnv("REDIS_PASS", ""),
+		KafkaBrokers:      splitEnv("KAFKA_BROKERS", "localhost:9092"),
 		KafkaTopic:        getEnv("KAFKA_TOPIC", "messages"),
 		NotificationTopic: getEnv("NOTIFICATION_TOPIC", "notifications_events"),
 		// Neo4j Config
@@ -48,4 +51,9 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func splitEnv(key, fallback string) []string {
+	value := getEnv(key, fallback)
+	return strings.Split(value, ",")
 }
