@@ -1,0 +1,148 @@
+# Connectify Kubernetes Namespace with Istio sidecar injection enabled
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: connectify
+  labels:
+    istio-injection: enabled
+
+---
+# Example Deployment for messaging-app
+# Other services follow the same pattern
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-app
+  namespace: connectify
+  labels:
+    app: messaging-app
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: messaging-app
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: messaging-app
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: messaging-app
+          image: connectify/messaging-app:latest
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 8081
+              name: websocket
+            - containerPort: 9090
+              name: grpc
+            - containerPort: 9091
+              name: metrics
+          env:
+            - name: JAEGER_ENDPOINT
+              value: "jaeger.connectify.svc.cluster.local:4317"
+            - name: ENVIRONMENT
+              value: "production"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: messaging-app
+  namespace: connectify
+  labels:
+    app: messaging-app
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+    - port: 8081
+      targetPort: 8081
+      name: websocket
+    - port: 9090
+      targetPort: 9090
+      name: grpc
+  selector:
+    app: messaging-app
+
+---
+# Example Deployment for user-service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: connectify
+  labels:
+    app: user-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: user-service
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: user-service
+          image: connectify/user-service:latest
+          ports:
+            - containerPort: 50051
+              name: grpc
+          env:
+            - name: JAEGER_ENDPOINT
+              value: "jaeger.connectify.svc.cluster.local:4317"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: connectify
+  labels:
+    app: user-service
+spec:
+  ports:
+    - port: 50051
+      targetPort: 50051
+      name: grpc
+  selector:
+    app: user-service

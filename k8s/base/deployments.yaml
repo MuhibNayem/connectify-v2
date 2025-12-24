@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-app
+  labels:
+    app: messaging-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: messaging-app
+  template:
+    metadata:
+      labels:
+        app: messaging-app
+    spec:
+      containers:
+      - name: messaging-app
+        image: connectify/messaging-app:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SERVER_PORT
+          value: "8080"
+        - name: USER_SERVICE_HOST
+          value: "user-service"
+        - name: USER_SERVICE_PORT
+          value: "9083" # Using the new gRPC port from user-service
+        - name: STORY_SERVICE_HOST
+          value: "story-service"
+        - name: STORY_SERVICE_PORT
+          value: "9097"
+        - name: EVENTS_SERVICE_HOST
+          value: "events-service"
+        - name: EVENTS_SERVICE_GRPC_PORT
+          value: "9096"
+        - name: MARKETPLACE_SERVICE_HOST
+          value: "marketplace-service"
+        - name: MARKETPLACE_SERVICE_GRPC_PORT
+          value: "9095"
+        - name: JAEGER_OTLP_ENDPOINT
+          value: "jaeger-collector:4317"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  labels:
+    app: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: connectify/user-service:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: GRPC_PORT
+          value: "9083"
+        - name: JAEGER_OTLP_ENDPOINT
+          value: "jaeger-collector:4317"
+        ports:
+        - containerPort: 9083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: story-service
+  labels:
+    app: story-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: story-service
+  template:
+    metadata:
+      labels:
+        app: story-service
+    spec:
+      containers:
+      - name: story-service
+        image: connectify/story-service:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: GRPC_PORT
+          value: "9097"
+        - name: USER_SERVICE_HOST
+          value: "user-service"
+        - name: USER_SERVICE_PORT
+          value: "9083"
+        - name: JAEGER_OTLP_ENDPOINT
+          value: "jaeger-collector:4317"
+        ports:
+        - containerPort: 9097
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: events-service
+  labels:
+    app: events-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: events-service
+  template:
+    metadata:
+      labels:
+        app: events-service
+    spec:
+      containers:
+      - name: events-service
+        image: connectify/events-service:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: EVENTS_GRPC_PORT
+          value: "9096"
+        - name: JAEGER_OTLP_ENDPOINT
+          value: "jaeger-collector:4317"
+        ports:
+        - containerPort: 9096
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marketplace-service
+  labels:
+    app: marketplace-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: marketplace-service
+  template:
+    metadata:
+      labels:
+        app: marketplace-service
+    spec:
+      containers:
+      - name: marketplace-service
+        image: connectify/marketplace-service:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: GRPC_PORT
+          value: "9095"
+        - name: JAEGER_OTLP_ENDPOINT
+          value: "jaeger-collector:4317"
+        ports:
+        - containerPort: 9095

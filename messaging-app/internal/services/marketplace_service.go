@@ -3,9 +3,10 @@ package services
 import (
 	"context"
 	"errors"
-	"gitlab.com/spydotech-group/shared-entity/models"
 	"messaging-app/internal/repositories"
 	"time"
+
+	"gitlab.com/spydotech-group/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -44,7 +45,7 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 		Price:       req.Price,
 		Currency:    req.Currency,
 		Images:      req.Images,
-		Location:    req.Location,
+		Location:    models.ProductLocation{City: req.Location}, // Convert string to structured location
 		Status:      models.ProductStatusAvailable,
 		Tags:        req.Tags,
 	}

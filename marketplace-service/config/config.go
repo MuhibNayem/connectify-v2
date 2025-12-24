@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
 
@@ -13,6 +12,9 @@ type Config struct {
 	CassandraHosts []string
 	GRPCPort       string
 	MetricsPort    string
+
+	// Observability
+	JaegerOTLPEndpoint string
 }
 
 func LoadConfig() *Config {
@@ -23,10 +25,11 @@ func LoadConfig() *Config {
 	mongoURI := getEnv("MONGO_URI", "mongodb://localhost:27017/messaging_app")
 
 	return &Config{
-		MongoURI:       mongoURI,
-		CassandraHosts: []string{getEnv("CASSANDRA_HOSTS", "localhost:9042")},
-		GRPCPort:       grpcPort,
-		MetricsPort:    metricsPort,
+		MongoURI:           mongoURI,
+		CassandraHosts:     []string{getEnv("CASSANDRA_HOSTS", "localhost:9042")},
+		GRPCPort:           grpcPort,
+		MetricsPort:        metricsPort,
+		JaegerOTLPEndpoint: getEnv("JAEGER_OTLP_ENDPOINT", "localhost:4317"),
 	}
 }
 
@@ -44,8 +47,4 @@ func getEnvAsInt(key string, defaultValue int) int {
 		return value
 	}
 	return defaultValue
-}
-
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }

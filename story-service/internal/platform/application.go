@@ -3,10 +3,11 @@ package platform
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"time"
 
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	"gitlab.com/spydotech-group/story-service/config"
 	storygrpc "gitlab.com/spydotech-group/story-service/internal/grpc"
 	"gitlab.com/spydotech-group/story-service/internal/producer"
@@ -42,6 +43,20 @@ func (a *Application) Bootstrap() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Initialize Tracer
+	tp, err := observability.InitTracer(context.Background(), observability.TracerConfig{
+		ServiceName:    "story-service",
+		ServiceVersion: "1.0.0",
+		Environment:    "development", // TODO: Configurable
+		JaegerEndpoint: a.cfg.JaegerOTLPEndpoint,
+	})
+	if err != nil {
+		slog.Error("Failed to initialize tracer", "error", err)
+	}
+	_ = tp // Keep reference if needed later, but suppress error for now
+	// Note: We are not deferring shutdown here because Bootstrap exits.
+	// We should add a Close method or handle it in Shutdown.
+
 	clientOptions := options.Client().ApplyURI(a.cfg.MongoURI)
 	mongoClient, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -52,13 +67,13 @@ func (a *Application) Bootstrap() error {
 		return fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 	a.mongoClient = mongoClient
-	log.Println("Connected to MongoDB")
+	slog.Info("Connected to MongoDB")
 
 	db := mongoClient.Database(a.cfg.DBName)
 
 	// Initialize Kafka producer
 	a.producer = producer.NewStoryProducer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic)
-	log.Println("Kafka producer initialized")
+	slog.Info("Kafka producer initialized")
 
 	// Initialize repositories
 	a.storyRepo = repository.NewStoryRepository(db)
@@ -67,11 +82,13 @@ func (a *Application) Bootstrap() error {
 	a.storyService = service.NewStoryService(a.storyRepo, a.producer)
 
 	// Initialize gRPC server
-	a.grpcServer = grpc.NewServer()
+	a.grpcServer = grpc.NewServer(
+		observability.GetGRPCServerOption(),
+	)
 	a.grpcHandler = storygrpc.NewServer(a.storyService)
 	a.grpcHandler.Register(a.grpcServer)
 
-	log.Println("Application bootstrapped successfully")
+	slog.Info("Application bootstrapped successfully")
 	return nil
 }
 
@@ -82,7 +99,7 @@ func (a *Application) Run() error {
 		return fmt.Errorf("failed to listen on port %s: %w", a.cfg.GRPCPort, err)
 	}
 
-	log.Printf("Story service gRPC server listening on :%s", a.cfg.GRPCPort)
+	slog.Info("Story service gRPC server listening", "port", a.cfg.GRPCPort)
 
 	if err := a.grpcServer.Serve(lis); err != nil {
 		return fmt.Errorf("gRPC server error: %w", err)
@@ -92,20 +109,20 @@ func (a *Application) Run() error {
 }
 
 func (a *Application) Shutdown() {
-	log.Println("Shutting down story-service...")
+	slog.Info("Shutting down story-service...")
 
 	// Stop gRPC server
 	if a.grpcServer != nil {
 		a.grpcServer.GracefulStop()
-		log.Println("gRPC server stopped")
+		slog.Info("gRPC server stopped")
 	}
 
 	// Close Kafka producer
 	if a.producer != nil {
 		if err := a.producer.Close(); err != nil {
-			log.Printf("Error closing Kafka producer: %v", err)
+			slog.Error("Error closing Kafka producer", "error", err)
 		} else {
-			log.Println("Kafka producer closed")
+			slog.Info("Kafka producer closed")
 		}
 	}
 
@@ -114,11 +131,11 @@ func (a *Application) Shutdown() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := a.mongoClient.Disconnect(ctx); err != nil {
-			log.Printf("Error disconnecting from MongoDB: %v", err)
+			slog.Error("Error disconnecting from MongoDB", "error", err)
 		} else {
-			log.Println("MongoDB disconnected")
+			slog.Info("MongoDB disconnected")
 		}
 	}
 
-	log.Println("Story service shutdown complete")
+	slog.Info("Story service shutdown complete")
 }

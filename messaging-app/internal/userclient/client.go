@@ -8,16 +8,19 @@ import (
 
 	"messaging-app/config"
 
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	pb "gitlab.com/spydotech-group/shared-entity/proto/user/v1"
+	"gitlab.com/spydotech-group/shared-entity/resilience"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Client wraps the gRPC connection to the User service
+// Client wraps the gRPC connection to the User service with circuit breaker protection
 type Client struct {
 	conn   *grpc.ClientConn
 	client pb.UserServiceClient
+	cb     *resilience.CircuitBreaker
 }
 
 // New creates a new User gRPC client using the configured host/port
@@ -32,14 +35,20 @@ func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 		addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
+		observability.GetGRPCDialOption(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect to user gRPC at %s: %w", addr, err)
 	}
 
+	// Create circuit breaker with default config
+	cbConfig := resilience.DefaultConfig("user-service")
+	cb := resilience.NewCircuitBreaker(cbConfig)
+
 	return &Client{
 		conn:   conn,
 		client: pb.NewUserServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 
@@ -53,22 +62,26 @@ func (c *Client) Close() error {
 
 // ==================== READ OPERATIONS ====================
 
-// GetUser fetches a single user by ID
+// GetUser fetches a single user by ID (circuit breaker protected)
 func (c *Client) GetUser(ctx context.Context, userID string) (*pb.User, error) {
-	resp, err := c.client.GetUser(ctx, &pb.GetUserRequest{UserId: userID})
+	result, err := c.cb.Execute(ctx, func() (interface{}, error) {
+		return c.client.GetUser(ctx, &pb.GetUserRequest{UserId: userID})
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get user %s: %w", userID, err)
 	}
-	return resp.User, nil
+	return result.(*pb.GetUserResponse).User, nil
 }
 
-// GetUsers fetches multiple users by their IDs
+// GetUsers fetches multiple users by their IDs (circuit breaker protected)
 func (c *Client) GetUsers(ctx context.Context, userIDs []string) ([]*pb.User, error) {
-	resp, err := c.client.GetUsers(ctx, &pb.GetUsersRequest{UserIds: userIDs})
+	result, err := c.cb.Execute(ctx, func() (interface{}, error) {
+		return c.client.GetUsers(ctx, &pb.GetUsersRequest{UserIds: userIDs})
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get users: %w", err)
 	}
-	return resp.Users, nil
+	return result.(*pb.GetUsersResponse).Users, nil
 }
 
 // ListUsers retrieves a paginated list of users with optional search

@@ -23,6 +23,9 @@ type Config struct {
 	// User Service (for author info)
 	UserServiceHost string
 	UserServicePort string
+
+	// Observability
+	JaegerOTLPEndpoint string
 }
 
 func Load() *Config {
@@ -43,6 +46,8 @@ func Load() *Config {
 		// User Service
 		UserServiceHost: getEnv("USER_SERVICE_HOST", "localhost"),
 		UserServicePort: getEnv("USER_SERVICE_PORT", "9091"),
+
+		JaegerOTLPEndpoint: getEnv("JAEGER_OTLP_ENDPOINT", "localhost:4317"),
 	}
 }
 

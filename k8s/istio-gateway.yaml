@@ -1,0 +1,103 @@
+# Istio Gateway for Connectify
+# This gateway handles incoming traffic from outside the mesh
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: connectify-gateway
+  namespace: connectify
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "api.connectify.io"
+        - "*.connectify.io"
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "api.connectify.io"
+        - "*.connectify.io"
+      tls:
+        mode: SIMPLE
+        credentialName: connectify-tls-secret
+
+---
+# VirtualService for main API routing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: connectify-api
+  namespace: connectify
+spec:
+  hosts:
+    - "api.connectify.io"
+  gateways:
+    - connectify-gateway
+  http:
+    # WebSocket endpoint with upgrade support
+    - match:
+        - uri:
+            prefix: /ws
+      route:
+        - destination:
+            host: messaging-app
+            port:
+              number: 8081
+      timeout: 0s  # No timeout for WebSocket
+      
+    # User service routes
+    - match:
+        - uri:
+            prefix: /api/v1/users
+      route:
+        - destination:
+            host: messaging-app
+            port:
+              number: 8080
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled,retriable-4xx
+      
+    # Story service routes
+    - match:
+        - uri:
+            prefix: /api/v1/stories
+      route:
+        - destination:
+            host: messaging-app
+            port:
+              number: 8080
+              
+    # Events service routes
+    - match:
+        - uri:
+            prefix: /api/v1/events
+      route:
+        - destination:
+            host: messaging-app
+            port:
+              number: 8080
+              
+    # Marketplace routes
+    - match:
+        - uri:
+            prefix: /api/v1/marketplace
+      route:
+        - destination:
+            host: messaging-app
+            port:
+              number: 8080
+    
+    # Default catch-all for messaging-app
+    - route:
+        - destination:
+            host: messaging-app
+            port:
+              number: 8080

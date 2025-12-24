@@ -34,6 +34,9 @@ type Config struct {
 	JWTSecret       string
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
+
+	// Observability
+	JaegerOTLPEndpoint string
 }
 
 func LoadConfig() *Config {
@@ -64,6 +67,8 @@ func LoadConfig() *Config {
 		JWTSecret:       getEnv("JWT_SECRET", "very-secret-key"),
 		AccessTokenTTL:  time.Minute * time.Duration(accessTTL),
 		RefreshTokenTTL: time.Minute * time.Duration(refreshTTL),
+
+		JaegerOTLPEndpoint: getEnv("JAEGER_OTLP_ENDPOINT", "localhost:4317"),
 	}
 }
 

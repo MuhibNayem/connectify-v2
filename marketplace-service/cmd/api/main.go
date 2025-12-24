@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -12,18 +12,20 @@ import (
 	"gitlab.com/spydotech-group/marketplace-service/config"
 	grpcserver "gitlab.com/spydotech-group/marketplace-service/internal/grpc"
 	"gitlab.com/spydotech-group/marketplace-service/internal/platform"
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	marketplacepb "gitlab.com/spydotech-group/shared-entity/proto/marketplace/v1"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	if err := run(); err != nil {
-		log.Printf("Application error: %v", err)
+		slog.Error("Application error", "error", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
+	observability.InitLogger()
 	_ = godotenv.Load()
 
 	cfg := config.LoadConfig()
@@ -35,7 +37,9 @@ func run() error {
 	}
 
 	// Create gRPC server
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(
+		observability.GetGRPCServerOption(),
+	)
 	marketplacepb.RegisterMarketplaceServiceServer(grpcSrv, grpcserver.NewServer(deps.MarketplaceService))
 
 	// Start listening
@@ -49,14 +53,15 @@ func run() error {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("🚀 Marketplace gRPC Service listening on port %s", cfg.GRPCPort)
+		slog.Info("Marketplace gRPC Service listening", "port", cfg.GRPCPort)
 		if err := grpcSrv.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
+			slog.Error("Failed to serve", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-done
-	log.Println("📴 Shutting down gracefully...")
+	slog.Info("Shutting down gracefully...")
 	grpcSrv.GracefulStop()
 
 	return nil

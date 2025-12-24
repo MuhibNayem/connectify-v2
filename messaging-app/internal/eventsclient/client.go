@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"messaging-app/config"
+
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	eventspb "gitlab.com/spydotech-group/shared-entity/proto/events/v1"
+	"gitlab.com/spydotech-group/shared-entity/resilience"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +21,7 @@ import (
 type Client struct {
 	conn   *grpc.ClientConn
 	client eventspb.EventsServiceClient
+	cb     *resilience.CircuitBreaker
 }
 
 // New creates a new Events gRPC client using the configured host/port.
@@ -31,14 +35,20 @@ func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 		addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
+		observability.GetGRPCDialOption(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect to events gRPC at %s: %w", addr, err)
 	}
 
+	// Create circuit breaker with default config
+	cbConfig := resilience.DefaultConfig("events-service")
+	cb := resilience.NewCircuitBreaker(cbConfig)
+
 	return &Client{
 		conn:   conn,
 		client: eventspb.NewEventsServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 

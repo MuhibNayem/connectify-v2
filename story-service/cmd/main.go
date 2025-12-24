@@ -1,22 +1,25 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	"gitlab.com/spydotech-group/story-service/config"
 	"gitlab.com/spydotech-group/story-service/internal/platform"
 )
 
 func main() {
+	observability.InitLogger()
 	cfg := config.Load()
 
 	app := platform.NewApplication(cfg)
 
 	if err := app.Bootstrap(); err != nil {
-		log.Fatalf("Failed to bootstrap application: %v", err)
+		slog.Error("Failed to bootstrap application", "error", err)
+		os.Exit(1)
 	}
 
 	// Handle graceful shutdown
@@ -29,6 +32,7 @@ func main() {
 	}()
 
 	if err := app.Run(); err != nil {
-		log.Fatalf("Application error: %v", err)
+		slog.Error("Application error", "error", err)
+		os.Exit(1)
 	}
 }

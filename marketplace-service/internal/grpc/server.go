@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	marketplace "gitlab.com/spydotech-group/marketplace-service/internal"
 	"gitlab.com/spydotech-group/marketplace-service/internal/service"
@@ -53,7 +53,7 @@ func (s *Server) CreateProduct(ctx context.Context, req *marketplacepb.CreatePro
 
 	product, err := s.service.CreateProduct(ctx, userID, createReq)
 	if err != nil {
-		log.Printf("Error creating product: %v", err)
+		slog.Error("Error creating product", "error", err)
 		return nil, status.Errorf(codes.Internal, "failed to create product: %v", err)
 	}
 

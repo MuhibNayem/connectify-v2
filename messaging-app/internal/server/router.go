@@ -8,6 +8,7 @@ import (
 	"messaging-app/config"
 	"messaging-app/internal/controllers"
 	"messaging-app/internal/websocket"
+
 	"gitlab.com/spydotech-group/shared-entity/middleware"
 
 	"github.com/gin-contrib/cors"
@@ -36,6 +37,7 @@ type routerConfig struct {
 func (a *Application) buildRouters(cfg routerConfig) (*gin.Engine, *gin.Engine) {
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(middleware.TracingMiddleware("messaging-app"))
 	router.Use(config.MetricsMiddleware(a.metrics))
 
 	allowedOrigins := a.cfg.CORSAllowedOrigins

@@ -731,6 +731,28 @@ services:
       timeout: 10s
       retries: 5
 
+  # =========================
+  # Distributed Tracing
+  # =========================
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+      - "6831:6831/udp" # Jaeger Thrift compact
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - messaging-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   neo4j_data:
   neo4j_logs:

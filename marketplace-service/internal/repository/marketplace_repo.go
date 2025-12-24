@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"time"
 
 	"gitlab.com/spydotech-group/shared-entity/models"
@@ -51,7 +51,7 @@ func NewMarketplaceRepository(db *mongo.Database) *MarketplaceRepository {
 	}
 	_, err := productCollection.Indexes().CreateMany(context.Background(), productIndexes)
 	if err != nil {
-		log.Printf("Failed to create product indexes: %v", err)
+		slog.Error("Failed to create product indexes", "error", err)
 	}
 
 	// Create Indexes for Categories
@@ -66,7 +66,7 @@ func NewMarketplaceRepository(db *mongo.Database) *MarketplaceRepository {
 	}
 	_, err = categoryCollection.Indexes().CreateMany(context.Background(), categoryIndexes)
 	if err != nil {
-		log.Printf("Failed to create category indexes: %v", err)
+		slog.Error("Failed to create category indexes", "error", err)
 	}
 
 	return &MarketplaceRepository{

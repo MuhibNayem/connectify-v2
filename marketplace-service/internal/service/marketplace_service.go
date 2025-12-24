@@ -39,7 +39,7 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 		Price:       req.Price,
 		Currency:    req.Currency,
 		Images:      req.Images,
-		Location:    req.Location,
+		Location:    models.ProductLocation{City: req.Location}, // Convert string to structured location
 		Status:      models.ProductStatusAvailable,
 		Tags:        req.Tags,
 	}

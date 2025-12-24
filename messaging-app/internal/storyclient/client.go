@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	storypb "gitlab.com/spydotech-group/shared-entity/proto/story/v1"
+	"gitlab.com/spydotech-group/shared-entity/resilience"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -13,20 +15,29 @@ import (
 type Client struct {
 	conn   *grpc.ClientConn
 	client storypb.StoryServiceClient
+	cb     *resilience.CircuitBreaker
 }
 
 func NewClient(host, port string) (*Client, error) {
 	addr := fmt.Sprintf("%s:%s", host, port)
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		observability.GetGRPCDialOption(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to story-service: %w", err)
 	}
 
 	log.Printf("Connected to story-service at %s", addr)
 
+	// Create circuit breaker with default config
+	cbConfig := resilience.DefaultConfig("story-service")
+	cb := resilience.NewCircuitBreaker(cbConfig)
+
 	return &Client{
 		conn:   conn,
 		client: storypb.NewStoryServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 

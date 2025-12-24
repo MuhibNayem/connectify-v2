@@ -8,7 +8,9 @@ import (
 
 	"messaging-app/config"
 
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	feedpb "gitlab.com/spydotech-group/shared-entity/proto/feed/v1"
+	"gitlab.com/spydotech-group/shared-entity/resilience"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -16,6 +18,7 @@ import (
 type Client struct {
 	conn   *grpc.ClientConn
 	client feedpb.FeedServiceClient
+	cb     *resilience.CircuitBreaker
 }
 
 func New(ctx context.Context, cfg *config.Config) (*Client, error) {
@@ -25,14 +28,20 @@ func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 		grpc.WithTimeout(5*time.Second),
+		observability.GetGRPCDialOption(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("feed service connection failed: %w", err)
 	}
 
+	// Create circuit breaker with default config
+	cbConfig := resilience.DefaultConfig("feed-service")
+	cb := resilience.NewCircuitBreaker(cbConfig)
+
 	return &Client{
 		conn:   conn,
 		client: feedpb.NewFeedServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 

@@ -1,0 +1,38 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: connectify-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: connectify-gateway
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - connectify-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api/
+    route:
+    - destination:
+        host: messaging-app
+        port:
+          number: 8080
+  - route: # Default route to messaging-app as well for now
+    - destination:
+        host: messaging-app
+        port:
+          number: 8080

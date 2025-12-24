@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	pb "gitlab.com/spydotech-group/shared-entity/proto/user/v1"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,7 +28,25 @@ import (
 )
 
 func main() {
+	observability.InitLogger()
 	var cfg *config.Config = config.LoadConfig()
+
+	// 0. Observability
+	tp, err := observability.InitTracer(context.Background(), observability.TracerConfig{
+		ServiceName:    "user-service",
+		ServiceVersion: "1.0.0",
+		Environment:    "development", // TODO: Make configurable
+		JaegerEndpoint: cfg.JaegerOTLPEndpoint,
+	})
+	if err != nil {
+		slog.Error("Failed to initialize tracer", "error", err)
+	} else {
+		defer func() {
+			if err := tp.Shutdown(context.Background()); err != nil {
+				slog.Error("Error shutting down tracer provider", "error", err)
+			}
+		}()
+	}
 
 	// 1. Database Connections
 	// Mongo
@@ -35,7 +54,8 @@ func main() {
 	defer cancel()
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.MongoURI))
 	if err != nil {
-		log.Fatalf("Mongo connect error: %v", err)
+		slog.Error("Mongo connect error", "error", err)
+		os.Exit(1)
 	}
 	db := mongoClient.Database(cfg.DBName)
 
@@ -48,7 +68,8 @@ func main() {
 	// Neo4j
 	neoDriver, err := neo4j.NewDriverWithContext(cfg.Neo4jURI, neo4j.BasicAuth(cfg.Neo4jUser, cfg.Neo4jPassword, ""))
 	if err != nil {
-		log.Fatalf("Neo4j connect error: %v", err)
+		slog.Error("Neo4j connect error", "error", err)
+		os.Exit(1)
 	}
 	defer neoDriver.Close(context.Background())
 
@@ -86,14 +107,17 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Starting HTTP server on %s", cfg.ServerPort)
+		slog.Info("Starting HTTP server", "port", cfg.ServerPort)
 		if err := r.Run(":" + cfg.ServerPort); err != nil {
-			log.Fatalf("HTTP server error: %v", err)
+			slog.Error("HTTP server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	// gRPC Server
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		observability.GetGRPCServerOption(),
+	)
 	pb.RegisterUserServiceServer(grpcServer, userGrpcHandler)
 	reflection.Register(grpcServer)
 
@@ -101,13 +125,15 @@ func main() {
 	grpcPort := "9083"
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
-		log.Fatalf("Failed to listen for gRPC: %v", err)
+		slog.Error("Failed to listen for gRPC", "error", err)
+		os.Exit(1)
 	}
 
 	go func() {
-		log.Printf("Starting gRPC server on %s", grpcPort)
+		slog.Info("Starting gRPC server", "port", grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("gRPC server error: %v", err)
+			slog.Error("gRPC server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -115,5 +141,5 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down...")
+	slog.Info("Shutting down...")
 }

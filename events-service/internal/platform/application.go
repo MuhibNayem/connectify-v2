@@ -3,7 +3,7 @@ package platform
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -22,6 +22,7 @@ import (
 	"gitlab.com/spydotech-group/events-service/internal/service"
 
 	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	"gitlab.com/spydotech-group/shared-entity/redis"
 
 	"github.com/gin-gonic/gin"
@@ -79,7 +80,7 @@ func (a *Application) Run() error {
 	errCh := make(chan error, 4)
 	startServer := func(srv *http.Server, name string) {
 		go func() {
-			log.Printf("%s starting on %s", name, srv.Addr)
+			slog.Info(name+" starting", "address", srv.Addr)
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				errCh <- fmt.Errorf("%s failed: %w", name, err)
 			}
@@ -98,7 +99,7 @@ func (a *Application) Run() error {
 			errCh <- fmt.Errorf("failed to listen for gRPC: %w", err)
 			return
 		}
-		log.Printf("gRPC server starting on %s", lis.Addr())
+		slog.Info("gRPC server starting", "address", lis.Addr())
 		if err := a.grpcServer.Serve(lis); err != nil {
 			errCh <- fmt.Errorf("gRPC server failed: %w", err)
 		}
@@ -106,10 +107,10 @@ func (a *Application) Run() error {
 
 	select {
 	case <-quit:
-		log.Println("Received shutdown signal")
+		slog.Info("Received shutdown signal")
 		return a.Shutdown()
 	case err := <-errCh:
-		log.Printf("Server error: %v", err)
+		slog.Error("Server error", "error", err)
 		return a.Shutdown()
 	}
 }
@@ -117,7 +118,7 @@ func (a *Application) Run() error {
 func (a *Application) Shutdown() error {
 	var shutdownErr error
 	a.shutdownOnce.Do(func() {
-		log.Println("Shutting down application...")
+		slog.Info("Shutting down application...")
 		a.cancel()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -125,17 +126,17 @@ func (a *Application) Shutdown() error {
 
 		if a.httpServer != nil {
 			if err := a.httpServer.Shutdown(ctx); err != nil {
-				log.Printf("HTTP server shutdown error: %v", err)
+				slog.Error("HTTP server shutdown error", "error", err)
 				shutdownErr = err
 			}
 		}
 		if err := a.metricsServer.Shutdown(ctx); err != nil {
-			log.Printf("Metrics server shutdown error: %v", err)
+			slog.Error("Metrics server shutdown error", "error", err)
 			shutdownErr = err
 		}
 
 		if a.grpcServer != nil {
-			log.Println("Stopping gRPC server...")
+			slog.Info("Stopping gRPC server...")
 			a.grpcServer.GracefulStop()
 		}
 
@@ -164,6 +165,19 @@ func (a *Application) Close() {
 
 func (a *Application) bootstrap() error {
 	var err error
+
+	// Initialize Tracer
+	tp, err := observability.InitTracer(a.ctx, observability.TracerConfig{
+		ServiceName:    "events-service",
+		ServiceVersion: "1.0.0",
+		Environment:    "development", // TODO: Configurable
+		JaegerEndpoint: a.cfg.JaegerOTLPEndpoint,
+	})
+	if err != nil {
+		slog.Error("Failed to initialize tracer", "error", err)
+	}
+	_ = tp
+
 	a.mongoClient, a.db, err = InitMongo(a.ctx, a.cfg)
 	if err != nil {
 		return err
@@ -176,7 +190,7 @@ func (a *Application) bootstrap() error {
 
 	a.neo4jClient, err = InitNeo4j(a.cfg)
 	if err != nil {
-		log.Printf("Warning: Failed to connect to Neo4j: %v", err)
+		slog.Warn("Failed to connect to Neo4j", "error", err)
 	}
 
 	a.dlqProducer = pkgkafka.NewDLQProducer(a.cfg.KafkaBrokers)
@@ -233,7 +247,9 @@ func (a *Application) bootstrap() error {
 	}
 
 	// Initialize gRPC Server
-	a.grpcServer = grpc.NewServer()
+	a.grpcServer = grpc.NewServer(
+		observability.GetGRPCServerOption(),
+	)
 	grpcEventHandler := eventgrpc.NewServer(a.eventService, eventRecommendationService)
 	eventspb.RegisterEventsServiceServer(a.grpcServer, grpcEventHandler)
 

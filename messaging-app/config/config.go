@@ -67,6 +67,7 @@ type Config struct {
 	ArchiveAfterDays    int
 	ArchiveBucket       string
 	ArchiveCacheTTLMins int
+	JaegerOTLPEndpoint  string
 }
 
 func LoadConfig() *Config {
@@ -158,6 +159,7 @@ func LoadConfig() *Config {
 		ArchiveAfterDays:    archiveAfterDays,
 		ArchiveBucket:       getEnv("ARCHIVE_BUCKET", "connectify-archive"),
 		ArchiveCacheTTLMins: archiveCacheTTL,
+		JaegerOTLPEndpoint:  getEnv("JAEGER_OTLP_ENDPOINT", "localhost:4317"),
 	}
 }
 

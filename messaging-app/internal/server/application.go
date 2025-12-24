@@ -24,6 +24,7 @@ import (
 	"messaging-app/internal/websocket"
 
 	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	"gitlab.com/spydotech-group/shared-entity/redis"
 
 	"github.com/gin-gonic/gin"
@@ -66,7 +67,8 @@ type Application struct {
 	backgroundWorkers       []func()
 	backgroundWorkerCancel  context.CancelFunc
 
-	shutdownOnce sync.Once
+	tracerProvider *observability.TracerProvider
+	shutdownOnce   sync.Once
 }
 
 func NewApplication(parentCtx context.Context, cfg *config.Config, metrics *config.Metrics) (*Application, error) {
@@ -182,6 +184,11 @@ func (a *Application) Close() {
 	if a.mongoClient != nil {
 		_ = a.mongoClient.Disconnect(context.Background())
 	}
+	if a.tracerProvider != nil {
+		if err := a.tracerProvider.Shutdown(context.Background()); err != nil {
+			log.Printf("Error shutting down tracer provider: %v", err)
+		}
+	}
 }
 
 func (a *Application) bootstrap() error {
@@ -189,6 +196,11 @@ func (a *Application) bootstrap() error {
 	a.mongoClient, a.db, err = InitMongo(a.ctx, a.cfg)
 	if err != nil {
 		return err
+	}
+
+	if err := a.initTracer(); err != nil {
+		log.Printf("Warning: Failed to initialize tracer: %v", err)
+		// Don't fail bootstrap, tracing is optional-ish
 	}
 
 	a.redisClient, err = InitRedis(a.cfg)
@@ -307,4 +319,25 @@ func (a *Application) startBackgroundWorkers() {
 	go a.storyConsumer.Start(ctx)
 	go a.cacheInvalidator.Start(ctx)
 	go a.cleanupService.StartCleanupWorker(ctx)
+}
+
+func (a *Application) initTracer() error {
+	tp, err := observability.InitTracer(a.ctx, observability.TracerConfig{
+		ServiceName:    "messaging-app",
+		ServiceVersion: "1.0.0",
+		Environment:    getEnv("APP_ENV", "development"),
+		JaegerEndpoint: a.cfg.JaegerOTLPEndpoint,
+	})
+	if err != nil {
+		return err
+	}
+	a.tracerProvider = tp
+	return nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
 }

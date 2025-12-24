@@ -27,7 +27,7 @@ func protoProductToModel(p *marketplacepb.Product) *models.Product {
 		Price:       p.Price,
 		Currency:    p.Currency,
 		Images:      p.Images,
-		Location:    p.Location.City, // Proto has struct, model has string
+		Location:    protoLocationToModel(p.Location),
 		Status:      models.ProductStatus(p.Status),
 		Tags:        p.Tags,
 		Views:       p.Views,
@@ -53,7 +53,7 @@ func protoProductToResponse(p *marketplacepb.Product) *models.ProductResponse {
 		Price:       p.Price,
 		Currency:    p.Currency,
 		Images:      p.Images,
-		Location:    p.Location.City, // Proto has struct, model has string
+		Location:    protoLocationToModel(p.Location),
 		Status:      models.ProductStatus(p.Status),
 		Tags:        p.Tags,
 		Views:       p.Views,
@@ -71,5 +71,19 @@ func protoProductToResponse(p *marketplacepb.Product) *models.ProductResponse {
 			Icon: p.Category.Icon,
 		},
 		IsSaved: p.IsSaved,
+	}
+}
+
+// protoLocationToModel converts proto Location to models.ProductLocation
+func protoLocationToModel(loc *marketplacepb.Location) models.ProductLocation {
+	if loc == nil {
+		return models.ProductLocation{}
+	}
+	return models.ProductLocation{
+		City:      loc.City,
+		State:     loc.State,
+		Country:   loc.Country,
+		Latitude:  loc.Latitude,
+		Longitude: loc.Longitude,
 	}
 }

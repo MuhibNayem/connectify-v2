@@ -3,12 +3,13 @@ package platform
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"gitlab.com/spydotech-group/marketplace-service/config"
 	"gitlab.com/spydotech-group/marketplace-service/internal/repository"
 	"gitlab.com/spydotech-group/marketplace-service/internal/service"
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -24,6 +25,18 @@ func InitializeDependencies(cfg *config.Config) (*Dependencies, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Initialize Tracer
+	tp, err := observability.InitTracer(context.Background(), observability.TracerConfig{
+		ServiceName:    "marketplace-service",
+		ServiceVersion: "1.0.0",
+		Environment:    "development", // TODO: Configurable
+		JaegerEndpoint: cfg.JaegerOTLPEndpoint,
+	})
+	if err != nil {
+		slog.Error("Failed to initialize tracer", "error", err)
+	}
+	_ = tp
+
 	clientOpts := options.Client().ApplyURI(cfg.MongoURI)
 	mongoClient, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
@@ -34,7 +47,7 @@ func InitializeDependencies(cfg *config.Config) (*Dependencies, error) {
 		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 
-	log.Println("✅ Connected to MongoDB")
+	slog.Info("Connected to MongoDB")
 
 	mongoDB := mongoClient.Database("messaging_app")
 	marketplaceRepo := repository.NewMarketplaceRepository(mongoDB)

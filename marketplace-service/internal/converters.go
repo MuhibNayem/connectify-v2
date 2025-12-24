@@ -28,7 +28,7 @@ func ProtoProductToModel(p *marketplacepb.Product) *models.Product {
 		Price:       p.Price,
 		Currency:    p.Currency,
 		Images:      p.Images,
-		Location:    p.Location.City, // Proto has struct, model has string
+		Location:    protoLocationToModel(p.Location),
 		Status:      models.ProductStatus(p.Status),
 		Tags:        p.Tags,
 		Views:       p.Views,
@@ -54,7 +54,7 @@ func ProtoProductToResponse(p *marketplacepb.Product) *models.ProductResponse {
 		Price:       p.Price,
 		Currency:    p.Currency,
 		Images:      p.Images,
-		Location:    p.Location.City, // Proto has struct, model has string
+		Location:    protoLocationToModel(p.Location),
 		Status:      models.ProductStatus(p.Status),
 		Tags:        p.Tags,
 		Views:       p.Views,
@@ -81,12 +81,6 @@ func ToProtoProductFromModel(product *models.Product) *marketplacepb.Product {
 		return nil
 	}
 
-	// Handle location conversion - model is string, proto is struct
-	location := &marketplacepb.Location{}
-	if product.Location != "" {
-		location.City = product.Location
-	}
-
 	return &marketplacepb.Product{
 		Id:          product.ID.Hex(),
 		Title:       product.Title,
@@ -94,21 +88,17 @@ func ToProtoProductFromModel(product *models.Product) *marketplacepb.Product {
 		Price:       product.Price,
 		Currency:    product.Currency,
 		Images:      product.Images,
-		Location:    location,
+		Location:    modelLocationToProto(product.Location),
 		Status:      string(product.Status),
 		Tags:        product.Tags,
 		Views:       product.Views,
 		CreatedAt:   timestamppb.New(product.CreatedAt),
 		Seller: &marketplacepb.UserShort{
-			// Note: Product model only has SellerID, not full Seller info.
-			// This might be incomplete if caller expects full seller info.
 			Id: product.SellerID.Hex(),
 		},
 		Category: &marketplacepb.Category{
-			// Note: Product model only has CategoryID
 			Id: product.CategoryID.Hex(),
 		},
-		// IsSaved is not in Product model
 	}
 }
 
@@ -118,12 +108,6 @@ func ToProtoProduct(product *models.ProductResponse) *marketplacepb.Product {
 		return nil
 	}
 
-	// Handle location conversion - model is string, proto is struct
-	location := &marketplacepb.Location{}
-	if product.Location != "" {
-		location.City = product.Location
-	}
-
 	return &marketplacepb.Product{
 		Id:          product.ID.Hex(),
 		Title:       product.Title,
@@ -131,7 +115,7 @@ func ToProtoProduct(product *models.ProductResponse) *marketplacepb.Product {
 		Price:       product.Price,
 		Currency:    product.Currency,
 		Images:      product.Images,
-		Location:    location,
+		Location:    modelLocationToProto(product.Location),
 		Status:      string(product.Status),
 		Tags:        product.Tags,
 		Views:       product.Views,
@@ -149,6 +133,31 @@ func ToProtoProduct(product *models.ProductResponse) *marketplacepb.Product {
 			Icon: product.Category.Icon,
 		},
 		IsSaved: product.IsSaved,
+	}
+}
+
+// protoLocationToModel converts proto Location to models.ProductLocation
+func protoLocationToModel(loc *marketplacepb.Location) models.ProductLocation {
+	if loc == nil {
+		return models.ProductLocation{}
+	}
+	return models.ProductLocation{
+		City:      loc.City,
+		State:     loc.State,
+		Country:   loc.Country,
+		Latitude:  loc.Latitude,
+		Longitude: loc.Longitude,
+	}
+}
+
+// modelLocationToProto converts models.ProductLocation to proto Location
+func modelLocationToProto(loc models.ProductLocation) *marketplacepb.Location {
+	return &marketplacepb.Location{
+		City:      loc.City,
+		State:     loc.State,
+		Country:   loc.Country,
+		Latitude:  loc.Latitude,
+		Longitude: loc.Longitude,
 	}
 }
 

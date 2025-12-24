@@ -2,22 +2,25 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 
+	"github.com/joho/godotenv"
 	"gitlab.com/spydotech-group/events-service/config"
 	"gitlab.com/spydotech-group/events-service/internal/platform"
-	"github.com/joho/godotenv"
+	"gitlab.com/spydotech-group/shared-entity/observability"
 )
 
 func main() {
 	if err := run(); err != nil {
-		log.Printf("Application error: %v", err)
+		slog.Error("Application error", "error", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
+	observability.InitLogger()
+
 	// Load .env file if it exists
 	_ = godotenv.Load()
 

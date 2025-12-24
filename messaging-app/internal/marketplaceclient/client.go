@@ -8,7 +8,9 @@ import (
 
 	"messaging-app/config"
 
+	"gitlab.com/spydotech-group/shared-entity/observability"
 	marketplacepb "gitlab.com/spydotech-group/shared-entity/proto/marketplace/v1"
+	"gitlab.com/spydotech-group/shared-entity/resilience"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +20,7 @@ import (
 type Client struct {
 	conn   *grpc.ClientConn
 	client marketplacepb.MarketplaceServiceClient
+	cb     *resilience.CircuitBreaker
 }
 
 // New creates a new Marketplace gRPC client using the configured host/port
@@ -31,14 +34,20 @@ func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 		addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
+		observability.GetGRPCDialOption(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("connect to marketplace gRPC at %s: %w", addr, err)
 	}
 
+	// Create circuit breaker with default config
+	cbConfig := resilience.DefaultConfig("marketplace-service")
+	cb := resilience.NewCircuitBreaker(cbConfig)
+
 	return &Client{
 		conn:   conn,
 		client: marketplacepb.NewMarketplaceServiceClient(conn),
+		cb:     cb,
 	}, nil
 }
 

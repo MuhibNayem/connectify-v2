@@ -15,6 +15,27 @@ const (
 	ProductStatusArchived  ProductStatus = "archived"
 )
 
+// ProductLocation stores detailed location information
+type ProductLocation struct {
+	City      string  `bson:"city" json:"city"`
+	State     string  `bson:"state,omitempty" json:"state,omitempty"`
+	Country   string  `bson:"country,omitempty" json:"country,omitempty"`
+	Latitude  float64 `bson:"latitude,omitempty" json:"latitude,omitempty"`
+	Longitude float64 `bson:"longitude,omitempty" json:"longitude,omitempty"`
+}
+
+// DisplayString returns a formatted location string
+func (l ProductLocation) DisplayString() string {
+	result := l.City
+	if l.State != "" {
+		result += ", " + l.State
+	}
+	if l.Country != "" {
+		result += ", " + l.Country
+	}
+	return result
+}
+
 type Product struct {
 	ID          primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
 	SellerID    primitive.ObjectID   `bson:"seller_id" json:"seller_id"`
@@ -24,8 +45,8 @@ type Product struct {
 	Price       float64              `bson:"price" json:"price"`
 	Currency    string               `bson:"currency" json:"currency"` // e.g., "BDT", "USD"
 	Images      []string             `bson:"images" json:"images"`
-	Location    string               `bson:"location" json:"location"`                           // Text representation for now
-	Coordinates []float64            `bson:"coordinates,omitempty" json:"coordinates,omitempty"` // [Longitude, Latitude] for GeoJSON
+	Location    ProductLocation      `bson:"location" json:"location"`                           // Structured location
+	Coordinates []float64            `bson:"coordinates,omitempty" json:"coordinates,omitempty"` // [Longitude, Latitude] for GeoJSON index
 	Status      ProductStatus        `bson:"status" json:"status"`
 	SavedBy     []primitive.ObjectID `bson:"saved_by,omitempty" json:"saved_by,omitempty"`
 	Tags        []string             `bson:"tags,omitempty" json:"tags,omitempty"`
@@ -51,7 +72,7 @@ type ProductResponse struct {
 	Price       float64            `bson:"price" json:"price"`
 	Currency    string             `bson:"currency" json:"currency"`
 	Images      []string           `bson:"images" json:"images"`
-	Location    string             `bson:"location" json:"location"`
+	Location    ProductLocation    `bson:"location" json:"location"`
 	Status      ProductStatus      `bson:"status" json:"status"`
 	Tags        []string           `bson:"tags,omitempty" json:"tags,omitempty"`
 	Views       int64              `bson:"views" json:"views"`
