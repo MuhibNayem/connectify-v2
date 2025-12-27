@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/pkg/async"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/producer"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/validation"
@@ -100,6 +101,8 @@ type EventService struct {
 	eventCache           EventCache
 	broadcaster          EventBroadcaster
 	asyncRunner          *async.Runner // Added field
+	breaker              *CircuitBreakerWrapper
+	metrics              *metrics.BusinessMetrics
 }
 
 func NewEventService(
@@ -112,6 +115,8 @@ func NewEventService(
 	eventCache EventCache,
 	broadcaster EventBroadcaster,
 	logger *slog.Logger, // Added parameter
+	breaker *CircuitBreakerWrapper,
+	metrics *metrics.BusinessMetrics,
 ) *EventService {
 	return &EventService{
 		eventRepo:            eventRepo,
@@ -123,6 +128,8 @@ func NewEventService(
 		eventCache:           eventCache,
 		broadcaster:          broadcaster,
 		asyncRunner:          async.NewRunner(logger), // Initialized asyncRunner
+		breaker:              breaker,
+		metrics:              metrics,
 	}
 }
 
@@ -131,6 +138,35 @@ func (s *EventService) detachContext(ctx context.Context) context.Context {
 		return context.Background()
 	}
 	return context.WithoutCancel(ctx)
+}
+
+func (s *EventService) executeGraphOp(ctx context.Context, name string, fn func(context.Context) error) error {
+	if s.eventGraphRepo == nil {
+		return nil
+	}
+	if s.breaker == nil {
+		return fn(ctx)
+	}
+	return s.breaker.ExecuteGraphOp(ctx, name, func() error {
+		return fn(ctx)
+	})
+}
+
+func (s *EventService) fetchFriendsGoing(ctx context.Context, viewerID, eventID primitive.ObjectID) ([]string, error) {
+	if s.eventGraphRepo == nil || viewerID.IsZero() {
+		return nil, nil
+	}
+
+	var ids []string
+	err := s.executeGraphOp(ctx, "friends-going", func(gctx context.Context) error {
+		result, err := s.eventGraphRepo.GetFriendsGoing(gctx, viewerID, eventID)
+		if err != nil {
+			return err
+		}
+		ids = result
+		return nil
+	})
+	return ids, err
 }
 
 func (s *EventService) CreateEvent(ctx context.Context, userID primitive.ObjectID, req models.CreateEventRequest) (*models.Event, error) {
@@ -172,8 +208,14 @@ func (s *EventService) CreateEvent(ctx context.Context, userID primitive.ObjectI
 		s.asyncRunner.RunAsyncRetry(taskCtx, "add_creator_to_graph", func() error {
 			graphCtx, cancel := context.WithTimeout(taskCtx, 5*time.Second)
 			defer cancel()
-			return s.eventGraphRepo.AddAttendee(graphCtx, userID, event.ID)
+			return s.executeGraphOp(graphCtx, "add_creator_attendee", func(gctx context.Context) error {
+				return s.eventGraphRepo.AddAttendee(gctx, userID, event.ID)
+			})
 		}, asyncRetryAttempts, asyncRetryDelay)
+	}
+
+	if s.metrics != nil {
+		s.metrics.IncrementEventsCreated()
 	}
 
 	return event, nil
@@ -187,7 +229,7 @@ func (s *EventService) GetEvent(ctx context.Context, id primitive.ObjectID, view
 
 	// Private event access control
 	if event.Privacy == models.EventPrivacyPrivate {
-		if !s.canAccessPrivateEvent(event, viewerID) {
+		if !s.canAccessPrivateEvent(ctx, event, viewerID) {
 			return nil, errors.New("unauthorized: you do not have access to this private event")
 		}
 	}
@@ -196,7 +238,7 @@ func (s *EventService) GetEvent(ctx context.Context, id primitive.ObjectID, view
 }
 
 // canAccessPrivateEvent checks if a viewer can access a private event
-func (s *EventService) canAccessPrivateEvent(event *models.Event, viewerID primitive.ObjectID) bool {
+func (s *EventService) canAccessPrivateEvent(ctx context.Context, event *models.Event, viewerID primitive.ObjectID) bool {
 	// Creator can always access
 	if event.CreatorID == viewerID {
 		return true
@@ -218,7 +260,9 @@ func (s *EventService) canAccessPrivateEvent(event *models.Event, viewerID primi
 
 	// Check if viewer has an invitation
 	if s.invitationRepo != nil {
-		invitation, _ := s.invitationRepo.CheckExisting(context.Background(), event.ID, viewerID)
+		localCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		invitation, _ := s.invitationRepo.CheckExisting(localCtx, event.ID, viewerID)
 		if invitation != nil {
 			return true
 		}
@@ -305,6 +349,10 @@ func (s *EventService) DeleteEvent(ctx context.Context, id, userID primitive.Obj
 
 	if err := s.eventRepo.Delete(ctx, id); err != nil {
 		return err
+	}
+
+	if s.metrics != nil {
+		s.metrics.IncrementEventsDeleted()
 	}
 
 	if s.broadcaster != nil {
@@ -515,6 +563,10 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 		}
 	}
 
+	if s.metrics != nil {
+		s.metrics.IncrementRSVP(string(status))
+	}
+
 	// Update Graph (Async)
 	if s.eventGraphRepo != nil {
 		taskCtx := s.detachContext(ctx)
@@ -522,9 +574,13 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 			graphCtx, cancel := context.WithTimeout(taskCtx, 5*time.Second)
 			defer cancel()
 			if status == models.RSVPStatusGoing {
-				return s.eventGraphRepo.AddAttendee(graphCtx, userID, eventID)
+				return s.executeGraphOp(graphCtx, "add_rsvp_attendee", func(gctx context.Context) error {
+					return s.eventGraphRepo.AddAttendee(gctx, userID, eventID)
+				})
 			}
-			return s.eventGraphRepo.RemoveAttendee(graphCtx, userID, eventID)
+			return s.executeGraphOp(graphCtx, "remove_rsvp_attendee", func(gctx context.Context) error {
+				return s.eventGraphRepo.RemoveAttendee(gctx, userID, eventID)
+			})
 		}, asyncRetryAttempts, asyncRetryDelay)
 	}
 
@@ -556,7 +612,7 @@ func (s *EventService) mapToResponse(ctx context.Context, event *models.Event, v
 	// Fetch friends going (from Neo4j)
 	var friendsGoing []models.UserShort
 	if s.eventGraphRepo != nil && !viewerID.IsZero() {
-		friendIDs, err := s.eventGraphRepo.GetFriendsGoing(ctx, viewerID, event.ID)
+		friendIDs, err := s.fetchFriendsGoing(ctx, viewerID, event.ID)
 		if err == nil && len(friendIDs) > 0 {
 			// Limit to first 5 friends for display
 			limit := 5
@@ -714,6 +770,10 @@ func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID pri
 		err := s.invitationRepo.CreateMany(ctx, invitations)
 		if err != nil {
 			return err
+		}
+
+		if s.metrics != nil {
+			s.metrics.IncrementInvitations(len(invitations))
 		}
 
 		// Create notifications for each invitee
@@ -959,6 +1019,10 @@ func (s *EventService) CreatePost(ctx context.Context, eventID, authorID primiti
 			Post:    *resp,
 			EventID: eventID.Hex(),
 		})
+	}
+
+	if s.metrics != nil {
+		s.metrics.IncrementPosts()
 	}
 
 	return resp, nil

@@ -1,11 +1,11 @@
-package platform
+package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// BusinessMetrics holds Prometheus counters for business KPIs
+// BusinessMetrics holds Prometheus counters for business KPIs.
 type BusinessMetrics struct {
 	EventsCreated      prometheus.Counter
 	EventsDeleted      prometheus.Counter
@@ -15,7 +15,7 @@ type BusinessMetrics struct {
 	PostsCreated       prometheus.Counter
 }
 
-// NewBusinessMetrics creates and registers business metrics
+// NewBusinessMetrics creates and registers business metrics.
 func NewBusinessMetrics() *BusinessMetrics {
 	return &BusinessMetrics{
 		EventsCreated: promauto.NewCounter(prometheus.CounterOpts{
@@ -45,32 +45,47 @@ func NewBusinessMetrics() *BusinessMetrics {
 	}
 }
 
-// IncrementEventsCreated increments the events created counter
+// IncrementEventsCreated increments the events created counter.
 func (m *BusinessMetrics) IncrementEventsCreated() {
-	m.EventsCreated.Inc()
+	if m != nil {
+		m.EventsCreated.Inc()
+	}
 }
 
-// IncrementEventsDeleted increments the events deleted counter
+// IncrementEventsDeleted increments the events deleted counter.
 func (m *BusinessMetrics) IncrementEventsDeleted() {
-	m.EventsDeleted.Inc()
+	if m != nil {
+		m.EventsDeleted.Inc()
+	}
 }
 
-// IncrementRSVP increments the RSVP counter for a given status
+// IncrementRSVP increments the RSVP counter for a given status.
 func (m *BusinessMetrics) IncrementRSVP(status string) {
-	m.RSVPTotal.WithLabelValues(status).Inc()
+	if m != nil {
+		m.RSVPTotal.WithLabelValues(status).Inc()
+	}
 }
 
-// IncrementInvitations increments the invitations sent counter
-func (m *BusinessMetrics) IncrementInvitations() {
-	m.InvitationsSent.Inc()
+// IncrementInvitations increments the invitations sent counter.
+func (m *BusinessMetrics) IncrementInvitations(count int) {
+	if m == nil || count <= 0 {
+		return
+	}
+	for i := 0; i < count; i++ {
+		m.InvitationsSent.Inc()
+	}
 }
 
-// IncrementRecommendations increments the recommendations counter
+// IncrementRecommendations increments the recommendations counter.
 func (m *BusinessMetrics) IncrementRecommendations() {
-	m.RecommendationReqs.Inc()
+	if m != nil {
+		m.RecommendationReqs.Inc()
+	}
 }
 
-// IncrementPosts increments the posts created counter
+// IncrementPosts increments the posts created counter.
 func (m *BusinessMetrics) IncrementPosts() {
-	m.PostsCreated.Inc()
+	if m != nil {
+		m.PostsCreated.Inc()
+	}
 }

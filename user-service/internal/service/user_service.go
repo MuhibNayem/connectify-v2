@@ -5,33 +5,40 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 	"user-service/config"
-	"user-service/internal/events"
-	"user-service/internal/repository"
+	"user-service/internal/platform"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	userRepo    *repository.UserRepository
-	producer    *events.EventProducer
+	userRepo    UserRepository
+	producer    EventProducer
 	redisClient redis.UniversalClient
 	cfg         *config.Config
+	logger      *slog.Logger
+	metrics     *platform.BusinessMetrics
 }
 
-func NewUserService(userRepo *repository.UserRepository, producer *events.EventProducer, redisClient redis.UniversalClient, cfg *config.Config) *UserService {
+func NewUserService(userRepo UserRepository, producer EventProducer, redisClient redis.UniversalClient, cfg *config.Config, logger *slog.Logger, metrics *platform.BusinessMetrics) *UserService {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &UserService{
 		userRepo:    userRepo,
 		producer:    producer,
 		redisClient: redisClient,
 		cfg:         cfg,
+		logger:      logger,
+		metrics:     metrics,
 	}
 }
 
@@ -44,9 +51,19 @@ func (s *UserService) publishUserUpdatedEvent(ctx context.Context, userID string
 		"user_data":  updatedUser,
 	}
 
-	payload, _ := json.Marshal(event)
-	go s.producer.Produce(context.Background(), []byte(userID), payload)
-	log.Printf("Published USER_UPDATED event for user %s", userID)
+	payload, err := json.Marshal(event)
+	if err != nil {
+		s.logger.Error("Failed to marshal user event", "user_id", userID, "error", err)
+		return
+	}
+
+	// Synchronous publish with retry (handled by producer)
+	if err := s.producer.Produce(ctx, []byte(userID), payload); err != nil {
+		s.logger.Error("Failed to publish USER_UPDATED event", "user_id", userID, "error", err)
+		return
+	}
+
+	s.logger.Info("Published USER_UPDATED event", "user_id", userID)
 }
 
 // ==================== READ OPERATIONS ====================
@@ -56,14 +73,30 @@ func (s *UserService) GetUserByID(ctx context.Context, id primitive.ObjectID) (*
 }
 
 func (s *UserService) GetUsersByIDs(ctx context.Context, ids []primitive.ObjectID) ([]models.User, error) {
-	users := make([]models.User, 0, len(ids))
+	if len(ids) == 0 {
+		return []models.User{}, nil
+	}
+
+	// Use batch fetch instead of N+1 loop
+	users, err := s.userRepo.FindUsersByIDs(ctx, ids)
+	if err != nil {
+		s.logger.Error("Failed to batch fetch users", "count", len(ids), "error", err)
+		return nil, err
+	}
+
+	// Maintain order by ID
+	userMap := make(map[primitive.ObjectID]models.User, len(users))
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+
+	result := make([]models.User, 0, len(ids))
 	for _, id := range ids {
-		user, err := s.userRepo.FindUserByID(ctx, id)
-		if err == nil && user != nil {
-			users = append(users, *user)
+		if u, ok := userMap[id]; ok {
+			result = append(result, u)
 		}
 	}
-	return users, nil
+	return result, nil
 }
 
 func (s *UserService) ListUsers(ctx context.Context, page, limit int64, search string) ([]models.User, int64, error) {
@@ -166,12 +199,6 @@ func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, upd
 }
 
 func (s *UserService) UpdateEmail(ctx context.Context, userID primitive.ObjectID, newEmail string) error {
-	// Check if email already exists
-	existingUser, err := s.userRepo.FindUserByEmail(ctx, newEmail)
-	if err == nil && existingUser != nil && existingUser.ID != userID {
-		return errors.New("email already in use by another account")
-	}
-
 	update := bson.M{
 		"email":          newEmail,
 		"email_verified": false,
@@ -180,10 +207,19 @@ func (s *UserService) UpdateEmail(ctx context.Context, userID primitive.ObjectID
 
 	updatedUser, err := s.userRepo.UpdateUser(ctx, userID, update)
 	if err != nil {
+		// Handle duplicate key error from unique index (atomic check)
+		if mongo.IsDuplicateKeyError(err) {
+			return errors.New("email already in use by another account")
+		}
+		s.logger.Error("Failed to update email", "user_id", userID.Hex(), "error", err)
 		return fmt.Errorf("failed to update email: %w", err)
 	}
 
 	s.publishUserUpdatedEvent(ctx, userID.Hex(), updatedUser)
+	if s.metrics != nil {
+		s.metrics.IncrementEmailChanges()
+	}
+	s.logger.Info("Email updated successfully", "user_id", userID.Hex())
 	return nil
 }
 
@@ -218,6 +254,9 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID primitive.Objec
 	}
 
 	s.publishUserUpdatedEvent(ctx, userID.Hex(), updatedUser)
+	if s.metrics != nil {
+		s.metrics.IncrementPasswordChanges()
+	}
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,6 +19,8 @@ type EventRecommendationService struct {
 	userRepo       UserRepo
 	friendshipRepo FriendshipRepo
 	eventCache     EventCache
+	breaker        *CircuitBreakerWrapper
+	metrics        *metrics.BusinessMetrics
 }
 
 // NewEventRecommendationService creates a new recommendation service
@@ -27,6 +30,8 @@ func NewEventRecommendationService(
 	userRepo UserRepo,
 	friendshipRepo FriendshipRepo,
 	eventCache EventCache,
+	metrics *metrics.BusinessMetrics,
+	breaker *CircuitBreakerWrapper,
 ) *EventRecommendationService {
 	return &EventRecommendationService{
 		eventRepo:      eventRepo,
@@ -34,6 +39,8 @@ func NewEventRecommendationService(
 		userRepo:       userRepo,
 		friendshipRepo: friendshipRepo,
 		eventCache:     eventCache,
+		breaker:        breaker,
+		metrics:        metrics,
 	}
 }
 
@@ -49,6 +56,11 @@ type EventRecommendation struct {
 
 // GetRecommendations returns personalized event recommendations for a user
 func (s *EventRecommendationService) GetRecommendations(ctx context.Context, userID primitive.ObjectID, limit int) ([]EventRecommendation, error) {
+	s.recordRecommendation()
+	return s.computeRecommendations(ctx, userID, limit)
+}
+
+func (s *EventRecommendationService) computeRecommendations(ctx context.Context, userID primitive.ObjectID, limit int) ([]EventRecommendation, error) {
 	// 1. Get user's friends
 	// 1. Get user's friend IDs
 	friendIDs, err := s.friendshipRepo.GetFriends(ctx, userID)
@@ -152,11 +164,21 @@ func (s *EventRecommendationService) GetRecommendations(ctx context.Context, use
 // GetGraphBasedRecommendations uses Neo4j graph for FB-scale recommendations
 // with automatic fallback to MongoDB if graph is unavailable
 func (s *EventRecommendationService) GetGraphBasedRecommendations(ctx context.Context, userID primitive.ObjectID, limit int) ([]EventRecommendation, error) {
+	s.recordRecommendation()
+
 	// Try graph-based recommendations first
-	graphRecs, err := s.eventGraphRepo.GetRecommendedEventsFromGraph(ctx, userID.Hex(), limit*2)
+	graphCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var graphRecs []GraphRecommendation
+	err := s.executeGraphOp(graphCtx, "graph_recommendations", func(gctx context.Context) error {
+		var err error
+		graphRecs, err = s.eventGraphRepo.GetRecommendedEventsFromGraph(gctx, userID.Hex(), limit*2)
+		return err
+	})
 	if err != nil {
 		// Fallback to MongoDB-based recommendations
-		return s.GetRecommendations(ctx, userID, limit)
+		return s.computeRecommendations(ctx, userID, limit)
 	}
 
 	if len(graphRecs) == 0 {
@@ -354,4 +376,22 @@ func (s *EventRecommendationService) GetTrendingEvents(ctx context.Context, limi
 	}
 
 	return scores, nil
+}
+
+func (s *EventRecommendationService) recordRecommendation() {
+	if s.metrics != nil {
+		s.metrics.IncrementRecommendations()
+	}
+}
+
+func (s *EventRecommendationService) executeGraphOp(ctx context.Context, name string, fn func(context.Context) error) error {
+	if s.eventGraphRepo == nil {
+		return nil
+	}
+	if s.breaker == nil {
+		return fn(ctx)
+	}
+	return s.breaker.ExecuteGraphOp(ctx, name, func() error {
+		return fn(ctx)
+	})
 }

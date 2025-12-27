@@ -67,6 +67,27 @@ The **Events Service** is a production-ready, scalable microservice that powers 
 - ✅ **Share Tracking**: Event share analytics
 - ✅ **Category Management**: Dynamic event categorization
 
+### 🆕 Recent Improvements (v1.1.0)
+
+#### Reliability & Resilience
+- ✅ **Circuit Breakers**: Neo4j and Kafka calls protected with `resilience.CircuitBreaker`
+- ✅ **EventProducer Retry**: Sync Kafka writes with 3-retry + exponential backoff
+- ✅ **DI Consistency**: `EventRecommendationService` refactored to use interfaces
+
+#### Security & Validation
+- ✅ **Input Validation Layer**: Title, description, date, privacy, category validation
+- ✅ **Private Event Access Control**: Authorization checks for private events
+
+#### Observability
+- ✅ **Structured Logging**: All consumers and producer use `slog` with structured logs
+- ✅ **Business Metrics**: Prometheus counters for events, RSVPs, invitations, posts
+
+#### FB-Scale Graph Recommendations
+- ✅ **Multi-Hop Friend Scoring**: Direct friends (+10 pts), FoF (+3 pts, capped at 20)
+- ✅ **Category Interest Matching**: +5 pts for events matching user interests
+- ✅ **Automatic Fallback**: MongoDB fallback if Neo4j unavailable
+- ✅ **New Graph Methods**: `AddUserInterest`, `SetEventCategory`, `GetMutualFriendsCount`
+
 ---
 
 ## 🏗 Architecture
@@ -1063,7 +1084,7 @@ This software is confidential and proprietary information of SpydoTech Group. Un
 
 - **Maintainer**: SpydoTech Group Engineering Team
 - **Last Updated**: 2025-12-27
-- **Version**: 1.0.0
+- **Version**: 1.1.0
 
 ---
 

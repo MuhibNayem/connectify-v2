@@ -14,14 +14,15 @@ import (
 	"user-service/internal/events"
 	grpchandler "user-service/internal/handler/grpc"
 	httphandler "user-service/internal/handler/http"
+	"user-service/internal/platform"
 	"user-service/internal/repository"
 	"user-service/internal/service"
 
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	pb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
-	pb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
@@ -85,11 +86,14 @@ func run() error {
 	graphRepo := repository.NewGraphRepository(neoDriver)
 
 	// 3. Producers
-	producer := events.NewEventProducer(cfg.KafkaBrokers, cfg.UserUpdatedTopic)
+	producer := events.NewEventProducer(cfg.KafkaBrokers, cfg.UserUpdatedTopic, slog.Default())
 
-	// 4. Services
+	// 4. Business Metrics
+	businessMetrics := platform.NewBusinessMetrics()
+
+	// 5. Services
 	authService := service.NewAuthService(userRepo, graphRepo, redisClient, cfg)
-	userService := service.NewUserService(userRepo, producer, redisClient, cfg)
+	userService := service.NewUserService(userRepo, producer, redisClient, cfg, slog.Default(), businessMetrics)
 
 	// 5. Handlers
 	authHandler := httphandler.NewAuthHandler(authService, cfg)

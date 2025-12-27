@@ -17,6 +17,7 @@ import (
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/controllers"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/graph"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/producer"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/repository"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/service"
@@ -205,8 +206,11 @@ func (a *Application) bootstrap() error {
 	friendshipRepo := integration.NewFriendshipLocalRepository(a.db)
 
 	notificationProducer := producer.NewNotificationProducer(a.cfg.KafkaBrokers, "notifications")
-	a.eventProducer = producer.NewEventProducer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, slog.Default())
+	serviceLogger := slog.Default()
+	a.eventProducer = producer.NewEventProducer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, serviceLogger)
 	eventCache := cache.NewEventCache(a.redisClient)
+	breaker := service.NewCircuitBreakerWrapper(serviceLogger)
+	businessMetrics := metrics.NewBusinessMetrics()
 
 	a.eventService = service.NewEventService(
 		eventRepo,
@@ -217,7 +221,9 @@ func (a *Application) bootstrap() error {
 		notificationProducer,
 		service.NewEventCacheAdapter(eventCache),
 		a.eventProducer,
-		slog.Default(),
+		serviceLogger,
+		breaker,
+		businessMetrics,
 	)
 
 	eventRecommendationService := service.NewEventRecommendationService(
@@ -226,6 +232,8 @@ func (a *Application) bootstrap() error {
 		userLocalRepo,
 		friendshipRepo,
 		service.NewEventCacheAdapter(eventCache),
+		businessMetrics,
+		breaker,
 	)
 
 	// Controller initialization
