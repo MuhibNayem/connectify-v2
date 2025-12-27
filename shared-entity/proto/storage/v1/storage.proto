@@ -12,6 +12,7 @@ service StorageService {
   rpc UploadArchive (UploadArchiveRequest) returns (UploadArchiveResponse);
   rpc DownloadArchive (DownloadArchiveRequest) returns (DownloadArchiveResponse);
   rpc GetPresignedURL (GetPresignedURLRequest) returns (GetPresignedURLResponse);
+  rpc GetPresignedUploadURL (GetPresignedUploadURLRequest) returns (GetPresignedUploadURLResponse);
 }
 
 message UploadRequest {
@@ -78,4 +79,18 @@ message GetPresignedURLRequest {
 
 message GetPresignedURLResponse {
   string url = 1;
+}
+
+message GetPresignedUploadURLRequest {
+  string filename = 1;
+  string content_type = 2;
+  int64 content_length = 3;
+  string sha256_hash = 4; // Checksum for deduplication
+}
+
+message GetPresignedUploadURLResponse {
+  string upload_url = 1; // Presigned URL to PUT data to (empty if is_duplicate is true)
+  string file_url = 2;   // Public/Download URL
+  string key = 3;        // Object storage key
+  bool is_duplicate = 4; // True if file content already exists
 }

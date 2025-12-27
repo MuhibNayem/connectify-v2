@@ -4,6 +4,7 @@ import (
 	"io"
 	"messaging-app/internal/storageclient"
 	"net/http"
+	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"github.com/gin-gonic/gin"
@@ -83,4 +84,81 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, mediaItems)
+}
+
+// GetPresignedDownloadURL godoc
+// @Summary Get a presigned URL for downloading a file
+// @Security BearerAuth
+// @Tags storage
+// @Produce json
+// @Param key query string true "Storage key of the file"
+// @Success 200 {object} gin.H{"url": "string"}
+// @Failure 400 {object} gin.H
+// @Failure 500 {object} gin.H
+// @Router /api/storage/download-url [get]
+func (c *UploadController) GetPresignedDownloadURL(ctx *gin.Context) {
+	if c.storageClient == nil {
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{"error": "storage service not available"})
+		return
+	}
+
+	key := ctx.Query("key")
+	if key == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "key is required"})
+		return
+	}
+
+	// Generate presigned URL valid for 15 minutes
+	url, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), key, 15*time.Minute)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate presigned URL: " + err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"url":        url,
+		"expires_in": 900, // 15 minutes in seconds
+	})
+}
+
+// GetPresignedUploadURL godoc
+// @Summary Get a presigned URL for direct-to-S3 upload (FAANG scale)
+// @Security BearerAuth
+// @Tags storage
+// @Accept json
+// @Produce json
+// @Param request body object{filename=string,content_type=string,content_length=int64,sha256_hash=string} true "Upload request"
+// @Success 200 {object} gin.H
+// @Failure 400 {object} gin.H
+// @Failure 500 {object} gin.H
+// @Router /api/storage/upload-url [post]
+func (c *UploadController) GetPresignedUploadURL(ctx *gin.Context) {
+	if c.storageClient == nil {
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{"error": "storage service not available"})
+		return
+	}
+
+	var req struct {
+		Filename      string `json:"filename" binding:"required"`
+		ContentType   string `json:"content_type" binding:"required"`
+		ContentLength int64  `json:"content_length" binding:"required"`
+		Sha256Hash    string `json:"sha256_hash" binding:"required"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := c.storageClient.GetPresignedUploadURL(ctx.Request.Context(), req.Filename, req.ContentType, req.Sha256Hash, req.ContentLength)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate presigned upload URL: " + err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"upload_url":   result.UploadURL,
+		"file_url":     result.FileURL,
+		"key":          result.Key,
+		"is_duplicate": result.IsDuplicate,
+	})
 }

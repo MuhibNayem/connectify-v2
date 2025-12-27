@@ -117,6 +117,8 @@ func (a *Application) registerAPIRoutes(router *gin.Engine, cfg routerConfig) {
 	api := router.Group("/api", authMiddleware)
 
 	api.POST("/upload", cfg.uploadController.Upload)
+	api.GET("/storage/download-url", cfg.uploadController.GetPresignedDownloadURL)
+	api.POST("/storage/upload-url", cfg.uploadController.GetPresignedUploadURL)
 
 	userRoutes := api.Group("/users")
 	{

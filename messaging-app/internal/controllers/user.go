@@ -1,11 +1,15 @@
 package controllers
 
 import (
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"github.com/gin-gonic/gin"
 
@@ -13,11 +17,42 @@ import (
 )
 
 type UserController struct {
-	userService *services.UserService
+	userService   *services.UserService
+	storageClient *storageclient.Client
 }
 
-func NewUserController(userService *services.UserService) *UserController {
-	return &UserController{userService: userService}
+func NewUserController(userService *services.UserService, storageClient *storageclient.Client) *UserController {
+	return &UserController{userService: userService, storageClient: storageClient}
+}
+
+func (c *UserController) signUserURLs(ctx *gin.Context, user *models.User) {
+	if user == nil {
+		return
+	}
+	var wg sync.WaitGroup
+
+	if user.Avatar != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			signedURL, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), user.Avatar, 15*time.Minute)
+			if err == nil {
+				user.Avatar = signedURL
+			}
+		}()
+	}
+
+	if user.CoverPicture != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			signedURL, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), user.CoverPicture, 15*time.Minute)
+			if err == nil {
+				user.CoverPicture = signedURL
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 // GetUser godoc
@@ -62,6 +97,9 @@ func (c *UserController) GetUser(ctx *gin.Context) {
 		PrivacySettings:      user.PrivacySettings,
 		NotificationSettings: user.NotificationSettings,
 	}
+
+	c.signUserURLs(ctx, &userDTO)
+
 	ctx.JSON(http.StatusOK, userDTO)
 }
 
@@ -99,7 +137,9 @@ func (c *UserController) GetUserByID(ctx *gin.Context) {
 		CreatedAt:    user.CreatedAt,
 		PublicKey:    user.PublicKey, // E2EE Public Key
 	}
-	// Note: We might want to filter fields based on PrivacySettings here in the future
+
+	c.signUserURLs(ctx, &publicUser)
+
 	ctx.JSON(http.StatusOK, publicUser)
 }
 
@@ -210,6 +250,8 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
+	c.signUserURLs(ctx, updatedUser)
+
 	ctx.JSON(http.StatusOK, updatedUser)
 }
 
@@ -241,6 +283,16 @@ func (c *UserController) ListUsers(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	var wg sync.WaitGroup
+	for i := range response.Users {
+		wg.Add(1)
+		go func(u *models.User) {
+			defer wg.Done()
+			c.signUserURLs(ctx, u)
+		}(&response.Users[i])
+	}
+	wg.Wait()
 
 	ctx.JSON(http.StatusOK, response)
 }

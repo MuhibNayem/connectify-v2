@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
@@ -120,6 +122,8 @@ func (c *FeedController) CreatePost(ctx *gin.Context) {
 		return
 	}
 
+	c.signPostMedia(ctx, post)
+
 	ctx.JSON(http.StatusCreated, post)
 }
 
@@ -152,6 +156,8 @@ func (c *FeedController) GetPostByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
 		return
 	}
+
+	c.signPostMedia(ctx, post)
 
 	ctx.JSON(http.StatusOK, post)
 }
@@ -248,6 +254,42 @@ func (c *FeedController) DeletePost(ctx *gin.Context) {
 // @Failure 401 {object} gin.H
 // @Failure 500 {object} gin.H
 // @Router /api/posts [get]
+// Helper to sign a single post's media URLs
+func (c *FeedController) signPostMedia(ctx *gin.Context, post *models.Post) {
+	if post == nil || len(post.Media) == 0 {
+		return
+	}
+
+	var wg sync.WaitGroup
+	for i := range post.Media {
+		wg.Add(1)
+		go func(m *models.MediaItem) {
+			defer wg.Done()
+			if m.URL != "" {
+				signedURL, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), m.URL, 15*time.Minute)
+				if err == nil {
+					m.URL = signedURL
+				}
+			}
+		}(&post.Media[i])
+	}
+	wg.Wait()
+}
+
+// ListPosts godoc
+// @Summary List posts (paginated)
+// @Security BearerAuth
+// @Tags feed
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20)
+// @Param sortBy query string false "Sort by field (e.g., created_at, reaction_count, comment_count)" default(created_at)
+// @Param sortOrder query string false "Sort order (asc, desc)" default(desc)
+// @Success 200 {object} models.FeedResponse
+// @Failure 400 {object} gin.H
+// @Failure 401 {object} gin.H
+// @Failure 500 {object} gin.H
+// @Router /api/posts [get]
 func (c *FeedController) ListPosts(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(string)
 	objUserID, err := primitive.ObjectIDFromHex(userID)
@@ -279,6 +321,17 @@ func (c *FeedController) ListPosts(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Concurrent signing for feed
+	var wg sync.WaitGroup
+	for i := range response.Posts {
+		wg.Add(1)
+		go func(p *models.Post) {
+			defer wg.Done()
+			c.signPostMedia(ctx, p)
+		}(&response.Posts[i])
+	}
+	wg.Wait()
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -325,6 +378,16 @@ func (c *FeedController) GetPostsByHashtag(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	var wg sync.WaitGroup
+	for i := range response.Posts {
+		wg.Add(1)
+		go func(p *models.Post) {
+			defer wg.Done()
+			c.signPostMedia(ctx, p)
+		}(&response.Posts[i])
+	}
+	wg.Wait()
 
 	ctx.JSON(http.StatusOK, response)
 }

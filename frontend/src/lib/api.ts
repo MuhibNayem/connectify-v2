@@ -522,9 +522,70 @@ export async function updateNotificationSettings(data: any): Promise<void> {
 }
 
 export async function uploadFiles(files: File[]): Promise<{ url: string; type: string }[]> {
-	const formData = new FormData();
-	files.forEach((f) => formData.append('files[]', f));
-	return apiRequest('POST', '/upload', formData, true);
+	const promises = files.map((file) => uploadFilePresigned(file));
+	const results = await Promise.all(promises);
+	return results.map((r) => ({ url: r.url, type: r.type }));
+}
+
+// --- Presigned Upload Helper (Direct to S3) ---
+
+async function calculateSHA256(file: File): Promise<string> {
+	const buffer = await file.arrayBuffer();
+	const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export interface PresignedUploadResult {
+	upload_url: string;
+	file_url: string;
+	key: string;
+	is_duplicate: boolean;
+}
+
+export async function getPresignedUploadUrl(
+	filename: string,
+	contentType: string,
+	sha256Hash: string,
+	contentLength: number
+): Promise<PresignedUploadResult> {
+	return apiRequest('POST', '/storage/upload-url', {
+		filename,
+		content_type: contentType,
+		sha256_hash: sha256Hash,
+		content_length: contentLength
+	}, true);
+}
+
+export async function uploadToPresignedUrl(url: string, file: File): Promise<void> {
+	const response = await fetch(url, {
+		method: 'PUT',
+		body: file,
+		headers: {
+			'Content-Type': file.type
+		}
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to upload to storage: ${response.statusText}`);
+	}
+}
+
+export async function uploadFilePresigned(file: File): Promise<{ url: string; type: string; key: string }> {
+	// 1. Calculate Hash
+	const hash = await calculateSHA256(file);
+
+	// 2. Get Presigned URL
+	const result = await getPresignedUploadUrl(file.name, file.type, hash, file.size);
+
+	// 3. Upload if not duplicate
+	if (!result.is_duplicate && result.upload_url) {
+		await uploadToPresignedUrl(result.upload_url, file);
+	}
+
+	// 4. Return URL and Type
+	const type = file.type.startsWith('image/') ? 'image' : 'video';
+	return { url: result.file_url, type, key: result.key };
 }
 
 export async function getUserByID(userId: string): Promise<import('$lib/types').User> {

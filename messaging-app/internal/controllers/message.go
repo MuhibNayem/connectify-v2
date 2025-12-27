@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"io"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"messaging-app/internal/services"
@@ -29,10 +29,47 @@ func NewMessageController(messageService *services.MessageService, storageClient
 	}
 }
 
+func (c *MessageController) signMessageMedia(ctx *gin.Context, messages ...*models.Message) {
+	if len(messages) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	signingFunc := func(m *models.Message) {
+		defer wg.Done()
+		if len(m.MediaURLs) > 0 {
+			signedURLs := make([]string, len(m.MediaURLs))
+			var urlWg sync.WaitGroup
+			for i, u := range m.MediaURLs {
+				if u == "" {
+					continue
+				}
+				urlWg.Add(1)
+				go func(idx int, url string) {
+					defer urlWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), url, 15*time.Minute)
+					if err == nil {
+						signedURLs[idx] = signed
+					} else {
+						signedURLs[idx] = url
+					}
+				}(i, u)
+			}
+			urlWg.Wait()
+			m.MediaURLs = signedURLs
+		}
+	}
+
+	for _, m := range messages {
+		wg.Add(1)
+		go signingFunc(m)
+	}
+	wg.Wait()
+}
+
 // @Summary Send a message
 // @Description Send a direct or group message
 // @Tags messages
-// @Accept json,mpfd
+// @Accept json
 // @Produce json
 // @Security ApiKeyAuth
 // @Param message body models.MessageRequest true "Message to send"
@@ -50,80 +87,10 @@ func (c *MessageController) SendMessage(ctx *gin.Context) {
 	}
 
 	var req models.MessageRequest
-
-	// Handle multipart/form-data vs JSON
-	contentType := ctx.GetHeader("Content-Type")
-	if contentType == "" {
-		contentType = "application/json"
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
 	}
-
-	if len(contentType) >= 19 && contentType[:19] == "multipart/form-data" {
-		if err := ctx.ShouldBind(&req); err != nil {
-			ctx.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
-			return
-		}
-		// Handle file uploads
-		form, err := ctx.MultipartForm()
-		if err == nil {
-			files := form.File["files"]
-			if len(files) > 0 && c.storageClient != nil {
-				var mediaItems []*storageclient.UploadResult
-				for _, fh := range files {
-					f, err := fh.Open()
-					if err != nil {
-						continue
-					}
-					data, _ := io.ReadAll(f)
-					f.Close()
-					result, err := c.storageClient.Upload(ctx.Request.Context(), data, fh.Filename, fh.Header.Get("Content-Type"))
-					if err != nil {
-						ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "failed to upload files"})
-						return
-					}
-					mediaItems = append(mediaItems, result)
-				}
-				for _, item := range mediaItems {
-					req.MediaURLs = append(req.MediaURLs, item.URL)
-				}
-
-				// Determine content type based on first file if not explicitly set (or 'multiple' if mixed/many)
-				// For simplicity, if we have files, we default to 'file' or specific type if 1 file.
-				// But let's check what the parser/frontend sends.
-				// If frontend sends specific type, keep it. If "text", switch to media type.
-				if req.ContentType == "" || req.ContentType == "text" {
-					if len(files) > 1 {
-						req.ContentType = models.ContentTypeMultiple
-					} else if len(mediaItems) > 0 {
-						// Simple mapping based on storage service output (which sets generic type)
-						// or usually frontend should set it.
-						// Let's rely on valid inputs or default to file.
-						// The storage service returned MediaItems which have Type.
-						if mediaItems[0].Type == "video" {
-							req.ContentType = models.ContentTypeVideo
-						} else if mediaItems[0].Type == "image" {
-							req.ContentType = models.ContentTypeImage
-						} else {
-							req.ContentType = models.ContentTypeFile
-						}
-					}
-				}
-			}
-		}
-		// Explicitly check for is_marketplace in form data if binding didn't catch it
-		if val := ctx.PostForm("is_marketplace"); val != "" {
-			if b, err := strconv.ParseBool(val); err == nil {
-				req.IsMarketplace = b
-			}
-		}
-	} else {
-		if err := ctx.ShouldBindJSON(&req); err != nil {
-			ctx.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
-			return
-		}
-	}
-
-	// DEBUG LOG
-	// fmt.Printf("[MessageController] SendMessage: IsMarketplace=%v, ContentType=%s\n", req.IsMarketplace, req.ContentType)
 
 	req.SenderID = userID // Set SenderID from authenticated user
 
@@ -133,13 +100,9 @@ func (c *MessageController) SendMessage(ctx *gin.Context) {
 		return
 	}
 
-	// Validate content type (if still text but has urls, likely text_image etc logic needed,
-	// but let's assume service handles specific logic or we trust the determined type)
-	if !models.IsValidContentType(req.ContentType) {
-		// Auto-correct if possible or fail?
-		// For now, if we have files but type is invalid, verify against valid map.
-		// If valid map has text_image etc, we might need logic to combine.
-		// Let's trust frontend to send correct combined type, or the simple fallback above.
+	// Validate validity of ContentType if provided
+	if !models.IsValidContentType(req.ContentType) && req.ContentType != "" {
+		// allow it to pass or default?
 	}
 
 	// Validate that either receiverID or groupID is provided but not both
@@ -164,6 +127,8 @@ func (c *MessageController) SendMessage(ctx *gin.Context) {
 		ctx.JSON(statusCode, models.ErrorResponse{Error: err.Error()})
 		return
 	}
+
+	c.signMessageMedia(ctx, message)
 
 	ctx.JSON(http.StatusCreated, message)
 }
@@ -249,6 +214,13 @@ func (c *MessageController) GetMessages(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
 		return
 	}
+
+	// Sign URLs
+	messagePtrs := make([]*models.Message, len(messages))
+	for i := range messages {
+		messagePtrs[i] = &messages[i]
+	}
+	c.signMessageMedia(ctx, messagePtrs...)
 
 	// Get total count for pagination
 	total, err := c.messageService.GetConversationMessageTotalCount(ctx.Request.Context(), query)

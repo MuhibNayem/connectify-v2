@@ -2,23 +2,39 @@ package controllers
 
 import (
 	"messaging-app/internal/repositories"
+	"messaging-app/internal/storageclient"
 	"messaging-app/internal/storyclient"
 	"net/http"
+	"sync"
+	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type StoryController struct {
 	storyClient    *storyclient.Client
 	friendshipRepo *repositories.FriendshipRepository
+	storageClient  *storageclient.Client
 }
 
-func NewStoryController(storyClient *storyclient.Client, friendshipRepo *repositories.FriendshipRepository) *StoryController {
+func NewStoryController(storyClient *storyclient.Client, friendshipRepo *repositories.FriendshipRepository, storageClient *storageclient.Client) *StoryController {
 	return &StoryController{
 		storyClient:    storyClient,
 		friendshipRepo: friendshipRepo,
+		storageClient:  storageClient,
+	}
+}
+
+func (c *StoryController) signStoryURLs(ctx *gin.Context, story *models.Story) {
+	if story == nil || story.MediaURL == "" {
+		return
+	}
+
+	signedURL, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), story.MediaURL, 15*time.Minute)
+	if err == nil {
+		story.MediaURL = signedURL
 	}
 }
 
@@ -46,6 +62,8 @@ func (c *StoryController) CreateStory(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	c.signStoryURLs(ctx, story)
 
 	ctx.JSON(http.StatusCreated, story)
 }
@@ -96,6 +114,16 @@ func (c *StoryController) GetStoriesFeed(ctx *gin.Context) {
 		return
 	}
 
+	var wg sync.WaitGroup
+	for i := range stories {
+		wg.Add(1)
+		go func(s *models.Story) {
+			defer wg.Done()
+			c.signStoryURLs(ctx, s)
+		}(&stories[i])
+	}
+	wg.Wait()
+
 	ctx.JSON(http.StatusOK, stories)
 }
 
@@ -112,6 +140,17 @@ func (c *StoryController) GetUserStories(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	var wg sync.WaitGroup
+	for i := range stories {
+		wg.Add(1)
+		go func(s *models.Story) {
+			defer wg.Done()
+			c.signStoryURLs(ctx, s)
+		}(&stories[i])
+	}
+	wg.Wait()
+
 	ctx.JSON(http.StatusOK, stories)
 }
 

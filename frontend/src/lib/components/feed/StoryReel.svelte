@@ -10,7 +10,7 @@
 	let stories = $state<any[]>([]);
 	let reels = $state<any[]>([]);
 	let isLoading = $state(false);
-	import { uploadFiles } from '$lib/api';
+	import { uploadFiles, uploadFilePresigned } from '$lib/api';
 	import StoryComposer from './StoryComposer.svelte';
 	import StoryViewer from './StoryViewer.svelte';
 	import ReelViewer from './ReelViewer.svelte';
@@ -243,12 +243,18 @@
 				}
 			}
 
-			// 1. Upload file(s)
-			const uploaded = await uploadFiles(filesToUpload);
+			// 1. Upload file(s) individually using Presigned URLs
+			// Main Media
+			const mediaUpload = await uploadFilePresigned(selectedFile);
+			const mediaUrl = mediaUpload.url;
 
-			if (uploaded && uploaded.length > 0) {
-				const mediaUrl = uploaded[0].url;
+			let thumbUrl = '';
+			if (thumbFile) {
+				const thumbUpload = await uploadFilePresigned(thumbFile);
+				thumbUrl = thumbUpload.url;
+			}
 
+			if (mediaUrl) {
 				if (activeTab === 'stories') {
 					const mediaType = selectedFile.type.startsWith('video') ? 'video' : 'image';
 					await apiRequest(
@@ -271,7 +277,8 @@
 					fetchStories();
 				} else {
 					// For reels, use the second uploaded file as thumbnail if available, else fallback to video url
-					const thumbnailUrl = uploaded.length > 1 ? uploaded[1].url : mediaUrl;
+					// For reels, use the second uploaded file as thumbnail if available, else fallback to video url
+					const thumbnailUrl = thumbUrl || mediaUrl;
 
 					await apiRequest(
 						'POST',

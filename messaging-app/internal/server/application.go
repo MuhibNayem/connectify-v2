@@ -21,6 +21,7 @@ import (
 	"messaging-app/internal/marketplaceclient"
 	"messaging-app/internal/reelclient"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
 	"messaging-app/internal/storyclient"
 	"messaging-app/internal/websocket"
 
@@ -58,6 +59,7 @@ type Application struct {
 	feedClient              *feedclient.Client
 	storyClient             *storyclient.Client
 	reelClient              *reelclient.Client
+	storageClient           *storageclient.Client
 	messageArchiveService   *services.MessageArchiveService
 	cleanupService          *services.CleanupService
 	hub                     *websocket.Hub
@@ -284,7 +286,14 @@ func (a *Application) initDomain() error {
 	}
 	a.reelClient = reelClient
 
-	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient, a.reelClient)
+	// Initialize storage gRPC client
+	storageClient, err := storageclient.NewClient(a.cfg.StorageGRPCHost, a.cfg.StorageGRPCPort)
+	if err != nil {
+		return fmt.Errorf("failed to connect to storage service: %w", err)
+	}
+	a.storageClient = storageClient
+
+	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient, a.reelClient, a.storageClient)
 
 	a.kafkaConsumer = kafka.NewMessageConsumer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, "message-group", a.hub)
 	a.notificationConsumer = kafka.NewNotificationConsumer(a.cfg.KafkaBrokers, "notifications_events", "notification-group", a.hub, repos.Notification, a.dlqProducer)

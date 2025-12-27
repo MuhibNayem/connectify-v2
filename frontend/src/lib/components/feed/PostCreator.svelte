@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { apiRequest } from '$lib/api';
+	import { apiRequest, uploadFiles } from '$lib/api';
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Button } from '$lib/components/ui/button';
@@ -199,21 +199,21 @@
 		submitting = true;
 
 		try {
-			const formData = new FormData();
-			formData.append('content', postContent.trim());
-			formData.append('privacy', privacy);
-			if (location) formData.append('location', location);
-			if (communityId) formData.append('community_id', communityId);
+			let uploadedMedia: { url: string; type: string }[] = [];
+			if (mediaItems.length > 0) {
+				uploadedMedia = await uploadFiles(mediaItems.map((item) => item.file));
+			}
 
-			mediaItems.forEach((item) => {
-				formData.append('files[]', item.file);
-			});
+			const payload: any = {
+				content: postContent.trim(),
+				privacy: privacy,
+				location: location,
+				community_id: communityId,
+				media: uploadedMedia,
+				mentions: taggedUsers.map((u) => u.id)
+			};
 
-			taggedUsers.forEach((user) => {
-				formData.append('mentions[]', user.id);
-			});
-
-			const newPost = await apiRequest('POST', '/posts', formData);
+			const newPost = await apiRequest('POST', '/posts', payload);
 
 			if (!newPost.comments) {
 				newPost.comments = [];

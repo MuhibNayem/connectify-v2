@@ -57,21 +57,8 @@ func NewStorageService(cfg *config.Config, logger *slog.Logger) (*StorageService
 		if err := minioClient.MakeBucket(ctx, cfg.StorageBucket, minio.MakeBucketOptions{}); err != nil {
 			return nil, fmt.Errorf("failed to create bucket: %w", err)
 		}
-		logger.Info("Created bucket", "bucket", cfg.StorageBucket)
-
-		policy := fmt.Sprintf(`{
-			"Version": "2012-10-17",
-			"Statement": [{
-				"Effect": "Allow",
-				"Principal": {"AWS": ["*"]},
-				"Action": ["s3:GetObject"],
-				"Resource": ["arn:aws:s3:::%s/*"]
-			}]
-		}`, cfg.StorageBucket)
-
-		if err := minioClient.SetBucketPolicy(ctx, cfg.StorageBucket, policy); err != nil {
-			return nil, fmt.Errorf("failed to set bucket policy: %w", err)
-		}
+		logger.Info("Created private bucket", "bucket", cfg.StorageBucket)
+		// NOTE: Bucket is PRIVATE by default. Use GetPresignedURL for read access.
 	}
 
 	return &StorageService{
@@ -241,4 +228,43 @@ func (s *StorageService) GetPresignedURL(ctx context.Context, key string, expiry
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 	return url.String(), nil
+}
+
+func (s *StorageService) GetPresignedUploadURL(ctx context.Context, filename, contentType, hash string, size int64) (uploadURL, publicURL, key string, isDuplicate bool, err error) {
+	if hash == "" {
+		return "", "", "", false, fmt.Errorf("hash is required for deduplication")
+	}
+
+	ext := filepath.Ext(filename)
+	// Deduplication: Key is based on HASH, not random UUID.
+	// We use a prefix to keep organization.
+	objectKey := fmt.Sprintf("uploads/%s%s", hash, ext)
+	publicURL = fmt.Sprintf("%s/%s/%s", s.externalHost, s.bucketName, objectKey)
+
+	// 1. Check if file already exists (Deduplication)
+	_, err = s.client.StatObject(ctx, s.bucketName, objectKey, minio.StatObjectOptions{})
+	if err == nil {
+		// Object exists! Return public URL and indicate duplicate.
+		return "", publicURL, objectKey, true, nil
+	}
+
+	// 2. Generate Presigned PUT URL
+	expiry := 15 * time.Minute
+	u, err := s.client.PresignedPutObject(ctx, s.bucketName, objectKey, expiry)
+	if err != nil {
+		return "", "", "", false, fmt.Errorf("failed to generate presigned PUT URL: %w", err)
+	}
+
+	return u.String(), publicURL, objectKey, false, nil
+}
+
+func detectMediaType(contentType string) string {
+	if strings.HasPrefix(contentType, "image/") {
+		return "image"
+	} else if strings.HasPrefix(contentType, "video/") {
+		return "video"
+	} else if strings.HasPrefix(contentType, "audio/") {
+		return "audio"
+	}
+	return "file"
 }

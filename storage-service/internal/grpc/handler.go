@@ -105,3 +105,17 @@ func (h *StorageHandler) GetPresignedURL(ctx context.Context, req *storagepb.Get
 	}
 	return &storagepb.GetPresignedURLResponse{Url: url}, nil
 }
+
+func (h *StorageHandler) GetPresignedUploadURL(ctx context.Context, req *storagepb.GetPresignedUploadURLRequest) (*storagepb.GetPresignedUploadURLResponse, error) {
+	uploadURL, publicURL, key, isDuplicate, err := h.svc.GetPresignedUploadURL(ctx, req.Filename, req.ContentType, req.Sha256Hash, req.ContentLength)
+	if err != nil {
+		return nil, err
+	}
+
+	return &storagepb.GetPresignedUploadURLResponse{
+		UploadUrl:   uploadURL,
+		FileUrl:     publicURL,
+		Key:         key,
+		IsDuplicate: isDuplicate,
+	}, nil
+}

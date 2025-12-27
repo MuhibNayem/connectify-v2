@@ -2,8 +2,11 @@ package controllers
 
 import (
 	"messaging-app/internal/reelclient"
+	"messaging-app/internal/storageclient"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	reelpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/reel/v1"
@@ -13,11 +16,15 @@ import (
 )
 
 type ReelController struct {
-	reelClient *reelclient.Client
+	reelClient    *reelclient.Client
+	storageClient *storageclient.Client
 }
 
-func NewReelController(reelClient *reelclient.Client) *ReelController {
-	return &ReelController{reelClient: reelClient}
+func NewReelController(reelClient *reelclient.Client, storageClient *storageclient.Client) *ReelController {
+	return &ReelController{
+		reelClient:    reelClient,
+		storageClient: storageClient,
+	}
 }
 
 func (c *ReelController) CreateReel(ctx *gin.Context) {
@@ -67,6 +74,38 @@ func (c *ReelController) CreateReel(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, reel)
 }
 
+// Helper to sign a single reel's URLs
+func (c *ReelController) signReelURLs(ctx *gin.Context, reel *reelpb.Reel) {
+	if reel == nil {
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if reel.VideoUrl != "" {
+			signedURL, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), reel.VideoUrl, 15*time.Minute)
+			if err == nil {
+				reel.VideoUrl = signedURL
+			}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if reel.ThumbnailUrl != "" {
+			signedURL, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), reel.ThumbnailUrl, 15*time.Minute)
+			if err == nil {
+				reel.ThumbnailUrl = signedURL
+			}
+		}
+	}()
+
+	wg.Wait()
+}
+
 func (c *ReelController) GetReelsFeed(ctx *gin.Context) {
 	limitStr := ctx.DefaultQuery("limit", "10")
 	offsetStr := ctx.DefaultQuery("offset", "0")
@@ -86,6 +125,20 @@ func (c *ReelController) GetReelsFeed(ctx *gin.Context) {
 		return
 	}
 
+	// Concurrent signing for feed
+	// We handle each reel in a separate goroutine if list is large?
+	// For 10-20 items, a simple loop with internal concurrency (signReelURLs) is fine.
+	// But let's go FAANG-scale: fully parallel list processing.
+	var wg sync.WaitGroup
+	for i := range reels {
+		wg.Add(1)
+		go func(r *reelpb.Reel) {
+			defer wg.Done()
+			c.signReelURLs(ctx, r)
+		}(reels[i])
+	}
+	wg.Wait()
+
 	ctx.JSON(http.StatusOK, reels)
 }
 
@@ -98,6 +151,16 @@ func (c *ReelController) GetUserReels(ctx *gin.Context) {
 		return
 	}
 
+	var wg sync.WaitGroup
+	for i := range reels {
+		wg.Add(1)
+		go func(r *reelpb.Reel) {
+			defer wg.Done()
+			c.signReelURLs(ctx, r)
+		}(reels[i])
+	}
+	wg.Wait()
+
 	ctx.JSON(http.StatusOK, reels)
 }
 
@@ -109,6 +172,8 @@ func (c *ReelController) GetReel(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	c.signReelURLs(ctx, reel)
 
 	ctx.JSON(http.StatusOK, reel)
 }

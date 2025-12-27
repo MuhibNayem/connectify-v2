@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: proto/storage/v1/storage.proto
+// source: shared-entity/proto/storage/v1/storage.proto
 
 package storagev1
 
@@ -32,7 +32,7 @@ type UploadRequest struct {
 
 func (x *UploadRequest) Reset() {
 	*x = UploadRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[0]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *UploadRequest) String() string {
 func (*UploadRequest) ProtoMessage() {}
 
 func (x *UploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[0]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *UploadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadRequest.ProtoReflect.Descriptor instead.
 func (*UploadRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{0}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *UploadRequest) GetData() []byte {
@@ -94,7 +94,7 @@ type UploadResponse struct {
 
 func (x *UploadResponse) Reset() {
 	*x = UploadResponse{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[1]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -106,7 +106,7 @@ func (x *UploadResponse) String() string {
 func (*UploadResponse) ProtoMessage() {}
 
 func (x *UploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[1]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -119,7 +119,7 @@ func (x *UploadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadResponse.ProtoReflect.Descriptor instead.
 func (*UploadResponse) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{1}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UploadResponse) GetUrl() string {
@@ -166,7 +166,7 @@ type UploadMultipleRequest struct {
 
 func (x *UploadMultipleRequest) Reset() {
 	*x = UploadMultipleRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[2]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -178,7 +178,7 @@ func (x *UploadMultipleRequest) String() string {
 func (*UploadMultipleRequest) ProtoMessage() {}
 
 func (x *UploadMultipleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[2]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -191,7 +191,7 @@ func (x *UploadMultipleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadMultipleRequest.ProtoReflect.Descriptor instead.
 func (*UploadMultipleRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{2}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UploadMultipleRequest) GetFiles() []*FileUpload {
@@ -212,7 +212,7 @@ type FileUpload struct {
 
 func (x *FileUpload) Reset() {
 	*x = FileUpload{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[3]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -224,7 +224,7 @@ func (x *FileUpload) String() string {
 func (*FileUpload) ProtoMessage() {}
 
 func (x *FileUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[3]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -237,7 +237,7 @@ func (x *FileUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileUpload.ProtoReflect.Descriptor instead.
 func (*FileUpload) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{3}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *FileUpload) GetData() []byte {
@@ -270,7 +270,7 @@ type UploadMultipleResponse struct {
 
 func (x *UploadMultipleResponse) Reset() {
 	*x = UploadMultipleResponse{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[4]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -282,7 +282,7 @@ func (x *UploadMultipleResponse) String() string {
 func (*UploadMultipleResponse) ProtoMessage() {}
 
 func (x *UploadMultipleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[4]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -295,7 +295,7 @@ func (x *UploadMultipleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadMultipleResponse.ProtoReflect.Descriptor instead.
 func (*UploadMultipleResponse) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{4}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UploadMultipleResponse) GetResults() []*UploadResponse {
@@ -314,7 +314,7 @@ type DeleteRequest struct {
 
 func (x *DeleteRequest) Reset() {
 	*x = DeleteRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[5]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -326,7 +326,7 @@ func (x *DeleteRequest) String() string {
 func (*DeleteRequest) ProtoMessage() {}
 
 func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[5]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +339,7 @@ func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{5}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeleteRequest) GetKey() string {
@@ -358,7 +358,7 @@ type DeleteByURLRequest struct {
 
 func (x *DeleteByURLRequest) Reset() {
 	*x = DeleteByURLRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[6]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -370,7 +370,7 @@ func (x *DeleteByURLRequest) String() string {
 func (*DeleteByURLRequest) ProtoMessage() {}
 
 func (x *DeleteByURLRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[6]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -383,7 +383,7 @@ func (x *DeleteByURLRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteByURLRequest.ProtoReflect.Descriptor instead.
 func (*DeleteByURLRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{6}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteByURLRequest) GetUrl() string {
@@ -402,7 +402,7 @@ type DeleteResponse struct {
 
 func (x *DeleteResponse) Reset() {
 	*x = DeleteResponse{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[7]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -414,7 +414,7 @@ func (x *DeleteResponse) String() string {
 func (*DeleteResponse) ProtoMessage() {}
 
 func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[7]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -427,7 +427,7 @@ func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteResponse.ProtoReflect.Descriptor instead.
 func (*DeleteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{7}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteResponse) GetSuccess() bool {
@@ -447,7 +447,7 @@ type UploadArchiveRequest struct {
 
 func (x *UploadArchiveRequest) Reset() {
 	*x = UploadArchiveRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[8]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -459,7 +459,7 @@ func (x *UploadArchiveRequest) String() string {
 func (*UploadArchiveRequest) ProtoMessage() {}
 
 func (x *UploadArchiveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[8]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -472,7 +472,7 @@ func (x *UploadArchiveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadArchiveRequest.ProtoReflect.Descriptor instead.
 func (*UploadArchiveRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{8}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UploadArchiveRequest) GetObjectPath() string {
@@ -498,7 +498,7 @@ type UploadArchiveResponse struct {
 
 func (x *UploadArchiveResponse) Reset() {
 	*x = UploadArchiveResponse{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[9]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -510,7 +510,7 @@ func (x *UploadArchiveResponse) String() string {
 func (*UploadArchiveResponse) ProtoMessage() {}
 
 func (x *UploadArchiveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[9]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +523,7 @@ func (x *UploadArchiveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadArchiveResponse.ProtoReflect.Descriptor instead.
 func (*UploadArchiveResponse) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{9}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UploadArchiveResponse) GetSuccess() bool {
@@ -542,7 +542,7 @@ type DownloadArchiveRequest struct {
 
 func (x *DownloadArchiveRequest) Reset() {
 	*x = DownloadArchiveRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[10]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +554,7 @@ func (x *DownloadArchiveRequest) String() string {
 func (*DownloadArchiveRequest) ProtoMessage() {}
 
 func (x *DownloadArchiveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[10]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,7 +567,7 @@ func (x *DownloadArchiveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadArchiveRequest.ProtoReflect.Descriptor instead.
 func (*DownloadArchiveRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{10}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DownloadArchiveRequest) GetObjectPath() string {
@@ -586,7 +586,7 @@ type DownloadArchiveResponse struct {
 
 func (x *DownloadArchiveResponse) Reset() {
 	*x = DownloadArchiveResponse{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[11]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -598,7 +598,7 @@ func (x *DownloadArchiveResponse) String() string {
 func (*DownloadArchiveResponse) ProtoMessage() {}
 
 func (x *DownloadArchiveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[11]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -611,7 +611,7 @@ func (x *DownloadArchiveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadArchiveResponse.ProtoReflect.Descriptor instead.
 func (*DownloadArchiveResponse) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{11}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DownloadArchiveResponse) GetData() []byte {
@@ -631,7 +631,7 @@ type GetPresignedURLRequest struct {
 
 func (x *GetPresignedURLRequest) Reset() {
 	*x = GetPresignedURLRequest{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[12]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +643,7 @@ func (x *GetPresignedURLRequest) String() string {
 func (*GetPresignedURLRequest) ProtoMessage() {}
 
 func (x *GetPresignedURLRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[12]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +656,7 @@ func (x *GetPresignedURLRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPresignedURLRequest.ProtoReflect.Descriptor instead.
 func (*GetPresignedURLRequest) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{12}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetPresignedURLRequest) GetKey() string {
@@ -682,7 +682,7 @@ type GetPresignedURLResponse struct {
 
 func (x *GetPresignedURLResponse) Reset() {
 	*x = GetPresignedURLResponse{}
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[13]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -694,7 +694,7 @@ func (x *GetPresignedURLResponse) String() string {
 func (*GetPresignedURLResponse) ProtoMessage() {}
 
 func (x *GetPresignedURLResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_storage_v1_storage_proto_msgTypes[13]
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -707,7 +707,7 @@ func (x *GetPresignedURLResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPresignedURLResponse.ProtoReflect.Descriptor instead.
 func (*GetPresignedURLResponse) Descriptor() ([]byte, []int) {
-	return file_proto_storage_v1_storage_proto_rawDescGZIP(), []int{13}
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetPresignedURLResponse) GetUrl() string {
@@ -717,11 +717,147 @@ func (x *GetPresignedURLResponse) GetUrl() string {
 	return ""
 }
 
-var File_proto_storage_v1_storage_proto protoreflect.FileDescriptor
+type GetPresignedUploadURLRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	ContentType   string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	ContentLength int64                  `protobuf:"varint,3,opt,name=content_length,json=contentLength,proto3" json:"content_length,omitempty"`
+	Sha256Hash    string                 `protobuf:"bytes,4,opt,name=sha256_hash,json=sha256Hash,proto3" json:"sha256_hash,omitempty"` // Checksum for deduplication
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_proto_storage_v1_storage_proto_rawDesc = "" +
+func (x *GetPresignedUploadURLRequest) Reset() {
+	*x = GetPresignedUploadURLRequest{}
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPresignedUploadURLRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPresignedUploadURLRequest) ProtoMessage() {}
+
+func (x *GetPresignedUploadURLRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPresignedUploadURLRequest.ProtoReflect.Descriptor instead.
+func (*GetPresignedUploadURLRequest) Descriptor() ([]byte, []int) {
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetPresignedUploadURLRequest) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *GetPresignedUploadURLRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *GetPresignedUploadURLRequest) GetContentLength() int64 {
+	if x != nil {
+		return x.ContentLength
+	}
+	return 0
+}
+
+func (x *GetPresignedUploadURLRequest) GetSha256Hash() string {
+	if x != nil {
+		return x.Sha256Hash
+	}
+	return ""
+}
+
+type GetPresignedUploadURLResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UploadUrl     string                 `protobuf:"bytes,1,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`        // Presigned URL to PUT data to (empty if is_duplicate is true)
+	FileUrl       string                 `protobuf:"bytes,2,opt,name=file_url,json=fileUrl,proto3" json:"file_url,omitempty"`              // Public/Download URL
+	Key           string                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`                                     // Object storage key
+	IsDuplicate   bool                   `protobuf:"varint,4,opt,name=is_duplicate,json=isDuplicate,proto3" json:"is_duplicate,omitempty"` // True if file content already exists
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPresignedUploadURLResponse) Reset() {
+	*x = GetPresignedUploadURLResponse{}
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPresignedUploadURLResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPresignedUploadURLResponse) ProtoMessage() {}
+
+func (x *GetPresignedUploadURLResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_entity_proto_storage_v1_storage_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPresignedUploadURLResponse.ProtoReflect.Descriptor instead.
+func (*GetPresignedUploadURLResponse) Descriptor() ([]byte, []int) {
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetPresignedUploadURLResponse) GetUploadUrl() string {
+	if x != nil {
+		return x.UploadUrl
+	}
+	return ""
+}
+
+func (x *GetPresignedUploadURLResponse) GetFileUrl() string {
+	if x != nil {
+		return x.FileUrl
+	}
+	return ""
+}
+
+func (x *GetPresignedUploadURLResponse) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *GetPresignedUploadURLResponse) GetIsDuplicate() bool {
+	if x != nil {
+		return x.IsDuplicate
+	}
+	return false
+}
+
+var File_shared_entity_proto_storage_v1_storage_proto protoreflect.FileDescriptor
+
+const file_shared_entity_proto_storage_v1_storage_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproto/storage/v1/storage.proto\x12\n" +
+	",shared-entity/proto/storage/v1/storage.proto\x12\n" +
 	"storage.v1\"b\n" +
 	"\rUploadRequest\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x1a\n" +
@@ -763,7 +899,19 @@ const file_proto_storage_v1_storage_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12%\n" +
 	"\x0eexpiry_seconds\x18\x02 \x01(\x03R\rexpirySeconds\"+\n" +
 	"\x17GetPresignedURLResponse\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url2\xc4\x04\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\"\xa5\x01\n" +
+	"\x1cGetPresignedUploadURLRequest\x12\x1a\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
+	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12%\n" +
+	"\x0econtent_length\x18\x03 \x01(\x03R\rcontentLength\x12\x1f\n" +
+	"\vsha256_hash\x18\x04 \x01(\tR\n" +
+	"sha256Hash\"\x8e\x01\n" +
+	"\x1dGetPresignedUploadURLResponse\x12\x1d\n" +
+	"\n" +
+	"upload_url\x18\x01 \x01(\tR\tuploadUrl\x12\x19\n" +
+	"\bfile_url\x18\x02 \x01(\tR\afileUrl\x12\x10\n" +
+	"\x03key\x18\x03 \x01(\tR\x03key\x12!\n" +
+	"\fis_duplicate\x18\x04 \x01(\bR\visDuplicate2\xb2\x05\n" +
 	"\x0eStorageService\x12?\n" +
 	"\x06Upload\x12\x19.storage.v1.UploadRequest\x1a\x1a.storage.v1.UploadResponse\x12W\n" +
 	"\x0eUploadMultiple\x12!.storage.v1.UploadMultipleRequest\x1a\".storage.v1.UploadMultipleResponse\x12?\n" +
@@ -771,38 +919,41 @@ const file_proto_storage_v1_storage_proto_rawDesc = "" +
 	"\vDeleteByURL\x12\x1e.storage.v1.DeleteByURLRequest\x1a\x1a.storage.v1.DeleteResponse\x12T\n" +
 	"\rUploadArchive\x12 .storage.v1.UploadArchiveRequest\x1a!.storage.v1.UploadArchiveResponse\x12Z\n" +
 	"\x0fDownloadArchive\x12\".storage.v1.DownloadArchiveRequest\x1a#.storage.v1.DownloadArchiveResponse\x12Z\n" +
-	"\x0fGetPresignedURL\x12\".storage.v1.GetPresignedURLRequest\x1a#.storage.v1.GetPresignedURLResponseBNZLgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/storage/v1;storagev1b\x06proto3"
+	"\x0fGetPresignedURL\x12\".storage.v1.GetPresignedURLRequest\x1a#.storage.v1.GetPresignedURLResponse\x12l\n" +
+	"\x15GetPresignedUploadURL\x12(.storage.v1.GetPresignedUploadURLRequest\x1a).storage.v1.GetPresignedUploadURLResponseBNZLgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/storage/v1;storagev1b\x06proto3"
 
 var (
-	file_proto_storage_v1_storage_proto_rawDescOnce sync.Once
-	file_proto_storage_v1_storage_proto_rawDescData []byte
+	file_shared_entity_proto_storage_v1_storage_proto_rawDescOnce sync.Once
+	file_shared_entity_proto_storage_v1_storage_proto_rawDescData []byte
 )
 
-func file_proto_storage_v1_storage_proto_rawDescGZIP() []byte {
-	file_proto_storage_v1_storage_proto_rawDescOnce.Do(func() {
-		file_proto_storage_v1_storage_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_storage_v1_storage_proto_rawDesc), len(file_proto_storage_v1_storage_proto_rawDesc)))
+func file_shared_entity_proto_storage_v1_storage_proto_rawDescGZIP() []byte {
+	file_shared_entity_proto_storage_v1_storage_proto_rawDescOnce.Do(func() {
+		file_shared_entity_proto_storage_v1_storage_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shared_entity_proto_storage_v1_storage_proto_rawDesc), len(file_shared_entity_proto_storage_v1_storage_proto_rawDesc)))
 	})
-	return file_proto_storage_v1_storage_proto_rawDescData
+	return file_shared_entity_proto_storage_v1_storage_proto_rawDescData
 }
 
-var file_proto_storage_v1_storage_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
-var file_proto_storage_v1_storage_proto_goTypes = []any{
-	(*UploadRequest)(nil),           // 0: storage.v1.UploadRequest
-	(*UploadResponse)(nil),          // 1: storage.v1.UploadResponse
-	(*UploadMultipleRequest)(nil),   // 2: storage.v1.UploadMultipleRequest
-	(*FileUpload)(nil),              // 3: storage.v1.FileUpload
-	(*UploadMultipleResponse)(nil),  // 4: storage.v1.UploadMultipleResponse
-	(*DeleteRequest)(nil),           // 5: storage.v1.DeleteRequest
-	(*DeleteByURLRequest)(nil),      // 6: storage.v1.DeleteByURLRequest
-	(*DeleteResponse)(nil),          // 7: storage.v1.DeleteResponse
-	(*UploadArchiveRequest)(nil),    // 8: storage.v1.UploadArchiveRequest
-	(*UploadArchiveResponse)(nil),   // 9: storage.v1.UploadArchiveResponse
-	(*DownloadArchiveRequest)(nil),  // 10: storage.v1.DownloadArchiveRequest
-	(*DownloadArchiveResponse)(nil), // 11: storage.v1.DownloadArchiveResponse
-	(*GetPresignedURLRequest)(nil),  // 12: storage.v1.GetPresignedURLRequest
-	(*GetPresignedURLResponse)(nil), // 13: storage.v1.GetPresignedURLResponse
+var file_shared_entity_proto_storage_v1_storage_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_shared_entity_proto_storage_v1_storage_proto_goTypes = []any{
+	(*UploadRequest)(nil),                 // 0: storage.v1.UploadRequest
+	(*UploadResponse)(nil),                // 1: storage.v1.UploadResponse
+	(*UploadMultipleRequest)(nil),         // 2: storage.v1.UploadMultipleRequest
+	(*FileUpload)(nil),                    // 3: storage.v1.FileUpload
+	(*UploadMultipleResponse)(nil),        // 4: storage.v1.UploadMultipleResponse
+	(*DeleteRequest)(nil),                 // 5: storage.v1.DeleteRequest
+	(*DeleteByURLRequest)(nil),            // 6: storage.v1.DeleteByURLRequest
+	(*DeleteResponse)(nil),                // 7: storage.v1.DeleteResponse
+	(*UploadArchiveRequest)(nil),          // 8: storage.v1.UploadArchiveRequest
+	(*UploadArchiveResponse)(nil),         // 9: storage.v1.UploadArchiveResponse
+	(*DownloadArchiveRequest)(nil),        // 10: storage.v1.DownloadArchiveRequest
+	(*DownloadArchiveResponse)(nil),       // 11: storage.v1.DownloadArchiveResponse
+	(*GetPresignedURLRequest)(nil),        // 12: storage.v1.GetPresignedURLRequest
+	(*GetPresignedURLResponse)(nil),       // 13: storage.v1.GetPresignedURLResponse
+	(*GetPresignedUploadURLRequest)(nil),  // 14: storage.v1.GetPresignedUploadURLRequest
+	(*GetPresignedUploadURLResponse)(nil), // 15: storage.v1.GetPresignedUploadURLResponse
 }
-var file_proto_storage_v1_storage_proto_depIdxs = []int32{
+var file_shared_entity_proto_storage_v1_storage_proto_depIdxs = []int32{
 	3,  // 0: storage.v1.UploadMultipleRequest.files:type_name -> storage.v1.FileUpload
 	1,  // 1: storage.v1.UploadMultipleResponse.results:type_name -> storage.v1.UploadResponse
 	0,  // 2: storage.v1.StorageService.Upload:input_type -> storage.v1.UploadRequest
@@ -812,40 +963,42 @@ var file_proto_storage_v1_storage_proto_depIdxs = []int32{
 	8,  // 6: storage.v1.StorageService.UploadArchive:input_type -> storage.v1.UploadArchiveRequest
 	10, // 7: storage.v1.StorageService.DownloadArchive:input_type -> storage.v1.DownloadArchiveRequest
 	12, // 8: storage.v1.StorageService.GetPresignedURL:input_type -> storage.v1.GetPresignedURLRequest
-	1,  // 9: storage.v1.StorageService.Upload:output_type -> storage.v1.UploadResponse
-	4,  // 10: storage.v1.StorageService.UploadMultiple:output_type -> storage.v1.UploadMultipleResponse
-	7,  // 11: storage.v1.StorageService.Delete:output_type -> storage.v1.DeleteResponse
-	7,  // 12: storage.v1.StorageService.DeleteByURL:output_type -> storage.v1.DeleteResponse
-	9,  // 13: storage.v1.StorageService.UploadArchive:output_type -> storage.v1.UploadArchiveResponse
-	11, // 14: storage.v1.StorageService.DownloadArchive:output_type -> storage.v1.DownloadArchiveResponse
-	13, // 15: storage.v1.StorageService.GetPresignedURL:output_type -> storage.v1.GetPresignedURLResponse
-	9,  // [9:16] is the sub-list for method output_type
-	2,  // [2:9] is the sub-list for method input_type
+	14, // 9: storage.v1.StorageService.GetPresignedUploadURL:input_type -> storage.v1.GetPresignedUploadURLRequest
+	1,  // 10: storage.v1.StorageService.Upload:output_type -> storage.v1.UploadResponse
+	4,  // 11: storage.v1.StorageService.UploadMultiple:output_type -> storage.v1.UploadMultipleResponse
+	7,  // 12: storage.v1.StorageService.Delete:output_type -> storage.v1.DeleteResponse
+	7,  // 13: storage.v1.StorageService.DeleteByURL:output_type -> storage.v1.DeleteResponse
+	9,  // 14: storage.v1.StorageService.UploadArchive:output_type -> storage.v1.UploadArchiveResponse
+	11, // 15: storage.v1.StorageService.DownloadArchive:output_type -> storage.v1.DownloadArchiveResponse
+	13, // 16: storage.v1.StorageService.GetPresignedURL:output_type -> storage.v1.GetPresignedURLResponse
+	15, // 17: storage.v1.StorageService.GetPresignedUploadURL:output_type -> storage.v1.GetPresignedUploadURLResponse
+	10, // [10:18] is the sub-list for method output_type
+	2,  // [2:10] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_proto_storage_v1_storage_proto_init() }
-func file_proto_storage_v1_storage_proto_init() {
-	if File_proto_storage_v1_storage_proto != nil {
+func init() { file_shared_entity_proto_storage_v1_storage_proto_init() }
+func file_shared_entity_proto_storage_v1_storage_proto_init() {
+	if File_shared_entity_proto_storage_v1_storage_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_storage_v1_storage_proto_rawDesc), len(file_proto_storage_v1_storage_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_entity_proto_storage_v1_storage_proto_rawDesc), len(file_shared_entity_proto_storage_v1_storage_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_storage_v1_storage_proto_goTypes,
-		DependencyIndexes: file_proto_storage_v1_storage_proto_depIdxs,
-		MessageInfos:      file_proto_storage_v1_storage_proto_msgTypes,
+		GoTypes:           file_shared_entity_proto_storage_v1_storage_proto_goTypes,
+		DependencyIndexes: file_shared_entity_proto_storage_v1_storage_proto_depIdxs,
+		MessageInfos:      file_shared_entity_proto_storage_v1_storage_proto_msgTypes,
 	}.Build()
-	File_proto_storage_v1_storage_proto = out.File
-	file_proto_storage_v1_storage_proto_goTypes = nil
-	file_proto_storage_v1_storage_proto_depIdxs = nil
+	File_shared_entity_proto_storage_v1_storage_proto = out.File
+	file_shared_entity_proto_storage_v1_storage_proto_goTypes = nil
+	file_shared_entity_proto_storage_v1_storage_proto_depIdxs = nil
 }

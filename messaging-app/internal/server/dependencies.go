@@ -181,10 +181,10 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	}, nil
 }
 
-func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client) routerConfig {
+func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client, storageClient *storageclient.Client) routerConfig {
 	return routerConfig{
 		authController:         controllers.NewAuthController(services.Auth, cfg),
-		userController:         controllers.NewUserController(services.User),
+		userController:         controllers.NewUserController(services.User, storageClient),
 		friendshipController:   controllers.NewFriendshipController(services.Friendship),
 		groupController:        controllers.NewGroupController(services.Group, services.User),
 		messageController:      controllers.NewMessageController(services.Message, services.Storage, services.Group),
@@ -195,8 +195,8 @@ func buildControllers(cfg *config.Config, services serviceBundle, repos reposito
 		conversationController: controllers.NewConversationController(services.Conversation),
 		uploadController:       controllers.NewUploadController(services.Storage),
 		communityController:    controllers.NewCommunityController(services.Community),
-		storyController:        controllers.NewStoryController(storyClient, repos.Friendship),
-		reelController:         controllers.NewReelController(reelClient),
+		storyController:        controllers.NewStoryController(storyClient, repos.Friendship, storageClient),
+		reelController:         controllers.NewReelController(reelClient, storageClient),
 		marketplaceController:  controllers.NewMarketplaceController(marketplaceClient),
 		eventController:        controllers.NewEventController(services.Event, services.EventRecommendation),
 	}

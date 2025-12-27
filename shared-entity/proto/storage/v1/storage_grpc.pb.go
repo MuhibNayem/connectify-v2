@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: proto/storage/v1/storage.proto
+// source: shared-entity/proto/storage/v1/storage.proto
 
 package storagev1
 
@@ -19,13 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StorageService_Upload_FullMethodName          = "/storage.v1.StorageService/Upload"
-	StorageService_UploadMultiple_FullMethodName  = "/storage.v1.StorageService/UploadMultiple"
-	StorageService_Delete_FullMethodName          = "/storage.v1.StorageService/Delete"
-	StorageService_DeleteByURL_FullMethodName     = "/storage.v1.StorageService/DeleteByURL"
-	StorageService_UploadArchive_FullMethodName   = "/storage.v1.StorageService/UploadArchive"
-	StorageService_DownloadArchive_FullMethodName = "/storage.v1.StorageService/DownloadArchive"
-	StorageService_GetPresignedURL_FullMethodName = "/storage.v1.StorageService/GetPresignedURL"
+	StorageService_Upload_FullMethodName                = "/storage.v1.StorageService/Upload"
+	StorageService_UploadMultiple_FullMethodName        = "/storage.v1.StorageService/UploadMultiple"
+	StorageService_Delete_FullMethodName                = "/storage.v1.StorageService/Delete"
+	StorageService_DeleteByURL_FullMethodName           = "/storage.v1.StorageService/DeleteByURL"
+	StorageService_UploadArchive_FullMethodName         = "/storage.v1.StorageService/UploadArchive"
+	StorageService_DownloadArchive_FullMethodName       = "/storage.v1.StorageService/DownloadArchive"
+	StorageService_GetPresignedURL_FullMethodName       = "/storage.v1.StorageService/GetPresignedURL"
+	StorageService_GetPresignedUploadURL_FullMethodName = "/storage.v1.StorageService/GetPresignedUploadURL"
 )
 
 // StorageServiceClient is the client API for StorageService service.
@@ -39,6 +40,7 @@ type StorageServiceClient interface {
 	UploadArchive(ctx context.Context, in *UploadArchiveRequest, opts ...grpc.CallOption) (*UploadArchiveResponse, error)
 	DownloadArchive(ctx context.Context, in *DownloadArchiveRequest, opts ...grpc.CallOption) (*DownloadArchiveResponse, error)
 	GetPresignedURL(ctx context.Context, in *GetPresignedURLRequest, opts ...grpc.CallOption) (*GetPresignedURLResponse, error)
+	GetPresignedUploadURL(ctx context.Context, in *GetPresignedUploadURLRequest, opts ...grpc.CallOption) (*GetPresignedUploadURLResponse, error)
 }
 
 type storageServiceClient struct {
@@ -119,6 +121,16 @@ func (c *storageServiceClient) GetPresignedURL(ctx context.Context, in *GetPresi
 	return out, nil
 }
 
+func (c *storageServiceClient) GetPresignedUploadURL(ctx context.Context, in *GetPresignedUploadURLRequest, opts ...grpc.CallOption) (*GetPresignedUploadURLResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPresignedUploadURLResponse)
+	err := c.cc.Invoke(ctx, StorageService_GetPresignedUploadURL_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StorageServiceServer is the server API for StorageService service.
 // All implementations must embed UnimplementedStorageServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type StorageServiceServer interface {
 	UploadArchive(context.Context, *UploadArchiveRequest) (*UploadArchiveResponse, error)
 	DownloadArchive(context.Context, *DownloadArchiveRequest) (*DownloadArchiveResponse, error)
 	GetPresignedURL(context.Context, *GetPresignedURLRequest) (*GetPresignedURLResponse, error)
+	GetPresignedUploadURL(context.Context, *GetPresignedUploadURLRequest) (*GetPresignedUploadURLResponse, error)
 	mustEmbedUnimplementedStorageServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedStorageServiceServer) DownloadArchive(context.Context, *Downl
 }
 func (UnimplementedStorageServiceServer) GetPresignedURL(context.Context, *GetPresignedURLRequest) (*GetPresignedURLResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPresignedURL not implemented")
+}
+func (UnimplementedStorageServiceServer) GetPresignedUploadURL(context.Context, *GetPresignedUploadURLRequest) (*GetPresignedUploadURLResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPresignedUploadURL not implemented")
 }
 func (UnimplementedStorageServiceServer) mustEmbedUnimplementedStorageServiceServer() {}
 func (UnimplementedStorageServiceServer) testEmbeddedByValue()                        {}
@@ -308,6 +324,24 @@ func _StorageService_GetPresignedURL_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StorageService_GetPresignedUploadURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPresignedUploadURLRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServiceServer).GetPresignedUploadURL(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StorageService_GetPresignedUploadURL_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServiceServer).GetPresignedUploadURL(ctx, req.(*GetPresignedUploadURLRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StorageService_ServiceDesc is the grpc.ServiceDesc for StorageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -343,7 +377,11 @@ var StorageService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetPresignedURL",
 			Handler:    _StorageService_GetPresignedURL_Handler,
 		},
+		{
+			MethodName: "GetPresignedUploadURL",
+			Handler:    _StorageService_GetPresignedUploadURL_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/storage/v1/storage.proto",
+	Metadata: "shared-entity/proto/storage/v1/storage.proto",
 }

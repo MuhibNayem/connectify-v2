@@ -105,3 +105,33 @@ func (c *Client) GetPresignedURL(ctx context.Context, key string, expiry time.Du
 	}
 	return result.(*storagepb.GetPresignedURLResponse).Url, nil
 }
+
+// GetPresignedUploadURL returns a presigned URL for direct-to-S3 uploads with deduplication
+func (c *Client) GetPresignedUploadURL(ctx context.Context, filename, contentType, sha256Hash string, contentLength int64) (*PresignedUploadResult, error) {
+	result, err := c.cb.Execute(ctx, func() (interface{}, error) {
+		return c.client.GetPresignedUploadURL(ctx, &storagepb.GetPresignedUploadURLRequest{
+			Filename:      filename,
+			ContentType:   contentType,
+			ContentLength: contentLength,
+			Sha256Hash:    sha256Hash,
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	resp := result.(*storagepb.GetPresignedUploadURLResponse)
+	return &PresignedUploadResult{
+		UploadURL:   resp.UploadUrl,
+		FileURL:     resp.FileUrl,
+		Key:         resp.Key,
+		IsDuplicate: resp.IsDuplicate,
+	}, nil
+}
+
+// PresignedUploadResult contains details for a presigned upload operation
+type PresignedUploadResult struct {
+	UploadURL   string // PUT URL (empty if IsDuplicate)
+	FileURL     string // Public download URL
+	Key         string // Storage key
+	IsDuplicate bool   // True if content already exists
+}
