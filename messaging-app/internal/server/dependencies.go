@@ -13,6 +13,7 @@ import (
 	"messaging-app/internal/graph"
 	"messaging-app/internal/marketplaceclient"
 	notifications "messaging-app/internal/notifications"
+	"messaging-app/internal/reelclient"
 	"messaging-app/internal/repositories"
 	"messaging-app/internal/seeds"
 	"messaging-app/internal/services"
@@ -180,7 +181,7 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	}, nil
 }
 
-func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client) routerConfig {
+func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client) routerConfig {
 	return routerConfig{
 		authController:         controllers.NewAuthController(services.Auth, cfg),
 		userController:         controllers.NewUserController(services.User),
@@ -195,7 +196,7 @@ func buildControllers(cfg *config.Config, services serviceBundle, repos reposito
 		uploadController:       controllers.NewUploadController(services.Storage),
 		communityController:    controllers.NewCommunityController(services.Community),
 		storyController:        controllers.NewStoryController(storyClient, repos.Friendship),
-		reelController:         controllers.NewReelController(services.Reel),
+		reelController:         controllers.NewReelController(reelClient),
 		marketplaceController:  controllers.NewMarketplaceController(marketplaceClient),
 		eventController:        controllers.NewEventController(services.Event, services.EventRecommendation),
 	}

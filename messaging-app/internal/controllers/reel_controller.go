@@ -1,21 +1,23 @@
 package controllers
 
 import (
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
-	"messaging-app/internal/services"
+	"messaging-app/internal/reelclient"
 	"net/http"
 	"strconv"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	reelpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/reel/v1"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ReelController struct {
-	reelService *services.ReelService
+	reelClient *reelclient.Client
 }
 
-func NewReelController(reelService *services.ReelService) *ReelController {
-	return &ReelController{reelService: reelService}
+func NewReelController(reelClient *reelclient.Client) *ReelController {
+	return &ReelController{reelClient: reelClient}
 }
 
 func (c *ReelController) CreateReel(ctx *gin.Context) {
@@ -37,7 +39,26 @@ func (c *ReelController) CreateReel(ctx *gin.Context) {
 		return
 	}
 
-	reel, err := c.reelService.CreateReel(ctx.Request.Context(), objUserID, &req)
+	// Map local model req to proto
+	// Warning: models.CreateReelRequest might differ from proto request fields
+	// Let's assume we copy fields manually
+	protoReq := &reelpb.CreateReelRequest{
+		UserId:       objUserID.Hex(),
+		VideoUrl:     req.VideoURL,
+		ThumbnailUrl: req.ThumbnailURL,
+		Caption:      req.Caption,
+		Duration:     float64(req.Duration),
+		Privacy:      string(req.Privacy),
+	}
+	// Convert ObjectIDs to strings for viewers
+	for _, id := range req.AllowedViewers {
+		protoReq.AllowedViewers = append(protoReq.AllowedViewers, id.Hex())
+	}
+	for _, id := range req.BlockedViewers {
+		protoReq.BlockedViewers = append(protoReq.BlockedViewers, id.Hex())
+	}
+
+	reel, err := c.reelClient.CreateReel(ctx.Request.Context(), protoReq)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -53,10 +74,13 @@ func (c *ReelController) GetReelsFeed(ctx *gin.Context) {
 	limit, _ := strconv.ParseInt(limitStr, 10, 64)
 	offset, _ := strconv.ParseInt(offsetStr, 10, 64)
 
-	userID, _ := ctx.Get("userID")
-	objUserID, _ := primitive.ObjectIDFromHex(userID.(string))
+	userID, exists := ctx.Get("userID")
+	viewerID := ""
+	if exists {
+		viewerID = userID.(string)
+	}
 
-	reels, err := c.reelService.GetReelsFeed(ctx.Request.Context(), objUserID, limit, offset)
+	reels, err := c.reelClient.GetReelsFeed(ctx.Request.Context(), viewerID, limit, offset)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -67,13 +91,8 @@ func (c *ReelController) GetReelsFeed(ctx *gin.Context) {
 
 func (c *ReelController) GetUserReels(ctx *gin.Context) {
 	targetUserIDStr := ctx.Param("id")
-	targetUserID, err := primitive.ObjectIDFromHex(targetUserIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
 
-	reels, err := c.reelService.GetUserReels(ctx.Request.Context(), targetUserID)
+	reels, err := c.reelClient.GetUserReels(ctx.Request.Context(), targetUserIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -84,13 +103,8 @@ func (c *ReelController) GetUserReels(ctx *gin.Context) {
 
 func (c *ReelController) GetReel(ctx *gin.Context) {
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
 
-	reel, err := c.reelService.GetReel(ctx.Request.Context(), reelID)
+	reel, err := c.reelClient.GetReel(ctx.Request.Context(), reelIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -107,11 +121,6 @@ func (c *ReelController) AddComment(ctx *gin.Context) {
 	}
 
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
 
 	var req struct {
 		Content  string               `json:"content" binding:"required"`
@@ -122,13 +131,18 @@ func (c *ReelController) AddComment(ctx *gin.Context) {
 		return
 	}
 
-	objUserID, err := primitive.ObjectIDFromHex(userID.(string))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
+	// Helper to convert ObjectIDs to strings
+	mentions := make([]string, len(req.Mentions))
+	for i, m := range req.Mentions {
+		mentions[i] = m.Hex()
 	}
 
-	comment, err := c.reelService.AddComment(ctx.Request.Context(), reelID, objUserID, req.Content, req.Mentions)
+	comment, err := c.reelClient.AddComment(ctx.Request.Context(), &reelpb.AddCommentRequest{
+		ReelId:           reelIDStr,
+		UserId:           userID.(string),
+		Content:          req.Content,
+		ExplicitMentions: mentions,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -139,11 +153,6 @@ func (c *ReelController) AddComment(ctx *gin.Context) {
 
 func (c *ReelController) GetComments(ctx *gin.Context) {
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
 
 	limitStr := ctx.DefaultQuery("limit", "20")
 	offsetStr := ctx.DefaultQuery("offset", "0")
@@ -151,7 +160,7 @@ func (c *ReelController) GetComments(ctx *gin.Context) {
 	limit, _ := strconv.ParseInt(limitStr, 10, 64)
 	offset, _ := strconv.ParseInt(offsetStr, 10, 64)
 
-	comments, err := c.reelService.GetComments(ctx.Request.Context(), reelID, limit, offset)
+	comments, err := c.reelClient.GetComments(ctx.Request.Context(), reelIDStr, limit, offset)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -168,18 +177,7 @@ func (c *ReelController) AddReply(ctx *gin.Context) {
 	}
 
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
-
 	commentIDStr := ctx.Param("commentId")
-	commentID, err := primitive.ObjectIDFromHex(commentIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid comment ID"})
-		return
-	}
 
 	var req struct {
 		Content string `json:"content" binding:"required"`
@@ -189,13 +187,12 @@ func (c *ReelController) AddReply(ctx *gin.Context) {
 		return
 	}
 
-	objUserID, err := primitive.ObjectIDFromHex(userID.(string))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-
-	reply, err := c.reelService.AddReply(ctx.Request.Context(), reelID, commentID, objUserID, req.Content)
+	reply, err := c.reelClient.AddReply(ctx.Request.Context(), &reelpb.AddReplyRequest{
+		ReelId:    reelIDStr,
+		CommentId: commentIDStr,
+		UserId:    userID.(string),
+		Content:   req.Content,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -212,18 +209,7 @@ func (c *ReelController) ReactToComment(ctx *gin.Context) {
 	}
 
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
-
 	commentIDStr := ctx.Param("commentId")
-	commentID, err := primitive.ObjectIDFromHex(commentIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid comment ID"})
-		return
-	}
 
 	var req struct {
 		ReactionType models.ReactionType `json:"reaction_type" binding:"required"`
@@ -233,13 +219,7 @@ func (c *ReelController) ReactToComment(ctx *gin.Context) {
 		return
 	}
 
-	objUserID, err := primitive.ObjectIDFromHex(userID.(string))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-
-	err = c.reelService.ReactToComment(ctx.Request.Context(), reelID, commentID, objUserID, req.ReactionType)
+	err := c.reelClient.ReactToComment(ctx.Request.Context(), reelIDStr, commentIDStr, userID.(string), string(req.ReactionType))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -250,20 +230,9 @@ func (c *ReelController) ReactToComment(ctx *gin.Context) {
 
 func (c *ReelController) IncrementView(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(string)
-	objUserID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
 
-	err = c.reelService.IncrementViews(ctx.Request.Context(), reelID, objUserID)
+	err := c.reelClient.IncrementView(ctx.Request.Context(), reelIDStr, userID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -281,11 +250,6 @@ func (c *ReelController) ReactToReel(ctx *gin.Context) {
 	}
 
 	reelIDStr := ctx.Param("id")
-	reelID, err := primitive.ObjectIDFromHex(reelIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reel ID"})
-		return
-	}
 
 	var req struct {
 		Type models.ReactionType `json:"type" binding:"required"`
@@ -295,13 +259,7 @@ func (c *ReelController) ReactToReel(ctx *gin.Context) {
 		return
 	}
 
-	objUserID, err := primitive.ObjectIDFromHex(userID.(string))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-
-	err = c.reelService.ReactToReel(ctx.Request.Context(), reelID, objUserID, req.Type)
+	err := c.reelClient.ReactToReel(ctx.Request.Context(), reelIDStr, userID.(string), string(req.Type))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
