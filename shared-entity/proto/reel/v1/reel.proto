@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package reel.v1;
+
+option go_package = "github.com/MuhibNayem/connectify-v2/shared-entity/proto/reel/v1;reelpb";
+
+import "google/protobuf/timestamp.proto";
+
+service ReelService {
+  rpc GetReel(GetReelRequest) returns (GetReelResponse);
+  rpc GetUserReels(GetUserReelsRequest) returns (GetUserReelsResponse);
+  rpc GetReelsFeed(GetReelsFeedRequest) returns (GetReelsFeedResponse);
+}
+
+message GetReelRequest {
+  string reel_id = 1;
+}
+
+message GetReelResponse {
+  Reel reel = 1;
+}
+
+message GetUserReelsRequest {
+  string user_id = 1;
+}
+
+message GetUserReelsResponse {
+  repeated Reel reels = 1;
+}
+
+message GetReelsFeedRequest {
+  string viewer_id = 1;
+  int64 limit = 2;
+  int64 offset = 3;
+}
+
+message GetReelsFeedResponse {
+  repeated Reel reels = 1;
+}
+
+message Reel {
+  string id = 1;
+  string user_id = 2;
+  string video_url = 3;
+  string thumbnail_url = 4;
+  string caption = 5;
+  double duration = 6;
+  string privacy = 7;
+  int64 views = 8;
+  int64 likes = 9;
+  int64 comments = 10;
+  Author author = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message Author {
+  string id = 1;
+  string username = 2;
+  string avatar = 3;
+  string full_name = 4;
+}
