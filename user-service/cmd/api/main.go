@@ -132,11 +132,25 @@ func run() error {
 			)
 		}
 
-		// User routes (public profile endpoints)
+		// User routes - public profile endpoints
 		users := api.Group("/users")
 		{
 			users.GET("/:id", userHandler.GetUserByID)
 			users.GET("/:id/status", userHandler.GetUserStatus)
+		}
+
+		// Protected user routes (require JWT auth)
+		me := api.Group("/users/me")
+		me.Use(middleware.JWTAuthSimple(cfg.JWTSecret))
+		{
+			me.GET("", userHandler.GetProfile)
+			me.PATCH("", userHandler.UpdateProfile)
+			me.PATCH("/email", userHandler.UpdateEmail)
+			me.PATCH("/password", userHandler.UpdatePassword)
+			me.PATCH("/privacy", userHandler.UpdatePrivacySettings)
+			me.PATCH("/notifications", userHandler.UpdateNotificationSettings)
+			me.POST("/2fa", userHandler.ToggleTwoFactor)
+			me.DELETE("", userHandler.DeactivateAccount)
 		}
 	}
 
