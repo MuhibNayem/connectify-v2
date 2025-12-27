@@ -43,6 +43,24 @@ type EventGraphRepo interface {
 	AddAttendee(ctx context.Context, userID, eventID primitive.ObjectID) error
 	RemoveAttendee(ctx context.Context, userID, eventID primitive.ObjectID) error
 	GetFriendsGoing(ctx context.Context, userID, eventID primitive.ObjectID) ([]string, error)
+	// FB-scale graph recommendation methods
+	GetRecommendedEventsFromGraph(ctx context.Context, userID string, limit int) ([]GraphRecommendation, error)
+	AddUserInterest(ctx context.Context, userID, category string) error
+	SetEventCategory(ctx context.Context, eventID, category string) error
+	AddFriendship(ctx context.Context, userID1, userID2 string) error
+	RemoveFriendship(ctx context.Context, userID1, userID2 string) error
+	GetMutualFriendsCount(ctx context.Context, userID, hostID string) (int, error)
+}
+
+// GraphRecommendation is the interface-level type for graph recommendations
+// This avoids import cycles between service and repository packages
+type GraphRecommendation struct {
+	EventID          string
+	Score            float64
+	FriendsGoing     []string
+	FoFGoing         []string
+	CategoryMatch    bool
+	TotalConnections int
 }
 
 // InvitationRepo defines interface for invitation persistence
@@ -65,4 +83,9 @@ type PostRepo interface {
 	AddReaction(ctx context.Context, postID primitive.ObjectID, reaction models.EventPostReaction) error
 	RemoveReaction(ctx context.Context, postID, userID primitive.ObjectID) error
 	GetPostCount(ctx context.Context, eventID primitive.ObjectID) (int64, error)
+}
+
+// FriendshipRepo defines interface for friendship operations
+type FriendshipRepo interface {
+	GetFriends(ctx context.Context, userID primitive.ObjectID) ([]primitive.ObjectID, error)
 }

@@ -205,7 +205,7 @@ func (a *Application) bootstrap() error {
 	friendshipRepo := integration.NewFriendshipLocalRepository(a.db)
 
 	notificationProducer := producer.NewNotificationProducer(a.cfg.KafkaBrokers, "notifications")
-	a.eventProducer = producer.NewEventProducer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic)
+	a.eventProducer = producer.NewEventProducer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, slog.Default())
 	eventCache := cache.NewEventCache(a.redisClient)
 
 	a.eventService = service.NewEventService(
@@ -225,7 +225,7 @@ func (a *Application) bootstrap() error {
 		eventGraphRepo,
 		userLocalRepo,
 		friendshipRepo,
-		eventCache,
+		service.NewEventCacheAdapter(eventCache),
 	)
 
 	// Controller initialization

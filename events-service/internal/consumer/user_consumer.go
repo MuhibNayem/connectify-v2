@@ -3,7 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
@@ -18,28 +18,33 @@ type UserConsumer struct {
 	reader      *kafka.Reader
 	repo        *integration.UserLocalRepository
 	dlqProducer *pkgkafka.DLQProducer
+	logger      *slog.Logger
 }
 
-func NewUserConsumer(brokers []string, topic string, groupID string, repo *integration.UserLocalRepository, dlq *pkgkafka.DLQProducer) *UserConsumer {
+func NewUserConsumer(brokers []string, topic string, groupID string, repo *integration.UserLocalRepository, dlq *pkgkafka.DLQProducer, logger *slog.Logger) *UserConsumer {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  brokers,
 		Topic:    topic,
 		GroupID:  groupID,
 		MaxBytes: 10e6, // 10MB
 	})
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &UserConsumer{
 		reader:      r,
 		repo:        repo,
 		dlqProducer: dlq,
+		logger:      logger,
 	}
 }
 
 func (c *UserConsumer) Start(ctx context.Context) {
-	log.Printf("Starting UserConsumer for topic %v", c.reader.Config().Topic)
+	c.logger.Info("Starting UserConsumer", "topic", c.reader.Config().Topic)
 	for {
 		m, err := c.reader.ReadMessage(ctx)
 		if err != nil {
-			log.Printf("UserConsumer stopped reading: %v", err)
+			c.logger.Warn("UserConsumer stopped reading", "error", err)
 			break
 		}
 
@@ -54,15 +59,22 @@ func (c *UserConsumer) Start(ctx context.Context) {
 			}
 
 			if i < maxRetries-1 {
-				log.Printf("Error processing user event (attempt %d/%d): %v. Retrying...", i+1, maxRetries, processErr)
+				c.logger.Warn("Error processing user event, retrying",
+					"attempt", i+1,
+					"max_attempts", maxRetries,
+					"error", processErr,
+				)
 				time.Sleep(time.Second * time.Duration(i+1))
 			}
 		}
 
 		if processErr != nil {
-			log.Printf("CRITICAL: Failed to process user event after %d attempts. Sending to DLQ. Error: %v", maxRetries, processErr)
+			c.logger.Error("Failed to process user event after retries, sending to DLQ",
+				"attempts", maxRetries,
+				"error", processErr,
+			)
 			if err := c.dlqProducer.PublishDeadLetter(ctx, c.reader.Config().Topic, m.Value, processErr); err != nil {
-				log.Printf("FATAL: Failed to send to DLQ: %v", err)
+				c.logger.Error("Failed to send to DLQ", "error", err)
 			}
 		}
 	}

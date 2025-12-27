@@ -25,8 +25,10 @@ type MockEventCache struct {
 		UserID  string
 		EventID string
 	}
-	GetCategoriesFunc func(ctx context.Context) ([]models.EventCategory, error)
-	SetCategoriesFunc func(ctx context.Context, categories []models.EventCategory) error
+	GetCategoriesFunc     func(ctx context.Context) ([]models.EventCategory, error)
+	SetCategoriesFunc     func(ctx context.Context, categories []models.EventCategory) error
+	GetTrendingEventsFunc func(ctx context.Context) ([]string, error)
+	SetTrendingEventsFunc func(ctx context.Context, eventIDs []string) error
 }
 
 func (m *MockEventCache) SetEventStats(ctx context.Context, eventID string, stats *models.EventStats) error {
@@ -72,6 +74,20 @@ func (m *MockEventCache) GetCategories(ctx context.Context) ([]models.EventCateg
 func (m *MockEventCache) SetCategories(ctx context.Context, categories []models.EventCategory) error {
 	if m.SetCategoriesFunc != nil {
 		return m.SetCategoriesFunc(ctx, categories)
+	}
+	return nil
+}
+
+func (m *MockEventCache) GetTrendingEvents(ctx context.Context) ([]string, error) {
+	if m.GetTrendingEventsFunc != nil {
+		return m.GetTrendingEventsFunc(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockEventCache) SetTrendingEvents(ctx context.Context, eventIDs []string) error {
+	if m.SetTrendingEventsFunc != nil {
+		return m.SetTrendingEventsFunc(ctx, eventIDs)
 	}
 	return nil
 }

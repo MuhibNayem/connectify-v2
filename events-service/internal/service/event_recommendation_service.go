@@ -5,9 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
-	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
-	"github.com/MuhibNayem/connectify-v2/events-service/internal/repository"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,20 +13,20 @@ import (
 
 // EventRecommendationService provides event recommendations based on social graph
 type EventRecommendationService struct {
-	eventRepo      *repository.EventRepository
-	eventGraphRepo *repository.EventGraphRepository
-	userRepo       *integration.UserLocalRepository
-	friendshipRepo *integration.FriendshipLocalRepository
-	eventCache     *cache.EventCache
+	eventRepo      EventRepository
+	eventGraphRepo EventGraphRepo
+	userRepo       UserRepo
+	friendshipRepo FriendshipRepo
+	eventCache     EventCache
 }
 
 // NewEventRecommendationService creates a new recommendation service
 func NewEventRecommendationService(
-	eventRepo *repository.EventRepository,
-	eventGraphRepo *repository.EventGraphRepository,
-	userRepo *integration.UserLocalRepository,
-	friendshipRepo *integration.FriendshipLocalRepository,
-	eventCache *cache.EventCache,
+	eventRepo EventRepository,
+	eventGraphRepo EventGraphRepo,
+	userRepo UserRepo,
+	friendshipRepo FriendshipRepo,
+	eventCache EventCache,
 ) *EventRecommendationService {
 	return &EventRecommendationService{
 		eventRepo:      eventRepo,
@@ -150,6 +147,102 @@ func (s *EventRecommendationService) GetRecommendations(ctx context.Context, use
 	}
 
 	return recommendations, nil
+}
+
+// GetGraphBasedRecommendations uses Neo4j graph for FB-scale recommendations
+// with automatic fallback to MongoDB if graph is unavailable
+func (s *EventRecommendationService) GetGraphBasedRecommendations(ctx context.Context, userID primitive.ObjectID, limit int) ([]EventRecommendation, error) {
+	// Try graph-based recommendations first
+	graphRecs, err := s.eventGraphRepo.GetRecommendedEventsFromGraph(ctx, userID.Hex(), limit*2)
+	if err != nil {
+		// Fallback to MongoDB-based recommendations
+		return s.GetRecommendations(ctx, userID, limit)
+	}
+
+	if len(graphRecs) == 0 {
+		return s.getPopularEvents(ctx, limit)
+	}
+
+	// Fetch event details for graph recommendations
+	recommendations := make([]EventRecommendation, 0, len(graphRecs))
+	for _, gr := range graphRecs {
+		eventID, err := primitive.ObjectIDFromHex(gr.EventID)
+		if err != nil {
+			continue
+		}
+
+		event, err := s.eventRepo.GetByID(ctx, eventID)
+		if err != nil {
+			continue
+		}
+
+		// Skip if user is already attending
+		isAttending := false
+		for _, a := range event.Attendees {
+			if a.UserID == userID {
+				isAttending = true
+				break
+			}
+		}
+		if isAttending {
+			continue
+		}
+
+		// Build friend info for display
+		friendsGoing := make([]models.UserShort, 0, len(gr.FriendsGoing))
+		for _, fid := range gr.FriendsGoing {
+			objID, err := primitive.ObjectIDFromHex(fid)
+			if err != nil {
+				continue
+			}
+			u, err := s.userRepo.FindByID(ctx, objID)
+			if err == nil && u != nil {
+				friendsGoing = append(friendsGoing, models.UserShort{
+					ID:       u.ID.Hex(),
+					Username: u.Username,
+					FullName: u.FullName,
+					Avatar:   u.Avatar,
+				})
+			}
+		}
+
+		reason := s.buildGraphReason(len(gr.FriendsGoing), len(gr.FoFGoing), gr.CategoryMatch)
+
+		recommendations = append(recommendations, EventRecommendation{
+			EventID:      gr.EventID,
+			Score:        gr.Score,
+			FriendsGoing: friendsGoing,
+			FriendCount:  len(gr.FriendsGoing),
+			Reason:       reason,
+			Event:        event,
+		})
+	}
+
+	// Limit final results
+	if len(recommendations) > limit {
+		recommendations = recommendations[:limit]
+	}
+
+	return recommendations, nil
+}
+
+func (s *EventRecommendationService) buildGraphReason(friendCount, fofCount int, categoryMatch bool) string {
+	parts := []string{}
+	if friendCount == 1 {
+		parts = append(parts, "1 friend is going")
+	} else if friendCount > 1 {
+		parts = append(parts, "friends are going")
+	}
+	if fofCount > 0 {
+		parts = append(parts, "friends of friends attending")
+	}
+	if categoryMatch {
+		parts = append(parts, "matches your interests")
+	}
+	if len(parts) == 0 {
+		return "Recommended for you"
+	}
+	return parts[0] // Return primary reason
 }
 
 func (s *EventRecommendationService) buildReason(friendCount int) string {

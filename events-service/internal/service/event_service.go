@@ -10,6 +10,7 @@ import (
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/pkg/async"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/producer"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/validation"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,6 +25,8 @@ type EventCache interface {
 	InvalidateFriendsGoing(ctx context.Context, userID, eventID string) error
 	GetCategories(ctx context.Context) ([]models.EventCategory, error)
 	SetCategories(ctx context.Context, categories []models.EventCategory) error
+	GetTrendingEvents(ctx context.Context) ([]string, error)
+	SetTrendingEvents(ctx context.Context, eventIDs []string) error
 }
 
 // cacheAdapter wraps the concrete cache implementation
@@ -60,6 +63,14 @@ func (a *cacheAdapter) GetCategories(ctx context.Context) ([]models.EventCategor
 
 func (a *cacheAdapter) SetCategories(ctx context.Context, categories []models.EventCategory) error {
 	return a.delegate.SetCategories(ctx, categories)
+}
+
+func (a *cacheAdapter) GetTrendingEvents(ctx context.Context) ([]string, error) {
+	return a.delegate.GetTrendingEvents(ctx)
+}
+
+func (a *cacheAdapter) SetTrendingEvents(ctx context.Context, eventIDs []string) error {
+	return a.delegate.SetTrendingEvents(ctx, eventIDs)
 }
 
 const (
@@ -123,6 +134,11 @@ func (s *EventService) detachContext(ctx context.Context) context.Context {
 }
 
 func (s *EventService) CreateEvent(ctx context.Context, userID primitive.ObjectID, req models.CreateEventRequest) (*models.Event, error) {
+	// Validate request
+	if err := validation.ValidateCreateEventRequest(&req); err != nil {
+		return nil, err
+	}
+
 	event := &models.Event{
 		Title:       req.Title,
 		Description: req.Description,
@@ -169,7 +185,46 @@ func (s *EventService) GetEvent(ctx context.Context, id primitive.ObjectID, view
 		return nil, err
 	}
 
+	// Private event access control
+	if event.Privacy == models.EventPrivacyPrivate {
+		if !s.canAccessPrivateEvent(event, viewerID) {
+			return nil, errors.New("unauthorized: you do not have access to this private event")
+		}
+	}
+
 	return s.mapToResponse(ctx, event, viewerID)
+}
+
+// canAccessPrivateEvent checks if a viewer can access a private event
+func (s *EventService) canAccessPrivateEvent(event *models.Event, viewerID primitive.ObjectID) bool {
+	// Creator can always access
+	if event.CreatorID == viewerID {
+		return true
+	}
+
+	// Check if viewer is an attendee
+	for _, attendee := range event.Attendees {
+		if attendee.UserID == viewerID {
+			return true
+		}
+	}
+
+	// Check if viewer is a co-host
+	for _, coHost := range event.CoHosts {
+		if coHost.UserID == viewerID {
+			return true
+		}
+	}
+
+	// Check if viewer has an invitation
+	if s.invitationRepo != nil {
+		invitation, _ := s.invitationRepo.CheckExisting(context.Background(), event.ID, viewerID)
+		if invitation != nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *EventService) UpdateEvent(ctx context.Context, id, userID primitive.ObjectID, req models.UpdateEventRequest) (*models.EventResponse, error) {
@@ -180,6 +235,11 @@ func (s *EventService) UpdateEvent(ctx context.Context, id, userID primitive.Obj
 
 	if event.CreatorID != userID {
 		return nil, errors.New("unauthorized: only creator can update event")
+	}
+
+	// Validate request
+	if err := validation.ValidateUpdateEventRequest(&req); err != nil {
+		return nil, err
 	}
 
 	if req.Title != "" {

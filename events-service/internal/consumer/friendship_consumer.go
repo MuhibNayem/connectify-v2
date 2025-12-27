@@ -3,7 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
@@ -19,9 +19,10 @@ type FriendshipConsumer struct {
 	friendshipRepo *integration.FriendshipLocalRepository
 	userRepo       *integration.UserLocalRepository
 	dlqProducer    *pkgkafka.DLQProducer
+	logger         *slog.Logger
 }
 
-func NewFriendshipConsumer(brokers []string, topic, groupID string, fr *integration.FriendshipLocalRepository, ur *integration.UserLocalRepository, dlq *pkgkafka.DLQProducer) *FriendshipConsumer {
+func NewFriendshipConsumer(brokers []string, topic, groupID string, fr *integration.FriendshipLocalRepository, ur *integration.UserLocalRepository, dlq *pkgkafka.DLQProducer, logger *slog.Logger) *FriendshipConsumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  brokers,
 		Topic:    topic,
@@ -30,23 +31,28 @@ func NewFriendshipConsumer(brokers []string, topic, groupID string, fr *integrat
 		MaxBytes: 10e6, // 10MB
 	})
 
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &FriendshipConsumer{
 		reader:         reader,
 		friendshipRepo: fr,
 		userRepo:       ur,
 		dlqProducer:    dlq,
+		logger:         logger,
 	}
 }
 
 func (c *FriendshipConsumer) Start(ctx context.Context) {
 	defer c.reader.Close()
 
-	log.Printf("FriendshipConsumer started, listening on topic: %s", c.reader.Config().Topic)
+	c.logger.Info("FriendshipConsumer started", "topic", c.reader.Config().Topic)
 
 	for {
 		m, err := c.reader.ReadMessage(ctx)
 		if err != nil {
-			log.Printf("Error reading message: %v", err)
+			c.logger.Warn("Error reading message", "error", err)
 			select {
 			case <-ctx.Done():
 				return
@@ -66,15 +72,22 @@ func (c *FriendshipConsumer) Start(ctx context.Context) {
 			}
 
 			if i < maxRetries-1 {
-				log.Printf("Error processing friendship event (attempt %d/%d): %v. Retrying...", i+1, maxRetries, processErr)
+				c.logger.Warn("Error processing friendship event, retrying",
+					"attempt", i+1,
+					"max_attempts", maxRetries,
+					"error", processErr,
+				)
 				time.Sleep(time.Second * time.Duration(i+1))
 			}
 		}
 
 		if processErr != nil {
-			log.Printf("CRITICAL: Failed to process friendship event after %d attempts. Sending to DLQ. Error: %v", maxRetries, processErr)
+			c.logger.Error("Failed to process friendship event after retries, sending to DLQ",
+				"attempts", maxRetries,
+				"error", processErr,
+			)
 			if err := c.dlqProducer.PublishDeadLetter(ctx, c.reader.Config().Topic, m.Value, processErr); err != nil {
-				log.Printf("FATAL: Failed to send to DLQ: %v", err)
+				c.logger.Error("Failed to send to DLQ", "error", err)
 			}
 		}
 	}
