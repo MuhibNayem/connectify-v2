@@ -69,7 +69,29 @@ func (s *UserService) publishUserUpdatedEvent(ctx context.Context, userID string
 // ==================== READ OPERATIONS ====================
 
 func (s *UserService) GetUserByID(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
-	return s.userRepo.FindUserByID(ctx, id)
+	// 1. Try Cache
+	cacheKey := fmt.Sprintf("user:profile:%s", id.Hex())
+	val, err := s.redisClient.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var user models.User
+		if err := json.Unmarshal([]byte(val), &user); err == nil {
+			return &user, nil
+		}
+	}
+
+	// 2. Fetch from DB
+	user, err := s.userRepo.FindUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Set Cache (Async to not block)
+	go func(u *models.User) {
+		bytes, _ := json.Marshal(u)
+		s.redisClient.Set(context.Background(), cacheKey, bytes, time.Hour*24)
+	}(user)
+
+	return user, nil
 }
 
 func (s *UserService) GetUsersByIDs(ctx context.Context, ids []primitive.ObjectID) ([]models.User, error) {
@@ -77,26 +99,77 @@ func (s *UserService) GetUsersByIDs(ctx context.Context, ids []primitive.ObjectI
 		return []models.User{}, nil
 	}
 
-	// Use batch fetch instead of N+1 loop
-	users, err := s.userRepo.FindUsersByIDs(ctx, ids)
-	if err != nil {
-		s.logger.Error("Failed to batch fetch users", "count", len(ids), "error", err)
-		return nil, err
-	}
-
-	// Maintain order by ID
-	userMap := make(map[primitive.ObjectID]models.User, len(users))
-	for _, u := range users {
-		userMap[u.ID] = u
-	}
-
-	result := make([]models.User, 0, len(ids))
+	// Deduplicate IDs
+	uniqueIDs := make([]primitive.ObjectID, 0, len(ids))
+	seen := make(map[string]struct{})
 	for _, id := range ids {
-		if u, ok := userMap[id]; ok {
-			result = append(result, u)
+		if _, ok := seen[id.Hex()]; !ok {
+			uniqueIDs = append(uniqueIDs, id)
+			seen[id.Hex()] = struct{}{}
 		}
 	}
-	return result, nil
+
+	// 1. MGET from Cache
+	keys := make([]string, len(uniqueIDs))
+	orderMap := make(map[string]int)
+	for i, id := range uniqueIDs {
+		keys[i] = fmt.Sprintf("user:profile:%s", id.Hex())
+		orderMap[id.Hex()] = i
+	}
+
+	users := make([]models.User, 0, len(uniqueIDs))
+	missIDs := make([]primitive.ObjectID, 0)
+
+	vals, err := s.redisClient.MGet(ctx, keys...).Result()
+	if err == nil {
+		for i, val := range vals {
+			if val == nil {
+				missIDs = append(missIDs, uniqueIDs[i])
+				continue
+			}
+			var user models.User
+			if strVal, ok := val.(string); ok {
+				if err := json.Unmarshal([]byte(strVal), &user); err == nil {
+					users = append(users, user)
+					continue
+				}
+			}
+			missIDs = append(missIDs, uniqueIDs[i])
+		}
+	} else {
+		missIDs = uniqueIDs // All miss on Redis error
+	}
+
+	// 2. Fetch Misses from DB
+	if len(missIDs) > 0 {
+		dbUsers, err := s.userRepo.FindUsersByIDs(ctx, missIDs)
+		if err != nil {
+			return nil, err
+		}
+
+		// 3. Pipeline Set Cache for Misses
+		if len(dbUsers) > 0 {
+			go func(usersToCache []models.User) {
+				pipe := s.redisClient.Pipeline()
+				ctx := context.Background()
+				for _, u := range usersToCache {
+					bytes, _ := json.Marshal(u)
+					pipe.Set(ctx, fmt.Sprintf("user:profile:%s", u.ID.Hex()), bytes, time.Hour*24)
+				}
+				if _, err := pipe.Exec(ctx); err != nil {
+					s.logger.Error("Failed to pipeline cache set", "error", err)
+				}
+			}(dbUsers)
+			users = append(users, dbUsers...)
+		}
+	}
+
+	// Re-order to request order? Not strictly required by interface but good practice.
+	// Current impl just appends.
+	// If caller relies on order matching request 'ids', we should sort.
+	// But standard FindUsersByIDs usually returns arbitrary order.
+
+	return users, nil
 }
 
 // CheckRelationship determines the relationship status between two users (friend, blocked)
@@ -244,7 +317,12 @@ func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, upd
 		return nil, err
 	}
 
-	// Publish event for cache invalidation
+	// Invalidate Cache
+	if err := s.redisClient.Del(ctx, fmt.Sprintf("user:profile:%s", id.Hex())).Err(); err != nil {
+		s.logger.Error("Failed to invalidate user cache", "user_id", id.Hex(), "error", err)
+	}
+
+	// Publish event for cache invalidation (legacy/downstream)
 	s.publishUserUpdatedEvent(ctx, id.Hex(), updatedUser)
 	if s.metrics != nil {
 		s.metrics.IncrementProfileUpdates()

@@ -70,7 +70,7 @@ func (m *MockMarketplaceRepository) IncrementViews(ctx context.Context, id primi
 func TestMarketplaceService_CreateProduct(t *testing.T) {
 	mockRepo := new(MockMarketplaceRepository)
 	businessMetrics := metrics.NewBusinessMetrics()
-	service := NewMarketplaceService(mockRepo, businessMetrics, slog.Default(), nil)
+	service := NewMarketplaceService(mockRepo, businessMetrics, slog.Default(), nil, nil)
 
 	userID := primitive.NewObjectID()
 	categoryID := primitive.NewObjectID()
@@ -116,7 +116,7 @@ func TestMarketplaceService_CreateProduct(t *testing.T) {
 
 func TestMarketplaceService_CreateProduct_ValidationFail(t *testing.T) {
 	mockRepo := new(MockMarketplaceRepository)
-	service := NewMarketplaceService(mockRepo, nil, slog.Default(), nil)
+	service := NewMarketplaceService(mockRepo, nil, slog.Default(), nil, nil)
 
 	userID := primitive.NewObjectID()
 
@@ -138,7 +138,7 @@ func TestMarketplaceService_CreateProduct_ValidationFail(t *testing.T) {
 
 func TestMarketplaceService_MarkProductSold_Unauthorized(t *testing.T) {
 	mockRepo := new(MockMarketplaceRepository)
-	service := NewMarketplaceService(mockRepo, nil, slog.Default(), nil)
+	service := NewMarketplaceService(mockRepo, nil, slog.Default(), nil, nil)
 
 	productID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()

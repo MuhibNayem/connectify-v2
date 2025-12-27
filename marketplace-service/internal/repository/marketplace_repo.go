@@ -18,12 +18,14 @@ type MarketplaceRepository struct {
 	productCollection  *mongo.Collection
 	categoryCollection *mongo.Collection
 	messageCollection  *mongo.Collection
+	userCollection     *mongo.Collection
 }
 
 func NewMarketplaceRepository(db *mongo.Database) *MarketplaceRepository {
 	productCollection := db.Collection("products")
 	categoryCollection := db.Collection("categories")
 	messageCollection := db.Collection("messages")
+	userCollection := db.Collection("users")
 
 	// Create Indexes for Products
 	productIndexes := []mongo.IndexModel{
@@ -74,6 +76,7 @@ func NewMarketplaceRepository(db *mongo.Database) *MarketplaceRepository {
 		productCollection:  productCollection,
 		categoryCollection: categoryCollection,
 		messageCollection:  messageCollection,
+		userCollection:     userCollection,
 	}
 }
 
@@ -112,6 +115,26 @@ func (r *MarketplaceRepository) CreateProduct(ctx context.Context, product *mode
 	product.UpdatedAt = time.Now()
 	product.Views = 0
 	product.SavedBy = []primitive.ObjectID{}
+
+	// Hydrate denormalized fields
+	var user models.User
+	if err := r.userCollection.FindOne(ctx, bson.M{"_id": product.SellerID}).Decode(&user); err == nil {
+		product.SellerUsername = user.Username
+		product.SellerFullName = user.FullName
+		product.SellerAvatar = user.Avatar
+	} else {
+		// Log warning but proceed? Or fail? Fail is safer for integrity.
+		return nil, errors.New("seller not found")
+	}
+
+	var category models.Category
+	if err := r.categoryCollection.FindOne(ctx, bson.M{"_id": product.CategoryID}).Decode(&category); err == nil {
+		product.CategoryName = category.Name
+		product.CategorySlug = category.Slug
+		product.CategoryIcon = category.Icon
+	} else {
+		return nil, errors.New("category not found")
+	}
 
 	res, err := r.productCollection.InsertOne(ctx, product)
 	if err != nil {
@@ -155,6 +178,31 @@ func (r *MarketplaceRepository) IncrementViews(ctx context.Context, id primitive
 	return err
 }
 
+func (r *MarketplaceRepository) BatchIncrementViews(ctx context.Context, productViews map[string]int64) error {
+	if len(productViews) == 0 {
+		return nil
+	}
+
+	var models []mongo.WriteModel
+	for productID, count := range productViews {
+		oid, err := primitive.ObjectIDFromHex(productID)
+		if err != nil {
+			continue
+		}
+		model := mongo.NewUpdateOneModel().
+			SetFilter(bson.M{"_id": oid}).
+			SetUpdate(bson.M{"$inc": bson.M{"views": count}})
+		models = append(models, model)
+	}
+
+	if len(models) == 0 {
+		return nil
+	}
+
+	_, err := r.productCollection.BulkWrite(ctx, models)
+	return err
+}
+
 func (r *MarketplaceRepository) ListProducts(ctx context.Context, filter models.ProductFilter) ([]models.ProductResponse, int64, error) {
 	matchStage := bson.M{
 		"status": models.ProductStatusAvailable,
@@ -191,25 +239,8 @@ func (r *MarketplaceRepository) ListProducts(ctx context.Context, filter models.
 		return nil, 0, err
 	}
 
-	pipeline = append(pipeline,
-		bson.D{{Key: "$lookup", Value: bson.M{
-			"from":         "users",
-			"localField":   "seller_id",
-			"foreignField": "_id",
-			"as":           "seller_info",
-		}}},
-		bson.D{{Key: "$unwind", Value: bson.M{"path": "$seller_info", "preserveNullAndEmptyArrays": true}}},
-	)
-
-	pipeline = append(pipeline,
-		bson.D{{Key: "$lookup", Value: bson.M{
-			"from":         "categories",
-			"localField":   "category_id",
-			"foreignField": "_id",
-			"as":           "category_info",
-		}}},
-		bson.D{{Key: "$unwind", Value: bson.M{"path": "$category_info", "preserveNullAndEmptyArrays": true}}},
-	)
+	// Removed $lookup and $unwind for optimization (Denormalized)
+	// No joins needed!
 
 	sortStage := bson.M{"created_at": -1}
 	if filter.SortBy == "price_asc" {
@@ -237,16 +268,16 @@ func (r *MarketplaceRepository) ListProducts(ctx context.Context, filter models.
 		"views":       1,
 		"created_at":  1,
 		"seller": bson.M{
-			"_id":       "$seller_info._id",
-			"username":  "$seller_info.username",
-			"full_name": "$seller_info.full_name",
-			"avatar":    "$seller_info.avatar",
+			"_id":       "$seller_id",
+			"username":  "$seller_username",
+			"full_name": "$seller_full_name",
+			"avatar":    "$seller_avatar",
 		},
 		"category": bson.M{
-			"_id":  "$category_info._id",
-			"name": "$category_info.name",
-			"slug": "$category_info.slug",
-			"icon": "$category_info.icon",
+			"_id":  "$category_id",
+			"name": "$category_name",
+			"slug": "$category_slug",
+			"icon": "$category_icon",
 		},
 	}}})
 

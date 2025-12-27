@@ -13,12 +13,14 @@ import (
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/config"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/consumer"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/controllers"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/repository"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/resilience"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/service"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/segmentio/kafka-go"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -34,12 +36,12 @@ type Application struct {
 	db          *mongo.Database
 
 	marketplaceService *service.MarketplaceService
+	viewConsumer       *consumer.ViewConsumer
 	mainRouter         *gin.Engine
 	httpServer         *http.Server
 	metricsServer      *http.Server
-
-	metrics *metrics.BusinessMetrics
-	logger  *slog.Logger
+	metrics            *metrics.BusinessMetrics
+	logger             *slog.Logger
 
 	shutdownOnce sync.Once
 }
@@ -94,11 +96,26 @@ func (app *Application) initializeServices() error {
 
 	cb := resilience.NewCircuitBreaker(resilience.DefaultConfig("marketplace-db"), app.logger)
 
+	kafkaWriter := &kafka.Writer{
+		Addr:     kafka.TCP(app.cfg.KafkaBrokers...),
+		Topic:    "marketplace-product-views",
+		Balancer: &kafka.LeastBytes{},
+		Async:    true,
+	}
+
 	app.marketplaceService = service.NewMarketplaceService(
 		marketplaceRepo,
 		app.metrics,
 		app.logger,
 		cb,
+		kafkaWriter,
+	)
+
+	// Initialize View Consumer
+	app.viewConsumer = consumer.NewViewConsumer(
+		app.cfg.KafkaBrokers,
+		marketplaceRepo,
+		app.logger,
 	)
 
 	app.logger.Info("✅ Services initialized")
@@ -162,6 +179,9 @@ func (app *Application) Run() error {
 		}
 	}()
 
+	// Start View Consumer
+	app.viewConsumer.Start()
+
 	// Start main HTTP server
 	go func() {
 		log.Printf("🚀 Marketplace Service listening on port %s", app.cfg.GRPCPort)
@@ -182,6 +202,11 @@ func (app *Application) Shutdown() error {
 	app.shutdownOnce.Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+
+		// Shutdown Consumer
+		if app.viewConsumer != nil {
+			app.viewConsumer.Stop()
+		}
 
 		// Shutdown HTTP servers
 		if app.httpServer != nil {

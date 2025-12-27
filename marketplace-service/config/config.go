@@ -11,6 +11,7 @@ import (
 type Config struct {
 	MongoURI       string
 	CassandraHosts []string
+	KafkaBrokers   []string
 
 	GRPCPort    string
 	ServerPort  string
@@ -49,6 +50,7 @@ func LoadConfig() *Config {
 	return &Config{
 		MongoURI:           mongoURI,
 		CassandraHosts:     []string{getEnv("CASSANDRA_HOSTS", "localhost:9042")},
+		KafkaBrokers:       strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ","),
 		GRPCPort:           grpcPort,
 		ServerPort:         serverPort,
 		MetricsPort:        metricsPort,

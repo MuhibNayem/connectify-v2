@@ -2,17 +2,27 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/resilience"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/validation"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+type CategoryCache struct {
+	sync.RWMutex
+	categories []models.Category
+	lastFetch  time.Time
+	ttl        time.Duration
+}
 
 type MarketplaceRepository interface {
 	GetCategories(ctx context.Context) ([]models.Category, error)
@@ -26,10 +36,12 @@ type MarketplaceRepository interface {
 }
 
 type MarketplaceService struct {
-	repo    MarketplaceRepository
-	metrics *metrics.BusinessMetrics
-	logger  *slog.Logger
-	cb      *resilience.CircuitBreaker
+	repo          MarketplaceRepository
+	metrics       *metrics.BusinessMetrics
+	logger        *slog.Logger
+	cb            *resilience.CircuitBreaker
+	producer      *kafka.Writer
+	categoryCache *CategoryCache
 }
 
 func NewMarketplaceService(
@@ -37,20 +49,47 @@ func NewMarketplaceService(
 	metrics *metrics.BusinessMetrics,
 	logger *slog.Logger,
 	cb *resilience.CircuitBreaker,
+	producer *kafka.Writer,
 ) *MarketplaceService {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &MarketplaceService{
-		repo:    repo,
-		metrics: metrics,
-		logger:  logger,
-		cb:      cb,
+		repo:     repo,
+		metrics:  metrics,
+		logger:   logger,
+		cb:       cb,
+		producer: producer,
+		categoryCache: &CategoryCache{
+			ttl: 1 * time.Hour,
+		},
 	}
 }
 
 func (s *MarketplaceService) GetCategories(ctx context.Context) ([]models.Category, error) {
-	return s.repo.GetCategories(ctx)
+	// Check cache first
+	s.categoryCache.RLock()
+	if !s.categoryCache.lastFetch.IsZero() && time.Since(s.categoryCache.lastFetch) < s.categoryCache.ttl {
+		cached := make([]models.Category, len(s.categoryCache.categories))
+		copy(cached, s.categoryCache.categories)
+		s.categoryCache.RUnlock()
+		return cached, nil
+	}
+	s.categoryCache.RUnlock()
+
+	// Cache miss or expired, fetch from DB
+	categories, err := s.repo.GetCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update cache
+	s.categoryCache.Lock()
+	s.categoryCache.categories = categories
+	s.categoryCache.lastFetch = time.Now()
+	s.categoryCache.Unlock()
+
+	return categories, nil
 }
 
 func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive.ObjectID, req models.CreateProductRequest) (*models.Product, error) {
@@ -92,22 +131,52 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 }
 
 func (s *MarketplaceService) GetProductByID(ctx context.Context, id primitive.ObjectID, viewerID primitive.ObjectID) (*models.ProductResponse, error) {
-	go func() {
-		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := s.repo.IncrementViews(bgCtx, id); err != nil {
-			s.logger.Warn("Failed to increment views", "error", err, "product_id", id)
-		} else {
-			s.metrics.IncrementProductViews()
-		}
-	}()
+	// Async Fire-and-Forget View Increment (FB Scale)
+	if s.producer != nil {
+		go func() {
+			event := struct {
+				ProductID string    `json:"product_id"`
+				Timestamp time.Time `json:"timestamp"`
+			}{
+				ProductID: id.Hex(),
+				Timestamp: time.Now(),
+			}
+			payload, _ := json.Marshal(event)
+
+			// Non-blocking attempt (Async writer handles complexity usually, but wrapping in lightweight goroutine ensures main path speed)
+			// Actually kafka-go Async writer is non-blocking on WriteMessages.
+			// But creating the message struct adds micro-latency.
+			// We can spawn a goroutine or just call it directly if Async=true.
+			// Let's spawn safe goroutine to be ultra-safe against network stalls if buffer full.
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			err := s.producer.WriteMessages(ctx, kafka.Message{
+				Key:   []byte(id.Hex()),
+				Value: payload,
+			})
+			if err != nil {
+				// Don't log error on every failure in high load? Maybe debug.
+				// s.logger.Debug("Failed to publish view event", "error", err)
+			} else {
+				// Metrics handled by consumer? Or here?
+				// "Views" metric usually tracks successful DB increments.
+				// "ViewEvents" tracks traffic.
+				// s.metrics.IncrementProductViews() // Moved to consumer for accuracy? Or here for throughput?
+				// Let's keep it here for "Attempted Views" monitoring
+				s.metrics.IncrementProductViews()
+			}
+		}()
+	}
 
 	product, err := s.repo.GetProductByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	categories, err := s.repo.GetCategories(ctx)
+	// Use cached categories to avoid extra DB hit
+	categories, err := s.GetCategories(ctx)
 	var category models.Category
 	if err == nil {
 		for _, cat := range categories {
@@ -142,6 +211,12 @@ func (s *MarketplaceService) GetProductByID(ctx context.Context, id primitive.Ob
 		CreatedAt:   product.CreatedAt,
 		Category:    category,
 		IsSaved:     isSaved,
+		Seller: models.UserShortResponse{
+			ID:       product.SellerID,
+			Username: product.SellerUsername,
+			FullName: product.SellerFullName,
+			Avatar:   product.SellerAvatar,
+		},
 	}, nil
 }
 

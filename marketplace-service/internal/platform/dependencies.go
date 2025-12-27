@@ -12,6 +12,7 @@ import (
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/resilience"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/service"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -58,11 +59,19 @@ func InitializeDependencies(cfg *config.Config) (*Dependencies, error) {
 	businessMetrics := metrics.NewBusinessMetrics()
 	cb := resilience.NewCircuitBreaker(resilience.DefaultConfig("marketplace-db"), slog.Default())
 
+	kafkaWriter := &kafka.Writer{
+		Addr:     kafka.TCP(cfg.KafkaBrokers...),
+		Topic:    "marketplace-product-views",
+		Balancer: &kafka.LeastBytes{},
+		Async:    true, // Non-blocking write
+	}
+
 	marketplaceService := service.NewMarketplaceService(
 		marketplaceRepo,
 		businessMetrics,
 		slog.Default(),
 		cb,
+		kafkaWriter,
 	)
 
 	return &Dependencies{

@@ -37,22 +37,28 @@ func (l ProductLocation) DisplayString() string {
 }
 
 type Product struct {
-	ID          primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
-	SellerID    primitive.ObjectID   `bson:"seller_id" json:"seller_id"`
-	CategoryID  primitive.ObjectID   `bson:"category_id" json:"category_id"`
-	Title       string               `bson:"title" json:"title"`
-	Description string               `bson:"description" json:"description"`
-	Price       float64              `bson:"price" json:"price"`
-	Currency    string               `bson:"currency" json:"currency"` // e.g., "BDT", "USD"
-	Images      []string             `bson:"images" json:"images"`
-	Location    ProductLocation      `bson:"location" json:"location"`                           // Structured location
-	Coordinates []float64            `bson:"coordinates,omitempty" json:"coordinates,omitempty"` // [Longitude, Latitude] for GeoJSON index
-	Status      ProductStatus        `bson:"status" json:"status"`
-	SavedBy     []primitive.ObjectID `bson:"saved_by,omitempty" json:"saved_by,omitempty"`
-	Tags        []string             `bson:"tags,omitempty" json:"tags,omitempty"`
-	Views       int64                `bson:"views" json:"views"`
-	CreatedAt   time.Time            `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time            `bson:"updated_at" json:"updated_at"`
+	ID             primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
+	SellerID       primitive.ObjectID   `bson:"seller_id" json:"seller_id"`
+	SellerUsername string               `bson:"seller_username" json:"seller_username"`
+	SellerFullName string               `bson:"seller_full_name" json:"seller_full_name"`
+	SellerAvatar   string               `bson:"seller_avatar" json:"seller_avatar"`
+	CategoryID     primitive.ObjectID   `bson:"category_id" json:"category_id"`
+	CategoryName   string               `bson:"category_name" json:"category_name"`
+	CategorySlug   string               `bson:"category_slug" json:"category_slug"`
+	CategoryIcon   string               `bson:"category_icon" json:"category_icon"`
+	Title          string               `bson:"title" json:"title"`
+	Description    string               `bson:"description" json:"description"`
+	Price          float64              `bson:"price" json:"price"`
+	Currency       string               `bson:"currency" json:"currency"` // e.g., "BDT", "USD"
+	Images         []string             `bson:"images" json:"images"`
+	Location       ProductLocation      `bson:"location" json:"location"`                           // Structured location
+	Coordinates    []float64            `bson:"coordinates,omitempty" json:"coordinates,omitempty"` // [Longitude, Latitude] for GeoJSON index
+	Status         ProductStatus        `bson:"status" json:"status"`
+	SavedBy        []primitive.ObjectID `bson:"saved_by,omitempty" json:"saved_by,omitempty"`
+	Tags           []string             `bson:"tags,omitempty" json:"tags,omitempty"`
+	Views          int64                `bson:"views" json:"views"`
+	CreatedAt      time.Time            `bson:"created_at" json:"created_at"`
+	UpdatedAt      time.Time            `bson:"updated_at" json:"updated_at"`
 }
 
 type Category struct {

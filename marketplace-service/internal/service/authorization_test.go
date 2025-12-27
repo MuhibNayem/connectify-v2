@@ -38,7 +38,7 @@ func TestMarketplaceService_DeleteProduct_Authorization(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := new(MockMarketplaceRepository)
 			businessMetrics := metrics.NewBusinessMetrics()
-			service := NewMarketplaceService(mockRepo, businessMetrics, nil, nil)
+			service := NewMarketplaceService(mockRepo, businessMetrics, nil, nil, nil)
 
 			productID := primitive.NewObjectID()
 
@@ -79,7 +79,7 @@ func TestMarketplaceService_DeleteProduct_Authorization(t *testing.T) {
 func TestMarketplaceService_ToggleSaveProduct(t *testing.T) {
 	mockRepo := new(MockMarketplaceRepository)
 	businessMetrics := metrics.NewBusinessMetrics()
-	service := NewMarketplaceService(mockRepo, businessMetrics, nil, nil)
+	service := NewMarketplaceService(mockRepo, businessMetrics, nil, nil, nil)
 
 	productID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()
