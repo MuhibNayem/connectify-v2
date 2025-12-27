@@ -611,6 +611,27 @@ services:
     networks:
       - messaging-net
 
+  storage-service:
+    build:
+      context: .
+      dockerfile: storage-service/Dockerfile
+    container_name: storage-service
+    ports:
+      - "8087:8087"
+      - "9087:9087"
+    env_file:
+      - ".env"
+    environment:
+      HTTP_PORT: 8087
+      GRPC_PORT: 9087
+      STORAGE_GRPC_HOST: storage-service
+      STORAGE_GRPC_PORT: 9087
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - messaging-net
+
   # MinIO Service
   minio:
     image: minio/minio

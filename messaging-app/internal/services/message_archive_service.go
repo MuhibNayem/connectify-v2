@@ -7,9 +7,11 @@ import (
 	"log"
 	"messaging-app/config"
 	cassdb "messaging-app/internal/db"
-	redisclient "github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 	"messaging-app/internal/repositories"
+	"messaging-app/internal/storageclient"
 	"time"
+
+	redisclient "github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 
 	"github.com/gocql/gocql"
 )
@@ -41,7 +43,7 @@ type MessageMetadata struct {
 // MessageArchiveService handles tiered storage for messages
 type MessageArchiveService struct {
 	cassandra     *cassdb.CassandraClient
-	storage       *StorageService
+	storageClient *storageclient.Client
 	redis         *redisclient.ClusterClient
 	archiveBucket string
 	cacheTTL      time.Duration
@@ -51,13 +53,13 @@ type MessageArchiveService struct {
 // NewMessageArchiveService creates a new archive service
 func NewMessageArchiveService(
 	cassandra *cassdb.CassandraClient,
-	storage *StorageService,
+	storageClient *storageclient.Client,
 	redisClient *redisclient.ClusterClient,
 	cfg *config.Config,
 ) *MessageArchiveService {
 	return &MessageArchiveService{
 		cassandra:     cassandra,
-		storage:       storage,
+		storageClient: storageClient,
 		redis:         redisClient,
 		archiveBucket: cfg.ArchiveBucket,
 		cacheTTL:      time.Duration(cfg.ArchiveCacheTTLMins) * time.Minute,
@@ -132,9 +134,11 @@ func (s *MessageArchiveService) ArchiveOldMessages(ctx context.Context) error {
 				continue
 			}
 
-			if err := s.storage.UploadArchive(ctx, s.archiveBucket, archivePath, data); err != nil {
-				log.Printf("[Archive] Failed to upload archive %s: %v", archivePath, err)
-				continue
+			if s.storageClient != nil {
+				if err := s.storageClient.UploadArchive(ctx, archivePath, data); err != nil {
+					log.Printf("[Archive] Failed to upload archive %s: %v", archivePath, err)
+					continue
+				}
 			}
 
 			// Insert archive index
@@ -183,9 +187,14 @@ func (s *MessageArchiveService) LoadArchivedMessages(ctx context.Context, conver
 	}
 
 	// 3. Download from MinIO
-	data, err := s.storage.DownloadArchive(ctx, s.archiveBucket, archivePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download archive: %w", err)
+	var data []byte
+	if s.storageClient != nil {
+		data, err = s.storageClient.DownloadArchive(ctx, archivePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to download archive: %w", err)
+		}
+	} else {
+		return nil, fmt.Errorf("storage client not available")
 	}
 
 	var messages []ArchivedMessage

@@ -124,6 +124,7 @@ graph TD
         API --> EventSvc[Events Service]
         API --> MktSvc[Marketplace]
         API --> ReelSvc[Reel Service]
+        API --> StorageSvc[Storage Service]
     end
 
     subgraph DataStores
@@ -191,6 +192,7 @@ graph TD
 | **events-service** | 8084 / 9094 | Events, RSVPs, recommendations, co-hosts |
 | **marketplace-service** | 8085 / 9095 | Products, categories, search, view counts |
 | **reel-service** | 8086 / 9096 | Short-form video reels, reactions, comments |
+| **storage-service** | 8087 / 9087 | File uploads, MinIO wrapper, archival |
 | **shared-entity** | — | Proto definitions, shared models |
 
 ---
@@ -274,6 +276,7 @@ cd feed-service && make run
 cd events-service && make run
 cd marketplace-service && make run
 cd reel-service && make run
+cd storage-service && make run
 ```
 
 ---

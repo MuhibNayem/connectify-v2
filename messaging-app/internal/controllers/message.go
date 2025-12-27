@@ -1,12 +1,15 @@
 package controllers
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,14 +17,14 @@ import (
 
 type MessageController struct {
 	messageService *services.MessageService
-	storageService *services.StorageService
+	storageClient  *storageclient.Client
 	groupService   *services.GroupService
 }
 
-func NewMessageController(messageService *services.MessageService, storageService *services.StorageService, groupService *services.GroupService) *MessageController {
+func NewMessageController(messageService *services.MessageService, storageClient *storageclient.Client, groupService *services.GroupService) *MessageController {
 	return &MessageController{
 		messageService: messageService,
-		storageService: storageService,
+		storageClient:  storageClient,
 		groupService:   groupService,
 	}
 }
@@ -63,11 +66,21 @@ func (c *MessageController) SendMessage(ctx *gin.Context) {
 		form, err := ctx.MultipartForm()
 		if err == nil {
 			files := form.File["files"]
-			if len(files) > 0 {
-				mediaItems, err := c.storageService.UploadFiles(ctx.Request.Context(), files)
-				if err != nil {
-					ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "failed to upload files"})
-					return
+			if len(files) > 0 && c.storageClient != nil {
+				var mediaItems []*storageclient.UploadResult
+				for _, fh := range files {
+					f, err := fh.Open()
+					if err != nil {
+						continue
+					}
+					data, _ := io.ReadAll(f)
+					f.Close()
+					result, err := c.storageClient.Upload(ctx.Request.Context(), data, fh.Filename, fh.Header.Get("Content-Type"))
+					if err != nil {
+						ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "failed to upload files"})
+						return
+					}
+					mediaItems = append(mediaItems, result)
 				}
 				for _, item := range mediaItems {
 					req.MediaURLs = append(req.MediaURLs, item.URL)

@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"io"
 	"messaging-app/internal/feedclient"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,12 +20,12 @@ type FeedController struct {
 	feedService    *services.FeedService
 	userService    *services.UserService
 	privacyService *services.PrivacyService
-	storageService *services.StorageService
+	storageClient  *storageclient.Client
 	feedClient     *feedclient.Client
 }
 
-func NewFeedController(feedService *services.FeedService, userService *services.UserService, privacyService *services.PrivacyService, storageService *services.StorageService, feedClient *feedclient.Client) *FeedController {
-	return &FeedController{feedService: feedService, userService: userService, privacyService: privacyService, storageService: storageService, feedClient: feedClient}
+func NewFeedController(feedService *services.FeedService, userService *services.UserService, privacyService *services.PrivacyService, storageClient *storageclient.Client, feedClient *feedclient.Client) *FeedController {
+	return &FeedController{feedService: feedService, userService: userService, privacyService: privacyService, storageClient: storageClient, feedClient: feedClient}
 }
 
 // CreatePost godoc
@@ -86,11 +88,21 @@ func (c *FeedController) CreatePost(ctx *gin.Context) {
 
 		// Handle file uploads
 		files := form.File["files[]"]
-		if len(files) > 0 {
-			mediaItems, err := c.storageService.UploadFiles(ctx.Request.Context(), files)
-			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload files: " + err.Error()})
-				return
+		if len(files) > 0 && c.storageClient != nil {
+			var mediaItems []models.MediaItem
+			for _, fh := range files {
+				f, err := fh.Open()
+				if err != nil {
+					continue
+				}
+				data, _ := io.ReadAll(f)
+				f.Close()
+				result, err := c.storageClient.Upload(ctx.Request.Context(), data, fh.Filename, fh.Header.Get("Content-Type"))
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload files: " + err.Error()})
+					return
+				}
+				mediaItems = append(mediaItems, models.MediaItem{URL: result.URL, Type: result.Type})
 			}
 			req.Media = mediaItems
 		}

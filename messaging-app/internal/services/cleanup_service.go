@@ -4,20 +4,21 @@ import (
 	"context"
 	"log"
 	"messaging-app/internal/repositories"
+	"messaging-app/internal/storageclient"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CleanupService struct {
-	storyRepo      *repositories.StoryRepository
-	storageService *StorageService
+	storyRepo     *repositories.StoryRepository
+	storageClient *storageclient.Client
 }
 
-func NewCleanupService(storyRepo *repositories.StoryRepository, storageService *StorageService) *CleanupService {
+func NewCleanupService(storyRepo *repositories.StoryRepository, storageClient *storageclient.Client) *CleanupService {
 	return &CleanupService{
-		storyRepo:      storyRepo,
-		storageService: storageService,
+		storyRepo:     storyRepo,
+		storageClient: storageClient,
 	}
 }
 
@@ -63,8 +64,8 @@ func (s *CleanupService) cleanupExpiredStories(ctx context.Context) {
 
 	// 2. Delete files and collect IDs
 	for _, story := range stories {
-		if story.MediaURL != "" {
-			err := s.storageService.DeleteFile(ctx, story.MediaURL)
+		if story.MediaURL != "" && s.storageClient != nil {
+			err := s.storageClient.DeleteByURL(ctx, story.MediaURL)
 			if err != nil {
 				log.Printf("Failed to delete file for story %s: %v", story.ID.Hex(), err)
 				// Continue to cleanup DB anyway

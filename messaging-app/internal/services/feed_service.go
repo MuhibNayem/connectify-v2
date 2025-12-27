@@ -8,6 +8,7 @@ import (
 	"messaging-app/internal/kafka"
 	notifications "messaging-app/internal/notifications"
 	"messaging-app/internal/repositories"
+	"messaging-app/internal/storageclient"
 	"strings"
 	"time"
 
@@ -30,11 +31,11 @@ type FeedService struct {
 	privacyRepo         repositories.PrivacyRepository
 	kafkaProducer       *kafka.MessageProducer
 	notificationService *notifications.NotificationService
-	storageService      *StorageService
+	storageClient       *storageclient.Client
 }
 
-func NewFeedService(feedRepo *repositories.FeedRepository, userRepo *repositories.UserRepository, friendshipRepo *repositories.FriendshipRepository, communityRepo *repositories.CommunityRepository, privacyRepo repositories.PrivacyRepository, kafkaProducer *kafka.MessageProducer, notificationService *notifications.NotificationService, storageService *StorageService) *FeedService {
-	return &FeedService{feedRepo: feedRepo, userRepo: userRepo, friendshipRepo: friendshipRepo, communityRepo: communityRepo, privacyRepo: privacyRepo, kafkaProducer: kafkaProducer, notificationService: notificationService, storageService: storageService}
+func NewFeedService(feedRepo *repositories.FeedRepository, userRepo *repositories.UserRepository, friendshipRepo *repositories.FriendshipRepository, communityRepo *repositories.CommunityRepository, privacyRepo repositories.PrivacyRepository, kafkaProducer *kafka.MessageProducer, notificationService *notifications.NotificationService, storageClient *storageclient.Client) *FeedService {
+	return &FeedService{feedRepo: feedRepo, userRepo: userRepo, friendshipRepo: friendshipRepo, communityRepo: communityRepo, privacyRepo: privacyRepo, kafkaProducer: kafkaProducer, notificationService: notificationService, storageClient: storageClient}
 }
 
 // Post operations
@@ -434,8 +435,10 @@ func (s *FeedService) DeletePost(ctx context.Context, userID, postID primitive.O
 			}
 
 			// Delete from Object Storage
-			if err := s.storageService.DeleteFile(ctx, media.URL); err != nil {
-				fmt.Printf("Failed to delete file from storage %s: %v\n", media.URL, err)
+			if s.storageClient != nil {
+				if err := s.storageClient.DeleteByURL(ctx, media.URL); err != nil {
+					fmt.Printf("Failed to delete file from storage %s: %v\n", media.URL, err)
+				}
 			}
 		}
 	}

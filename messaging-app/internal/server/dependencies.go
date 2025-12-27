@@ -15,6 +15,7 @@ import (
 	"messaging-app/internal/repositories"
 	"messaging-app/internal/seeds"
 	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
 	"messaging-app/internal/storyclient"
 	"messaging-app/internal/userclient"
 
@@ -88,7 +89,7 @@ func seedMarketplace(ctx context.Context, repo *repositories.MarketplaceReposito
 type serviceBundle struct {
 	Auth                *services.AuthService
 	Notification        *notifications.NotificationService
-	Storage             *services.StorageService
+	Storage             *storageclient.Client
 	Feed                *services.FeedService
 	User                *services.UserService
 	Group               *services.GroupService
@@ -110,15 +111,16 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	authService := services.NewAuthService(repos.User, a.cfg.JWTSecret, a.redisClient.GetClient(), a.cfg, graphs.UserGraph)
 	notificationService := notifications.NewNotificationService(repos.Notification, repos.User, a.kafkaProducer)
 
-	storageService, err := services.NewStorageService(a.cfg)
+	storageClient, err := storageclient.NewClient(a.cfg.StorageGRPCHost, a.cfg.StorageGRPCPort)
 	if err != nil {
-		return serviceBundle{}, err
+		log.Printf("Failed to create storage client, using nil: %v", err)
+		storageClient = nil
 	}
 
-	if a.cassandra != nil {
+	if a.cassandra != nil && storageClient != nil {
 		a.messageArchiveService = services.NewMessageArchiveService(
 			a.cassandra,
-			storageService,
+			storageClient,
 			a.redisClient,
 			a.cfg,
 		)
@@ -138,7 +140,7 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 		// Usually we'd register closer.
 	}
 
-	feedService := services.NewFeedService(repos.Feed, repos.User, repos.Friendship, repos.Community, repos.Privacy, a.kafkaProducer, notificationService, storageService)
+	feedService := services.NewFeedService(repos.Feed, repos.User, repos.Friendship, repos.Community, repos.Privacy, a.kafkaProducer, notificationService, storageClient)
 	userService := services.NewUserService(repos.User, repos.Reel, a.redisClient.GetClient(), feedService, a.userKafkaProducer, userClient)
 	groupService := services.NewGroupService(repos.Group, repos.User, repos.GroupActivity, a.cassandra, a.kafkaProducer, a.redisClient.GetClient(), graphs.GroupGraph)
 	friendshipService := services.NewFriendshipService(repos.Friendship, repos.User, graphs.UserGraph, a.friendshipKafkaProducer)
@@ -151,12 +153,12 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	marketplaceService := services.NewMarketplaceService(repos.Marketplace, repos.User, repos.MessageCassandra)
 
 	eventCache := cache.NewEventCache(a.redisClient)
-	cleanupService := services.NewCleanupService(repos.Story, storageService)
+	cleanupService := services.NewCleanupService(repos.Story, storageClient)
 
 	return serviceBundle{
 		Auth:                authService,
 		Notification:        notificationService,
-		Storage:             storageService,
+		Storage:             storageClient,
 		Feed:                feedService,
 		User:                userService,
 		Group:               groupService,

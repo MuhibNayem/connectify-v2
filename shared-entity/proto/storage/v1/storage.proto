@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package storage.v1;
+
+option go_package = "github.com/MuhibNayem/connectify-v2/shared-entity/proto/storage/v1;storagev1";
+
+service StorageService {
+  rpc Upload (UploadRequest) returns (UploadResponse);
+  rpc UploadMultiple (UploadMultipleRequest) returns (UploadMultipleResponse);
+  rpc Delete (DeleteRequest) returns (DeleteResponse);
+  rpc DeleteByURL (DeleteByURLRequest) returns (DeleteResponse);
+  rpc UploadArchive (UploadArchiveRequest) returns (UploadArchiveResponse);
+  rpc DownloadArchive (DownloadArchiveRequest) returns (DownloadArchiveResponse);
+  rpc GetPresignedURL (GetPresignedURLRequest) returns (GetPresignedURLResponse);
+}
+
+message UploadRequest {
+  bytes data = 1;
+  string filename = 2;
+  string content_type = 3;
+}
+
+message UploadResponse {
+  string url = 1;
+  string key = 2;
+  string type = 3;
+  int64 size = 4;
+  string mime_type = 5;
+}
+
+message UploadMultipleRequest {
+  repeated FileUpload files = 1;
+}
+
+message FileUpload {
+  bytes data = 1;
+  string filename = 2;
+  string content_type = 3;
+}
+
+message UploadMultipleResponse {
+  repeated UploadResponse results = 1;
+}
+
+message DeleteRequest {
+  string key = 1;
+}
+
+message DeleteByURLRequest {
+  string url = 1;
+}
+
+message DeleteResponse {
+  bool success = 1;
+}
+
+message UploadArchiveRequest {
+  string object_path = 1;
+  bytes data = 2;
+}
+
+message UploadArchiveResponse {
+  bool success = 1;
+}
+
+message DownloadArchiveRequest {
+  string object_path = 1;
+}
+
+message DownloadArchiveResponse {
+  bytes data = 1;
+}
+
+message GetPresignedURLRequest {
+  string key = 1;
+  int64 expiry_seconds = 2;
+}
+
+message GetPresignedURLResponse {
+  string url = 1;
+}
