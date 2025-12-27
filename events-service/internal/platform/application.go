@@ -215,8 +215,9 @@ func (a *Application) bootstrap() error {
 		eventInvitationRepo,
 		eventPostRepo,
 		notificationProducer,
-		eventCache,
+		service.NewEventCacheAdapter(eventCache),
 		a.eventProducer,
+		slog.Default(),
 	)
 
 	eventRecommendationService := service.NewEventRecommendationService(

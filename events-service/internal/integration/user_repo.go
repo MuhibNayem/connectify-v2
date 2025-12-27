@@ -124,3 +124,16 @@ func (r *UserLocalRepository) RemoveFriend(ctx context.Context, userID, friendID
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
 }
+
+func (r *UserLocalRepository) GetFriends(ctx context.Context, userID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	var user EventUser
+	opts := options.FindOne().SetProjection(bson.M{"friends": 1})
+	err := r.collection.FindOne(ctx, bson.M{"_id": userID}, opts).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return []primitive.ObjectID{}, nil
+		}
+		return nil, err
+	}
+	return user.Friends, nil
+}

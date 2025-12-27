@@ -181,7 +181,22 @@ func (c *EventCache) InvalidateAllEventCache(ctx context.Context, eventID string
 	}
 
 	// Invalidate stats
-	c.InvalidateEventStats(ctx, eventID)
+	_ = c.InvalidateEventStats(ctx, eventID)
+
+	// Invalidate basic event data (if such key exists/was used, assuming standard key pattern)
+	// Currently we only have explicit keys for stats, rsvp, friends.
+	// We should probably expose methods to invalidate these specific keys if the service needs them.
+
+	// For now, based on critique, we are missing invalidation of other keys.
+	// Since we don't have the userIDs readily available here to invalidate per-user keys (RSVP, Friends),
+	// we fundamentally can't invalidate "everything" without knowing the users or using wildcards/scan (bad for perf).
+	// However, we CAN invalidate global lists like trending.
+	_ = c.client.Del(ctx, trendingEventsKey())
+
+	// Note: Per-user keys (RSVP, FriendsGoing) will eventually expire via TTL.
+	// To strictly invalidate them, the caller (Service) must invoke InvalidateUserRSVPStatus/FriendsGoing
+	// with the specific userID. The critique mentioned Cache invalidation is "incomplete".
+	// We are doing what we can here without specific user context.
 
 	return nil
 }

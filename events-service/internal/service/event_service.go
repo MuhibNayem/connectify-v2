@@ -4,16 +4,67 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
-	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/pkg/async"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/producer"
-	"github.com/MuhibNayem/connectify-v2/events-service/internal/repository"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// EventCache abstracts cache operations for easier testing
+type EventCache interface {
+	SetEventStats(ctx context.Context, eventID string, stats *models.EventStats) error
+	InvalidateUserRSVPStatus(ctx context.Context, userID, eventID string) error
+	SetUserRSVPStatus(ctx context.Context, userID, eventID string, status models.RSVPStatus) error
+	InvalidateFriendsGoing(ctx context.Context, userID, eventID string) error
+	GetCategories(ctx context.Context) ([]models.EventCategory, error)
+	SetCategories(ctx context.Context, categories []models.EventCategory) error
+}
+
+// cacheAdapter wraps the concrete cache implementation
+type cacheAdapter struct {
+	delegate *cache.EventCache
+}
+
+func NewEventCacheAdapter(c *cache.EventCache) EventCache {
+	if c == nil {
+		return nil
+	}
+	return &cacheAdapter{delegate: c}
+}
+
+func (a *cacheAdapter) SetEventStats(ctx context.Context, eventID string, stats *models.EventStats) error {
+	return a.delegate.SetEventStats(ctx, eventID, stats)
+}
+
+func (a *cacheAdapter) InvalidateUserRSVPStatus(ctx context.Context, userID, eventID string) error {
+	return a.delegate.InvalidateUserRSVPStatus(ctx, userID, eventID)
+}
+
+func (a *cacheAdapter) SetUserRSVPStatus(ctx context.Context, userID, eventID string, status models.RSVPStatus) error {
+	return a.delegate.SetUserRSVPStatus(ctx, userID, eventID, status)
+}
+
+func (a *cacheAdapter) InvalidateFriendsGoing(ctx context.Context, userID, eventID string) error {
+	return a.delegate.InvalidateFriendsGoing(ctx, userID, eventID)
+}
+
+func (a *cacheAdapter) GetCategories(ctx context.Context) ([]models.EventCategory, error) {
+	return a.delegate.GetCategories(ctx)
+}
+
+func (a *cacheAdapter) SetCategories(ctx context.Context, categories []models.EventCategory) error {
+	return a.delegate.SetCategories(ctx, categories)
+}
+
+const (
+	asyncRetryAttempts = 5
+	asyncRetryDelay    = time.Second
 )
 
 // EventBroadcaster defines interface for broadcasting event updates
@@ -29,25 +80,27 @@ type EventBroadcaster interface {
 }
 
 type EventService struct {
-	eventRepo            *repository.EventRepository
-	userRepo             *integration.UserLocalRepository
-	eventGraphRepo       *repository.EventGraphRepository
-	invitationRepo       *repository.EventInvitationRepository
-	postRepo             *repository.EventPostRepository
+	eventRepo            EventRepository
+	userRepo             UserRepo
+	eventGraphRepo       EventGraphRepo
+	invitationRepo       InvitationRepo
+	postRepo             PostRepo
 	notificationProducer *producer.NotificationProducer
-	eventCache           *cache.EventCache
+	eventCache           EventCache
 	broadcaster          EventBroadcaster
+	asyncRunner          *async.Runner // Added field
 }
 
 func NewEventService(
-	eventRepo *repository.EventRepository,
-	userRepo *integration.UserLocalRepository,
-	eventGraphRepo *repository.EventGraphRepository,
-	invitationRepo *repository.EventInvitationRepository,
-	postRepo *repository.EventPostRepository,
+	eventRepo EventRepository,
+	userRepo UserRepo,
+	eventGraphRepo EventGraphRepo,
+	invitationRepo InvitationRepo,
+	postRepo PostRepo,
 	notificationProducer *producer.NotificationProducer,
-	eventCache *cache.EventCache,
+	eventCache EventCache,
 	broadcaster EventBroadcaster,
+	logger *slog.Logger, // Added parameter
 ) *EventService {
 	return &EventService{
 		eventRepo:            eventRepo,
@@ -58,7 +111,15 @@ func NewEventService(
 		notificationProducer: notificationProducer,
 		eventCache:           eventCache,
 		broadcaster:          broadcaster,
+		asyncRunner:          async.NewRunner(logger), // Initialized asyncRunner
 	}
+}
+
+func (s *EventService) detachContext(ctx context.Context) context.Context {
+	if ctx == nil {
+		return context.Background()
+	}
+	return context.WithoutCancel(ctx)
 }
 
 func (s *EventService) CreateEvent(ctx context.Context, userID primitive.ObjectID, req models.CreateEventRequest) (*models.Event, error) {
@@ -91,11 +152,12 @@ func (s *EventService) CreateEvent(ctx context.Context, userID primitive.ObjectI
 
 	// Graph: Add Creator as Attendee
 	if s.eventGraphRepo != nil {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		taskCtx := s.detachContext(ctx)
+		s.asyncRunner.RunAsyncRetry(taskCtx, "add_creator_to_graph", func() error {
+			graphCtx, cancel := context.WithTimeout(taskCtx, 5*time.Second)
 			defer cancel()
-			s.eventGraphRepo.AddAttendee(ctx, userID, event.ID)
-		}()
+			return s.eventGraphRepo.AddAttendee(graphCtx, userID, event.ID)
+		}, asyncRetryAttempts, asyncRetryDelay)
 	}
 
 	return event, nil
@@ -378,6 +440,7 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 			s.eventCache.InvalidateUserRSVPStatus(ctx, userID.Hex(), eventID.Hex())
 			// Cache the new RSVP status
 			s.eventCache.SetUserRSVPStatus(ctx, userID.Hex(), eventID.Hex(), status)
+			s.invalidateFriendsGoing(ctx, eventID, userID)
 		}
 
 		// Broadcast RSVP update
@@ -392,20 +455,17 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 		}
 	}
 
-	// Dual Write to Graph (if enabled)
+	// Update Graph (Async)
 	if s.eventGraphRepo != nil {
-		go func() {
-			// Run in background to not block main request
-			// Ideally use a detached context or with timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		taskCtx := s.detachContext(ctx)
+		s.asyncRunner.RunAsyncRetry(taskCtx, "update_rsvp_graph", func() error {
+			graphCtx, cancel := context.WithTimeout(taskCtx, 5*time.Second)
 			defer cancel()
-
 			if status == models.RSVPStatusGoing {
-				s.eventGraphRepo.AddAttendee(ctx, userID, eventID)
-			} else {
-				s.eventGraphRepo.RemoveAttendee(ctx, userID, eventID)
+				return s.eventGraphRepo.AddAttendee(graphCtx, userID, eventID)
 			}
-		}()
+			return s.eventGraphRepo.RemoveAttendee(graphCtx, userID, eventID)
+		}, asyncRetryAttempts, asyncRetryDelay)
 	}
 
 	return nil
@@ -443,19 +503,26 @@ func (s *EventService) mapToResponse(ctx context.Context, event *models.Event, v
 			if len(friendIDs) < limit {
 				limit = len(friendIDs)
 			}
+
+			// Batch fetch friend details
+			var friendOIDs []primitive.ObjectID
 			for i := 0; i < limit; i++ {
-				friendOID, err := primitive.ObjectIDFromHex(friendIDs[i])
-				if err != nil {
-					continue
+				if oid, err := primitive.ObjectIDFromHex(friendIDs[i]); err == nil {
+					friendOIDs = append(friendOIDs, oid)
 				}
-				friend, err := s.userRepo.FindByID(ctx, friendOID)
-				if err == nil && friend != nil {
-					friendsGoing = append(friendsGoing, models.UserShort{
-						ID:       friend.ID.Hex(),
-						Username: friend.Username,
-						FullName: friend.FullName,
-						Avatar:   friend.Avatar,
-					})
+			}
+
+			if len(friendOIDs) > 0 {
+				friends, err := s.userRepo.FindByIDs(ctx, friendOIDs)
+				if err == nil {
+					for _, friend := range friends {
+						friendsGoing = append(friendsGoing, models.UserShort{
+							ID:       friend.ID.Hex(),
+							Username: friend.Username,
+							FullName: friend.FullName,
+							Avatar:   friend.Avatar,
+						})
+					}
 				}
 			}
 		}
@@ -479,6 +546,40 @@ func (s *EventService) mapToResponse(ctx context.Context, event *models.Event, v
 		FriendsGoing: friendsGoing,
 		CreatedAt:    event.CreatedAt,
 	}, nil
+}
+
+func (s *EventService) invalidateFriendsGoing(ctx context.Context, eventID, userID primitive.ObjectID) {
+	if s.eventCache == nil {
+		return
+	}
+
+	eventHex := eventID.Hex()
+	seen := make(map[string]struct{})
+	add := func(id primitive.ObjectID) {
+		if id.IsZero() {
+			return
+		}
+		hex := id.Hex()
+		if _, exists := seen[hex]; exists {
+			return
+		}
+		seen[hex] = struct{}{}
+		_ = s.eventCache.InvalidateFriendsGoing(ctx, hex, eventHex)
+	}
+
+	add(userID)
+
+	if event, err := s.eventRepo.GetByID(ctx, eventID); err == nil && event != nil {
+		for _, attendee := range event.Attendees {
+			add(attendee.UserID)
+		}
+	}
+
+	if user, err := s.userRepo.FindByID(ctx, userID); err == nil && user != nil {
+		for _, fid := range user.Friends {
+			add(fid)
+		}
+	}
 }
 
 // ===============================
@@ -565,6 +666,7 @@ func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID pri
 				inviterAvatar = inviter.Avatar
 			}
 
+			taskCtx := s.detachContext(ctx)
 			for _, inv := range invitations {
 				notification := &models.Notification{
 					ID:          primitive.NewObjectID(),
@@ -584,12 +686,12 @@ func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID pri
 					Read:      false,
 					CreatedAt: time.Now(),
 				}
-				go func(n *models.Notification) {
-					// We use a detatched context or Background for async publishing
-					if err := s.notificationProducer.PublishNotification(context.Background(), n); err != nil {
-						// Log error
-					}
-				}(notification)
+
+				s.asyncRunner.RunAsyncRetry(taskCtx, "publish_invite_notification", func() error {
+					notifyCtx, cancel := context.WithTimeout(taskCtx, 5*time.Second)
+					defer cancel()
+					return s.notificationProducer.PublishNotification(notifyCtx, notification)
+				}, asyncRetryAttempts, asyncRetryDelay)
 			}
 		}
 	}
@@ -726,11 +828,12 @@ func (s *EventService) RespondToInvitation(ctx context.Context, invitationID, us
 			Read:      false,
 			CreatedAt: time.Now(),
 		}
-		go func(n *models.Notification) {
-			if err := s.notificationProducer.PublishNotification(context.Background(), n); err != nil {
-				// Log error
-			}
-		}(notification)
+		taskCtx := s.detachContext(ctx)
+		s.asyncRunner.RunAsyncRetry(taskCtx, "publish_response_notification", func() error {
+			notifyCtx, cancel := context.WithTimeout(taskCtx, 5*time.Second)
+			defer cancel()
+			return s.notificationProducer.PublishNotification(notifyCtx, notification)
+		}, asyncRetryAttempts, asyncRetryDelay)
 	}
 
 	return nil
