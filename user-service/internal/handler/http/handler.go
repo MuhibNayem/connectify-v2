@@ -3,18 +3,17 @@ package http
 import (
 	"net/http"
 	"user-service/config"
-	"user-service/internal/service"
 
-	"github.com/gin-gonic/gin"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
-	authService *service.AuthService
+	authService AuthService
 	cfg         *config.Config
 }
 
-func NewAuthHandler(authService *service.AuthService, cfg *config.Config) *AuthHandler {
+func NewAuthHandler(authService AuthService, cfg *config.Config) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		cfg:         cfg,

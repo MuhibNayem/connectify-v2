@@ -62,26 +62,22 @@ func NewApplication(parentCtx context.Context, cfg *config.Config) (*Application
 }
 
 func (app *Application) initialize() error {
-	// Initialize database connections
 	if err := app.initializeDatabase(); err != nil {
 		return err
 	}
 
 	app.metrics = metrics.NewBusinessMetrics()
 
-	// Initialize services
 	if err := app.initializeServices(); err != nil {
 		return err
 	}
 
-	// Setup HTTP router
 	app.setupRouter()
 
 	return nil
 }
 
 func (app *Application) initializeDatabase() error {
-	// Connect to MongoDB
 	deps, err := InitializeDependencies(app.cfg)
 	if err != nil {
 		return err
@@ -94,13 +90,10 @@ func (app *Application) initializeDatabase() error {
 }
 
 func (app *Application) initializeServices() error {
-	// Initialize repositories
 	marketplaceRepo := repository.NewMarketplaceRepository(app.db)
 
-	// Initialize Circuit Breaker
 	cb := resilience.NewCircuitBreaker(resilience.DefaultConfig("marketplace-db"), app.logger)
 
-	// Initialize services
 	app.marketplaceService = service.NewMarketplaceService(
 		marketplaceRepo,
 		app.metrics,
@@ -148,9 +141,8 @@ func (app *Application) setupRouter() {
 }
 
 func (app *Application) Run() error {
-	// Setup HTTP server
 	app.httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%s", app.cfg.GRPCPort), // Reusing port config as typical
+		Addr:    fmt.Sprintf(":%s", app.cfg.GRPCPort),
 		Handler: app.mainRouter,
 	}
 
@@ -160,11 +152,9 @@ func (app *Application) Run() error {
 		Handler: promhttp.Handler(),
 	}
 
-	// Setup shutdown handling
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
 
-	// Start metrics server
 	go func() {
 		log.Printf("✅ Metrics server listening on port %s", app.cfg.MetricsPort)
 		if err := app.metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -180,7 +170,6 @@ func (app *Application) Run() error {
 		}
 	}()
 
-	// Wait for shutdown signal
 	<-shutdownChan
 	log.Println("📴 Shutdown signal received...")
 

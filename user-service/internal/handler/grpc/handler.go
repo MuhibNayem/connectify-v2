@@ -28,8 +28,6 @@ func NewUserHandler(userService *service.UserService, graphRepo *repository.Grap
 	}
 }
 
-// ==================== READ OPERATIONS ====================
-
 func (h *UserHandler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	oid, err := primitive.ObjectIDFromHex(req.UserId)
 	if err != nil {
@@ -167,8 +165,6 @@ func (h *UserHandler) CheckRelationship(ctx context.Context, req *pb.CheckRelati
 		IsFollowing:       false, // TODO: Implement following
 	}, nil
 }
-
-// ==================== WRITE OPERATIONS ====================
 
 func (h *UserHandler) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
 	oid, err := primitive.ObjectIDFromHex(req.UserId)
@@ -330,8 +326,6 @@ func (h *UserHandler) UpdateNotificationSettings(ctx context.Context, req *pb.Up
 
 	return &pb.UpdateNotificationSettingsResponse{Success: true}, nil
 }
-
-// ==================== HELPERS ====================
 
 func mapModelToProto(user *models.User) *pb.User {
 	if user == nil {

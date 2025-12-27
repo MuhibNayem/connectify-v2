@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// MarketplaceRepository defines the data access layer interface
 type MarketplaceRepository interface {
 	GetCategories(ctx context.Context) ([]models.Category, error)
 	CreateProduct(ctx context.Context, product *models.Product) (*models.Product, error)
@@ -30,7 +29,7 @@ type MarketplaceService struct {
 	repo    MarketplaceRepository
 	metrics *metrics.BusinessMetrics
 	logger  *slog.Logger
-	cb      *resilience.CircuitBreaker // Optional: If we have external service calls
+	cb      *resilience.CircuitBreaker
 }
 
 func NewMarketplaceService(
@@ -55,7 +54,6 @@ func (s *MarketplaceService) GetCategories(ctx context.Context) ([]models.Catego
 }
 
 func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive.ObjectID, req models.CreateProductRequest) (*models.Product, error) {
-	// 1. Validation
 	if err := validation.ValidateCreateProductRequest(&req); err != nil {
 		s.logger.Warn("Invalid create product request", "error", err, "user_id", userID)
 		return nil, err
@@ -74,7 +72,7 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 		Price:       req.Price,
 		Currency:    req.Currency,
 		Images:      req.Images,
-		Location:    models.ProductLocation{City: req.Location}, // Convert string to structured location
+		Location:    models.ProductLocation{City: req.Location},
 		Status:      models.ProductStatusAvailable,
 		Tags:        req.Tags,
 		CreatedAt:   time.Now(),
@@ -87,7 +85,6 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 		return nil, err
 	}
 
-	// Metrics
 	s.metrics.IncrementProductsCreated()
 	s.logger.Info("Product created", "product_id", createdProduct.ID, "user_id", userID)
 
@@ -95,7 +92,6 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 }
 
 func (s *MarketplaceService) GetProductByID(ctx context.Context, id primitive.ObjectID, viewerID primitive.ObjectID) (*models.ProductResponse, error) {
-	// Async view increment with error logging safety
 	go func() {
 		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

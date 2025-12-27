@@ -17,17 +17,17 @@ import (
 )
 
 type StoryHandler struct {
-	storyService       *service.StoryService
-	userClient         userpb.UserServiceClient
-	rateLimitObserver  func(action string)
+	storyService      StoryService
+	userClient        userpb.UserServiceClient
+	rateLimitObserver func(action string)
 }
 
-func NewStoryHandler(storyService *service.StoryService, userClient userpb.UserServiceClient, businessMetrics *metrics.BusinessMetrics) *StoryHandler {
+func NewStoryHandler(storyService StoryService, userClient userpb.UserServiceClient, businessMetrics *metrics.BusinessMetrics) *StoryHandler {
 	var observer func(action string)
 	if businessMetrics != nil {
 		observer = businessMetrics.RecordRateLimitHit
 	}
-	
+
 	return &StoryHandler{
 		storyService:      storyService,
 		userClient:        userClient,
@@ -40,32 +40,44 @@ func (h *StoryHandler) RegisterRoutes(router *gin.Engine, auth gin.HandlerFunc) 
 	stories := api.Group("/stories")
 	stories.Use(auth)
 	{
-		stories.POST("", 
-			middleware.StrictRateLimiter(0.2, 5, "stories:create", h.rateLimitObserver),
+		stories.POST("",
+			middleware.StrictRateLimiter(0.2, 5, "stories:create", h.rateLimitObserver), // 12 per min
 			h.CreateStory,
 		)
-		stories.GET("/feed", 
-			middleware.StrictRateLimiter(2, 10, "stories:feed", h.rateLimitObserver),
+		stories.GET("/feed",
+			middleware.StrictRateLimiter(2, 10, "stories:feed", h.rateLimitObserver), // 120 per min
 			h.GetStoriesFeed,
 		)
-		stories.GET("/user/:id", h.GetUserStories)
-		stories.GET("/:id", h.GetStory)
-		stories.DELETE("/:id", h.DeleteStory)
-		stories.POST("/:id/view", 
-			middleware.StrictRateLimiter(5, 20, "stories:view", h.rateLimitObserver),
+		stories.GET("/user/:id",
+			middleware.StrictRateLimiter(1, 8, "stories:user", h.rateLimitObserver), // 60 per min
+			h.GetUserStories,
+		)
+		stories.GET("/:id",
+			middleware.StrictRateLimiter(3, 15, "stories:view", h.rateLimitObserver), // 180 per min
+			h.GetStory,
+		)
+		stories.DELETE("/:id",
+			middleware.StrictRateLimiter(0.3, 3, "stories:delete", h.rateLimitObserver), // 18 per min
+			h.DeleteStory,
+		)
+		stories.POST("/:id/view",
+			middleware.StrictRateLimiter(5, 20, "stories:track_view", h.rateLimitObserver), // 300 per min
 			h.RecordView,
 		)
-		stories.POST("/:id/react", 
-			middleware.StrictRateLimiter(1, 10, "stories:react", h.rateLimitObserver),
+		stories.POST("/:id/react",
+			middleware.StrictRateLimiter(1, 10, "stories:react", h.rateLimitObserver), // 60 per min
 			h.ReactToStory,
 		)
-		stories.GET("/:id/viewers", h.GetStoryViewers)
+		stories.GET("/:id/viewers",
+			middleware.StrictRateLimiter(0.5, 5, "stories:viewers", h.rateLimitObserver), // 30 per min
+			h.GetStoryViewers,
+		)
 	}
 }
 
 type createStoryRequest struct {
-	MediaURL       string   `json:"media_url" binding:"required"`
-	MediaType      string   `json:"media_type" binding:"required"`
+	MediaURL       string   `json:"media_url"`
+	MediaType      string   `json:"media_type"`
 	Privacy        string   `json:"privacy"`
 	AllowedViewers []string `json:"allowed_viewers"`
 	BlockedViewers []string `json:"blocked_viewers"`
@@ -74,18 +86,21 @@ type createStoryRequest struct {
 func (h *StoryHandler) CreateStory(c *gin.Context) {
 	var req createStoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		respondWithError(c, http.StatusBadRequest, err)
+		RespondWithError(c, http.StatusBadRequest, "Invalid request format", ErrCodeValidation)
 		return
 	}
 
 	if req.MediaURL == "" || req.MediaType == "" {
-		respondWithMessage(c, http.StatusBadRequest, "media_url and media_type are required")
+		RespondWithValidationError(c, "Missing required fields", map[string]string{
+			"media_url":  "Media URL is required",
+			"media_type": "Media type is required",
+		})
 		return
 	}
 
 	userID, err := h.userIDFromContext(c)
 	if err != nil {
-		respondWithError(c, http.StatusUnauthorized, err)
+		RespondWithError(c, http.StatusUnauthorized, "Authentication required", ErrCodeUnauthorized)
 		return
 	}
 
@@ -103,33 +118,37 @@ func (h *StoryHandler) CreateStory(c *gin.Context) {
 
 	story, err := h.storyService.CreateStory(c.Request.Context(), userID, author, serviceReq)
 	if err != nil {
-		respondWithError(c, http.StatusBadRequest, err)
+		if strings.Contains(err.Error(), "validation") {
+			RespondWithError(c, http.StatusBadRequest, err.Error(), ErrCodeValidation)
+		} else {
+			RespondWithError(c, http.StatusInternalServerError, "Failed to create story", ErrCodeInternalError)
+		}
 		return
 	}
 
-	c.JSON(http.StatusCreated, story)
+	RespondWithSuccess(c, http.StatusCreated, "Story created successfully", story)
 }
 
 func (h *StoryHandler) GetStory(c *gin.Context) {
 	storyID, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		respondWithMessage(c, http.StatusBadRequest, "invalid story id")
+		RespondWithError(c, http.StatusBadRequest, "Invalid story ID format", ErrCodeValidation)
 		return
 	}
 
 	viewerID, err := h.userIDFromContext(c)
 	if err != nil {
-		respondWithError(c, http.StatusUnauthorized, err)
+		RespondWithError(c, http.StatusUnauthorized, "Authentication required", ErrCodeUnauthorized)
 		return
 	}
 
 	story, err := h.storyService.GetStory(c.Request.Context(), storyID, viewerID)
 	if err != nil {
-		respondWithError(c, http.StatusNotFound, err)
+		RespondWithError(c, http.StatusNotFound, "Story not found or access denied", ErrCodeStoryNotFound)
 		return
 	}
 
-	c.JSON(http.StatusOK, story)
+	RespondWithData(c, http.StatusOK, story)
 }
 
 func (h *StoryHandler) DeleteStory(c *gin.Context) {
@@ -308,18 +327,6 @@ func (h *StoryHandler) userIDFromContext(c *gin.Context) (primitive.ObjectID, er
 }
 
 var errUnauthorized = errors.New("authentication required")
-
-func respondWithError(c *gin.Context, status int, err error) {
-	c.JSON(status, gin.H{
-		"error": err.Error(),
-	})
-}
-
-func respondWithMessage(c *gin.Context, status int, msg string) {
-	c.JSON(status, gin.H{
-		"error": msg,
-	})
-}
 
 func parseObjectIDs(values []string) []primitive.ObjectID {
 	results := make([]primitive.ObjectID, 0, len(values))

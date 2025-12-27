@@ -33,8 +33,6 @@ func (s *Server) CreateStory(ctx context.Context, req *storypb.CreateStoryReques
 		return nil, err
 	}
 
-	// Author info should be fetched from user-service in production
-	// For now, we'll create a basic author from userID
 	author := models.PostAuthor{
 		ID: req.UserId,
 	}
@@ -97,7 +95,6 @@ func (s *Server) GetStoriesFeed(ctx context.Context, req *storypb.GetStoriesFeed
 		return nil, err
 	}
 
-	// Convert friend IDs
 	friendIDs := make([]primitive.ObjectID, 0, len(req.FriendIds))
 	for _, id := range req.FriendIds {
 		if oid, err := primitive.ObjectIDFromHex(id); err == nil {
@@ -215,7 +212,6 @@ func (s *Server) GetStoryViewers(ctx context.Context, req *storypb.GetStoryViewe
 	return &storypb.StoryViewersResponse{Viewers: protoViewers}, nil
 }
 
-// Helper functions
 func toProtoStory(s *models.Story) *storypb.Story {
 	allowedViewers := make([]string, 0, len(s.AllowedViewers))
 	for _, id := range s.AllowedViewers {

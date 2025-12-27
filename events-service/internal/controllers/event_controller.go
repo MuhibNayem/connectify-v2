@@ -77,7 +77,7 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, event)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Event created successfully", "data": event})
 }
 
 func (c *EventController) GetEvent(ctx *gin.Context) {
@@ -95,7 +95,7 @@ func (c *EventController) GetEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Event retrieved successfully", "data": response})
 }
 
 func (c *EventController) UpdateEvent(ctx *gin.Context) {
@@ -123,7 +123,7 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Event updated successfully", "data": response})
 }
 
 func (c *EventController) DeleteEvent(ctx *gin.Context) {
@@ -144,7 +144,7 @@ func (c *EventController) DeleteEvent(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully"})
 }
 
 func (c *EventController) ListEvents(ctx *gin.Context) {
@@ -163,10 +163,13 @@ func (c *EventController) ListEvents(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"events": events,
-		"total":  total,
-		"page":   page,
-		"limit":  limit,
+		"message": "Events retrieved successfully", 
+		"data": gin.H{
+			"events": events,
+			"total":  total,
+			"page":   page,
+			"limit":  limit,
+		},
 	})
 }
 
@@ -186,7 +189,7 @@ func (c *EventController) GetMyEvents(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, events)
+	ctx.JSON(http.StatusOK, gin.H{"message": "User events retrieved successfully", "data": events})
 }
 
 func (c *EventController) RSVP(ctx *gin.Context) {
@@ -213,7 +216,7 @@ func (c *EventController) RSVP(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, gin.H{"message": "RSVP updated successfully"})
 }
 
 func (c *EventController) GetBirthdays(ctx *gin.Context) {
@@ -229,7 +232,7 @@ func (c *EventController) GetBirthdays(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Birthdays retrieved successfully", "data": response})
 }
 
 // ================================
@@ -400,7 +403,7 @@ func (c *EventController) DeletePost(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Operation completed successfully"})
 }
 
 // ReactToPost adds a reaction to a post
@@ -519,7 +522,7 @@ func (c *EventController) RemoveCoHost(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Operation completed successfully"})
 }
 
 // ================================

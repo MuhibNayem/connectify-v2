@@ -135,8 +135,14 @@ func run() error {
 		// User routes - public profile endpoints
 		users := api.Group("/users")
 		{
-			users.GET("/:id", userHandler.GetUserByID)
-			users.GET("/:id/status", userHandler.GetUserStatus)
+			users.GET("/:id", 
+				middleware.StrictRateLimiter(10, 30, "users:profile", rateLimitObserver), // 600/min for profile views
+				userHandler.GetUserByID,
+			)
+			users.GET("/:id/status", 
+				middleware.StrictRateLimiter(5, 15, "users:status", rateLimitObserver), // 300/min for status checks
+				userHandler.GetUserStatus,
+			)
 		}
 
 		// Protected user routes (require JWT auth)
@@ -147,14 +153,38 @@ func run() error {
 			middleware.WithFailClosedResponse(http.StatusServiceUnavailable, "authentication temporarily unavailable, please retry"),
 		))
 		{
-			me.GET("", userHandler.GetProfile)
-			me.PATCH("", userHandler.UpdateProfile)
-			me.PATCH("/email", userHandler.UpdateEmail)
-			me.PATCH("/password", userHandler.UpdatePassword)
-			me.PATCH("/privacy", userHandler.UpdatePrivacySettings)
-			me.PATCH("/notifications", userHandler.UpdateNotificationSettings)
-			me.POST("/2fa", userHandler.ToggleTwoFactor)
-			me.DELETE("", userHandler.DeactivateAccount)
+			me.GET("", 
+				middleware.StrictRateLimiter(2, 10, "me:profile", rateLimitObserver), // 120/min for own profile
+				userHandler.GetProfile,
+			)
+			me.PATCH("", 
+				middleware.StrictRateLimiter(0.2, 3, "me:update", rateLimitObserver), // 12/min for profile updates
+				userHandler.UpdateProfile,
+			)
+			me.PATCH("/email", 
+				middleware.StrictRateLimiter(0.05, 1, "me:email", rateLimitObserver), // 3/min for email changes
+				userHandler.UpdateEmail,
+			)
+			me.PATCH("/password", 
+				middleware.StrictRateLimiter(0.1, 2, "me:password", rateLimitObserver), // 6/min for password changes
+				userHandler.UpdatePassword,
+			)
+			me.PATCH("/privacy", 
+				middleware.StrictRateLimiter(0.5, 5, "me:privacy", rateLimitObserver), // 30/min for privacy settings
+				userHandler.UpdatePrivacySettings,
+			)
+			me.PATCH("/notifications", 
+				middleware.StrictRateLimiter(0.5, 5, "me:notifications", rateLimitObserver), // 30/min for notification settings
+				userHandler.UpdateNotificationSettings,
+			)
+			me.POST("/2fa", 
+				middleware.StrictRateLimiter(0.1, 2, "me:2fa", rateLimitObserver), // 6/min for 2FA changes
+				userHandler.ToggleTwoFactor,
+			)
+			me.DELETE("", 
+				middleware.StrictRateLimiter(0.01, 1, "me:deactivate", rateLimitObserver), // 1/min for account deactivation
+				userHandler.DeactivateAccount,
+			)
 		}
 	}
 
