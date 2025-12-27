@@ -11,9 +11,9 @@ import (
 	"messaging-app/internal/userclient"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/events"
-	"gitlab.com/spydotech-group/shared-entity/models"
-	pb "gitlab.com/spydotech-group/shared-entity/proto/user/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	pb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 
 	"github.com/redis/go-redis/v9"
 	kafkago "github.com/segmentio/kafka-go"

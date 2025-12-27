@@ -1,21 +1,21 @@
-module gitlab.com/spydotech-group/events-service
+module github.com/MuhibNayem/connectify-v2/events-service
 
 go 1.25.1
 
 require (
+	github.com/MuhibNayem/connectify-v2/shared-entity v0.0.4
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.4
 	github.com/prometheus/client_golang v1.19.1
 	github.com/segmentio/kafka-go v0.4.49
-	gitlab.com/spydotech-group/shared-entity v0.0.4
 	go.mongodb.org/mongo-driver v1.17.6
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.11
 )
 
-replace gitlab.com/spydotech-group/shared-entity => ../shared-entity
+replace github.com/MuhibNayem/connectify-v2/shared-entity => ../shared-entity
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

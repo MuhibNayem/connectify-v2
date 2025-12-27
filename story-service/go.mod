@@ -1,11 +1,11 @@
-module gitlab.com/spydotech-group/story-service
+module github.com/MuhibNayem/connectify-v2/story-service
 
 go 1.25.1
 
 require (
+	github.com/MuhibNayem/connectify-v2/shared-entity v0.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/segmentio/kafka-go v0.4.49
-	gitlab.com/spydotech-group/shared-entity v0.0.0
 	go.mongodb.org/mongo-driver v1.17.6
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.11
@@ -47,4 +47,4 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 )
 
-replace gitlab.com/spydotech-group/shared-entity => ../shared-entity
+replace github.com/MuhibNayem/connectify-v2/shared-entity => ../shared-entity

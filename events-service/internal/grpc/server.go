@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	"gitlab.com/spydotech-group/events-service/internal/service"
-	"gitlab.com/spydotech-group/shared-entity/models"
-	eventspb "gitlab.com/spydotech-group/shared-entity/proto/events/v1"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	eventspb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/events/v1"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"

@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: messaging-app-config
+data:
+  SERVER_PORT: "8080"
+  WS_PORT: "8081"
+  PROMETHEUS_PORT: "9091"
+  MONGO_URI: "mongodb://mongodb:27017/connectify"
+  DB_NAME: "connectify"
+  REDIS_URL: "redis:6379"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_TOPIC: "messages"
+  KAFKA_USER_UPDATED_TOPIC: "user-updated"
+  FEED_SERVICE_HOST: "feed-service"
+  FEED_SERVICE_PORT: "9098"
+  USER_SERVICE_HOST: "user-service"
+  USER_SERVICE_PORT: "9083"
+  EVENTS_GRPC_HOST: "events-service"
+  EVENTS_GRPC_PORT: "9096"
+  MARKETPLACE_GRPC_HOST: "marketplace-service"
+  MARKETPLACE_GRPC_PORT: "9095"
+  STORY_GRPC_HOST: "story-service"
+  STORY_GRPC_PORT: "9097"
+  JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-service-config
+data:
+  SERVER_PORT: "8083"
+  MONGO_URI: "mongodb://mongodb:27017/connectify"
+  DB_NAME: "connectify"
+  REDIS_URL: "redis:6379"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_TOPIC_USER_UPDATED: "user-updated"
+  KAFKA_TOPIC_FRIENDSHIP_EVENTS: "friendship-events"
+  NEO4J_URI: "bolt://neo4j:7687"
+  NEO4J_USER: "neo4j"
+  JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"
+  REFRESH_COOKIE_NAME: "connectify_refresh_token"
+  COOKIE_DOMAIN: ""
+  COOKIE_SECURE: "false"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: story-service-config
+data:
+  MONGO_URI: "mongodb://mongodb:27017/connectify"
+  DB_NAME: "connectify"
+  GRPC_PORT: "9097"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_TOPIC: "story-events"
+  USER_SERVICE_HOST: "user-service"
+  USER_SERVICE_PORT: "9083"
+  JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: events-service-config
+data:
+  SERVER_PORT: "8080"
+  EVENTS_GRPC_PORT: "9096"
+  EVENTS_METRICS_PORT: "9100"
+  MONGO_URI: "mongodb://mongodb:27017/connectify"
+  DB_NAME: "connectify"
+  REDIS_URL: "redis:6379"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_TOPIC: "events"
+  WS_PORT: "8081"
+  JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feed-service-config
+data:
+  SERVER_PORT: "8082"
+  GRPC_PORT: "9098"
+  MONGO_URI: "mongodb://mongodb:27017/connectify"
+  DB_NAME: "connectify"
+  REDIS_URL: "redis:6379"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_TOPIC: "messages"
+  NEO4J_URI: "bolt://neo4j:7687"
+  NEO4J_USER: "neo4j"
+  JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marketplace-service-config
+data:
+  GRPC_PORT: "9095"
+  METRICS_PORT: "9198"
+  MONGO_URI: "mongodb://mongodb:27017/connectify"
+  CASSANDRA_HOSTS: "cassandra:9042"
+  JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"

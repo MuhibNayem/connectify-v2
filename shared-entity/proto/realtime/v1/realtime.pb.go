@@ -176,7 +176,7 @@ const file_proto_realtime_v1_realtime_proto_rawDesc = "" +
 	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12,\n" +
 	"\x05stats\x18\x05 \x01(\v2\x16.realtime.v1.RSVPStatsR\x05stats2a\n" +
 	"\x0fRealtimeService\x12N\n" +
-	"\x0fReportRSVPEvent\x12#.realtime.v1.ReportRSVPEventRequest\x1a\x16.google.protobuf.EmptyBGZEgitlab.com/spydotech-group/shared-entity/proto/realtime/v1;realtimepbb\x06proto3"
+	"\x0fReportRSVPEvent\x12#.realtime.v1.ReportRSVPEventRequest\x1a\x16.google.protobuf.EmptyBGZEgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/realtime/v1;realtimepbb\x06proto3"
 
 var (
 	file_proto_realtime_v1_realtime_proto_rawDescOnce sync.Once

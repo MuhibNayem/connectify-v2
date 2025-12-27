@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/events"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

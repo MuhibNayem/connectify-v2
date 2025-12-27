@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"gitlab.com/spydotech-group/events-service/config"
-	"gitlab.com/spydotech-group/events-service/internal/graph"
+	"github.com/MuhibNayem/connectify-v2/events-service/config"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/graph"
 
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

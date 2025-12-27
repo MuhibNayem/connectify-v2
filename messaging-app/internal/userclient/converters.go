@@ -3,8 +3,8 @@ package userclient
 import (
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	pb "gitlab.com/spydotech-group/shared-entity/proto/user/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	pb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -19,8 +20,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	pb "gitlab.com/spydotech-group/shared-entity/proto/user/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	pb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
@@ -29,10 +30,19 @@ import (
 
 func main() {
 	observability.InitLogger()
-	var cfg *config.Config = config.LoadConfig()
+	if err := run(); err != nil {
+		slog.Error("Application error", "error", err)
+		os.Exit(1)
+	}
+}
 
-	// 0. Observability
-	tp, err := observability.InitTracer(context.Background(), observability.TracerConfig{
+func run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	cfg := config.LoadConfig()
+
+	tp, err := observability.InitTracer(ctx, observability.TracerConfig{
 		ServiceName:    "user-service",
 		ServiceVersion: "1.0.0",
 		Environment:    "development", // TODO: Make configurable
@@ -40,62 +50,56 @@ func main() {
 	})
 	if err != nil {
 		slog.Error("Failed to initialize tracer", "error", err)
-	} else {
+	}
+	if tp != nil {
 		defer func() {
-			if err := tp.Shutdown(context.Background()); err != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := tp.Shutdown(shutdownCtx); err != nil {
 				slog.Error("Error shutting down tracer provider", "error", err)
 			}
 		}()
 	}
 
 	// 1. Database Connections
-	// Mongo
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	dbCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.MongoURI))
+	mongoClient, err := mongo.Connect(dbCtx, options.Client().ApplyURI(cfg.MongoURI))
 	if err != nil {
-		slog.Error("Mongo connect error", "error", err)
-		os.Exit(1)
+		return err
 	}
 	db := mongoClient.Database(cfg.DBName)
 
-	// Redis
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisURLs[0],
 		Password: cfg.RedisPass,
 	})
 
-	// Neo4j
 	neoDriver, err := neo4j.NewDriverWithContext(cfg.Neo4jURI, neo4j.BasicAuth(cfg.Neo4jUser, cfg.Neo4jPassword, ""))
 	if err != nil {
-		slog.Error("Neo4j connect error", "error", err)
-		os.Exit(1)
+		return err
 	}
-	defer neoDriver.Close(context.Background())
 
 	// 2. Repositories
 	userRepo := repository.NewUserRepository(db)
 	graphRepo := repository.NewGraphRepository(neoDriver)
-	// friendRepo := repository.NewFriendshipRepository(db)
 
 	// 3. Producers
 	producer := events.NewEventProducer(cfg.KafkaBrokers, cfg.UserUpdatedTopic)
-	defer producer.Close()
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo, graphRepo, redisClient, cfg)
 	userService := service.NewUserService(userRepo, producer, redisClient, cfg)
-	// friendshipService := service.NewFriendshipService(friendRepo, graphRepo, userRepo, producer, cfg) // Unused in handlers yet
 
 	// 5. Handlers
-	authHandler := httphandler.NewAuthHandler(authService)
+	authHandler := httphandler.NewAuthHandler(authService, cfg)
 	userGrpcHandler := grpchandler.NewUserHandler(userService)
 
-	// 6. Servers
-	// HTTP Server (Gin)
+	// HTTP Server
 	r := gin.Default()
-	r.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "user-service"}) })
-
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "user-service"})
+	})
 	api := r.Group("/api/v1")
 	{
 		auth := api.Group("/auth")
@@ -106,40 +110,66 @@ func main() {
 		}
 	}
 
-	go func() {
-		slog.Info("Starting HTTP server", "port", cfg.ServerPort)
-		if err := r.Run(":" + cfg.ServerPort); err != nil {
-			slog.Error("HTTP server error", "error", err)
-			os.Exit(1)
-		}
-	}()
+	httpServer := &http.Server{
+		Addr:    ":" + cfg.ServerPort,
+		Handler: r,
+	}
 
-	// gRPC Server
 	grpcServer := grpc.NewServer(
 		observability.GetGRPCServerOption(),
 	)
 	pb.RegisterUserServiceServer(grpcServer, userGrpcHandler)
 	reflection.Register(grpcServer)
 
-	// gRPC Port
-	grpcPort := "9083"
-	lis, err := net.Listen("tcp", ":"+grpcPort)
+	lis, err := net.Listen("tcp", ":9083")
 	if err != nil {
-		slog.Error("Failed to listen for gRPC", "error", err)
-		os.Exit(1)
+		return err
 	}
 
+	errCh := make(chan error, 2)
 	go func() {
-		slog.Info("Starting gRPC server", "port", grpcPort)
-		if err := grpcServer.Serve(lis); err != nil {
-			slog.Error("gRPC server error", "error", err)
-			os.Exit(1)
+		slog.Info("Starting HTTP server", "port", cfg.ServerPort)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
 		}
 	}()
 
-	// Graceful Shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	slog.Info("Shutting down...")
+	go func() {
+		slog.Info("Starting gRPC server", "port", "9083")
+		if err := grpcServer.Serve(lis); err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		slog.Info("Shutdown signal received")
+	case err := <-errCh:
+		if err != nil {
+			slog.Error("Server error", "error", err)
+		}
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		slog.Error("HTTP server shutdown error", "error", err)
+	}
+	grpcServer.GracefulStop()
+
+	if err := mongoClient.Disconnect(shutdownCtx); err != nil {
+		slog.Error("Mongo disconnect error", "error", err)
+	}
+	if err := redisClient.Close(); err != nil {
+		slog.Error("Redis close error", "error", err)
+	}
+	if err := neoDriver.Close(shutdownCtx); err != nil {
+		slog.Error("Neo4j close error", "error", err)
+	}
+	if err := producer.Close(); err != nil {
+		slog.Error("Kafka producer close error", "error", err)
+	}
+
+	return nil
 }

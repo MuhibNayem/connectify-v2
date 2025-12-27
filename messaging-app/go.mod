@@ -3,19 +3,19 @@ module messaging-app
 go 1.25.1
 
 require (
+	github.com/MuhibNayem/connectify-v2/shared-entity v0.0.4
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gocql/gocql v1.7.0
 	github.com/joho/godotenv v1.5.1
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.4
 	github.com/prometheus/client_golang v1.22.0
-	gitlab.com/spydotech-group/shared-entity v0.0.4
 	golang.org/x/crypto v0.45.0
 	golang.org/x/time v0.14.0
 	google.golang.org/grpc v1.77.0
 )
 
-replace gitlab.com/spydotech-group/shared-entity => ../shared-entity
+replace github.com/MuhibNayem/connectify-v2/shared-entity => ../shared-entity
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect

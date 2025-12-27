@@ -49,12 +49,10 @@ function initializeState() {
     if (!browser) return;
 
     const storedUser = getSessionItem('currentUser');
-    const storedAccessToken = getSessionItem('accessToken');
 
-    if (storedUser && storedAccessToken) {
+    if (storedUser) {
         try {
             authState.user = JSON.parse(storedUser);
-            authState.accessToken = storedAccessToken;
         } catch (e) {
             console.error('Failed to parse stored auth state:', e);
             clearState(); // Clear corrupted data
@@ -65,12 +63,10 @@ function initializeState() {
 // Function to persist state to sessionStorage
 function persistState() {
     if (!browser) return;
-    if (authState.user && authState.accessToken) {
+    if (authState.user) {
         setSessionItem('currentUser', JSON.stringify(authState.user));
-        setSessionItem('accessToken', authState.accessToken);
     } else {
         removeSessionItem('currentUser');
-        removeSessionItem('accessToken');
     }
 }
 
@@ -196,3 +192,8 @@ export const auth = {
 
 // Initialize on module load
 initializeState();
+if (browser) {
+    auth.refresh().catch(() => {
+        // swallow errors and keep user logged out if refresh fails
+    });
+}

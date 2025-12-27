@@ -7,7 +7,7 @@ import (
 	"messaging-app/internal/websocket"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/kafka-go"

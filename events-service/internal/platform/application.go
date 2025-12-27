@@ -12,25 +12,25 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.com/spydotech-group/events-service/config"
-	"gitlab.com/spydotech-group/events-service/internal/cache"
-	"gitlab.com/spydotech-group/events-service/internal/controllers"
-	"gitlab.com/spydotech-group/events-service/internal/graph"
-	"gitlab.com/spydotech-group/events-service/internal/integration"
-	"gitlab.com/spydotech-group/events-service/internal/producer"
-	"gitlab.com/spydotech-group/events-service/internal/repository"
-	"gitlab.com/spydotech-group/events-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/events-service/config"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/controllers"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/graph"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/producer"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/service"
 
-	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	pkgkafka "github.com/MuhibNayem/connectify-v2/shared-entity/kafka"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 
-	eventgrpc "gitlab.com/spydotech-group/events-service/internal/grpc"
-	eventspb "gitlab.com/spydotech-group/shared-entity/proto/events/v1"
+	eventgrpc "github.com/MuhibNayem/connectify-v2/events-service/internal/grpc"
+	eventspb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/events/v1"
 )
 
 type Application struct {

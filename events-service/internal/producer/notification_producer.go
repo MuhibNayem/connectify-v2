@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"gitlab.com/spydotech-group/shared-entity/events"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
 	"time"
 
 	"github.com/segmentio/kafka-go"

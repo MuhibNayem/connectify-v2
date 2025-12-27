@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"

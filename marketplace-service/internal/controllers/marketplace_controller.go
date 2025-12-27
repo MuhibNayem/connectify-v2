@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/spydotech-group/marketplace-service/internal/service"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

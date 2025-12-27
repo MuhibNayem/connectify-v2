@@ -18,27 +18,11 @@ spec:
       - name: messaging-app
         image: connectify/messaging-app:latest
         imagePullPolicy: IfNotPresent
-        env:
-        - name: SERVER_PORT
-          value: "8080"
-        - name: USER_SERVICE_HOST
-          value: "user-service"
-        - name: USER_SERVICE_PORT
-          value: "9083" # Using the new gRPC port from user-service
-        - name: STORY_SERVICE_HOST
-          value: "story-service"
-        - name: STORY_SERVICE_PORT
-          value: "9097"
-        - name: EVENTS_SERVICE_HOST
-          value: "events-service"
-        - name: EVENTS_SERVICE_GRPC_PORT
-          value: "9096"
-        - name: MARKETPLACE_SERVICE_HOST
-          value: "marketplace-service"
-        - name: MARKETPLACE_SERVICE_GRPC_PORT
-          value: "9095"
-        - name: JAEGER_OTLP_ENDPOINT
-          value: "jaeger-collector:4317"
+        envFrom:
+        - configMapRef:
+            name: messaging-app-config
+        - secretRef:
+            name: messaging-app-secrets
         ports:
         - containerPort: 8080
 ---
@@ -62,11 +46,11 @@ spec:
       - name: user-service
         image: connectify/user-service:latest
         imagePullPolicy: IfNotPresent
-        env:
-        - name: GRPC_PORT
-          value: "9083"
-        - name: JAEGER_OTLP_ENDPOINT
-          value: "jaeger-collector:4317"
+        envFrom:
+        - configMapRef:
+            name: user-service-config
+        - secretRef:
+            name: user-service-secrets
         ports:
         - containerPort: 9083
 ---
@@ -90,15 +74,11 @@ spec:
       - name: story-service
         image: connectify/story-service:latest
         imagePullPolicy: IfNotPresent
-        env:
-        - name: GRPC_PORT
-          value: "9097"
-        - name: USER_SERVICE_HOST
-          value: "user-service"
-        - name: USER_SERVICE_PORT
-          value: "9083"
-        - name: JAEGER_OTLP_ENDPOINT
-          value: "jaeger-collector:4317"
+        envFrom:
+        - configMapRef:
+            name: story-service-config
+        - secretRef:
+            name: story-service-secrets
         ports:
         - containerPort: 9097
 ---
@@ -122,11 +102,11 @@ spec:
       - name: events-service
         image: connectify/events-service:latest
         imagePullPolicy: IfNotPresent
-        env:
-        - name: EVENTS_GRPC_PORT
-          value: "9096"
-        - name: JAEGER_OTLP_ENDPOINT
-          value: "jaeger-collector:4317"
+        envFrom:
+        - configMapRef:
+            name: events-service-config
+        - secretRef:
+            name: events-service-secrets
         ports:
         - containerPort: 9096
 ---
@@ -150,10 +130,10 @@ spec:
       - name: marketplace-service
         image: connectify/marketplace-service:latest
         imagePullPolicy: IfNotPresent
-        env:
-        - name: GRPC_PORT
-          value: "9095"
-        - name: JAEGER_OTLP_ENDPOINT
-          value: "jaeger-collector:4317"
+        envFrom:
+        - configMapRef:
+            name: marketplace-service-config
+        - secretRef:
+            name: marketplace-service-secrets
         ports:
         - containerPort: 9095

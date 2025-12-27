@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	"gitlab.com/spydotech-group/story-service/config"
-	"gitlab.com/spydotech-group/story-service/internal/platform"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	"github.com/MuhibNayem/connectify-v2/story-service/config"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/platform"
 )
 
 func main() {

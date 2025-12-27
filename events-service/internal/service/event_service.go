@@ -6,11 +6,11 @@ import (
 	"log"
 	"time"
 
-	"gitlab.com/spydotech-group/events-service/internal/cache"
-	"gitlab.com/spydotech-group/events-service/internal/integration"
-	"gitlab.com/spydotech-group/events-service/internal/producer"
-	"gitlab.com/spydotech-group/events-service/internal/repository"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/producer"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

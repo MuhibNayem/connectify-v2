@@ -1,10 +1,10 @@
 package platform
 
 import (
-	"gitlab.com/spydotech-group/events-service/internal/cache"
-	"gitlab.com/spydotech-group/events-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/cache"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/service"
 
-	"gitlab.com/spydotech-group/events-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/repository"
 )
 
 type repositoryBundle struct {

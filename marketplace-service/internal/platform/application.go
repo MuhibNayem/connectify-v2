@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.com/spydotech-group/marketplace-service/config"
-	"gitlab.com/spydotech-group/marketplace-service/internal/controllers"
-	"gitlab.com/spydotech-group/marketplace-service/internal/repository"
-	"gitlab.com/spydotech-group/marketplace-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/config"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/controllers"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"

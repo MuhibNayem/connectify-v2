@@ -12,7 +12,7 @@ import (
 	"user-service/internal/repository"
 
 	"github.com/redis/go-redis/v9"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"

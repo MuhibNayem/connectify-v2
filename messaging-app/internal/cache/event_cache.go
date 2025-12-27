@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 )
 
 // EventCache provides caching for event-related data

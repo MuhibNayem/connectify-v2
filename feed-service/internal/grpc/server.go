@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	"gitlab.com/spydotech-group/feed-service/internal/service"
-	"gitlab.com/spydotech-group/shared-entity/models"
-	feedpb "gitlab.com/spydotech-group/shared-entity/proto/feed/v1"
+	"github.com/MuhibNayem/connectify-v2/feed-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	feedpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/feed/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"

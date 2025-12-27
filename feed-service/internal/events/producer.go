@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"gitlab.com/spydotech-group/feed-service/internal/config"
-	"gitlab.com/spydotech-group/shared-entity/events"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/feed-service/internal/config"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 )
 
 type EventProducer struct {

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"messaging-app/internal/db"
 	"messaging-app/internal/kafka"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/repositories"
 	"time"
 

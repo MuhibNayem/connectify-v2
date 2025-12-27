@@ -10,7 +10,7 @@ import (
 	cassdb "messaging-app/internal/db"
 	"messaging-app/internal/graph"
 
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

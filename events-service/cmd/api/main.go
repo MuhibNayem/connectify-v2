@@ -6,9 +6,9 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"gitlab.com/spydotech-group/events-service/config"
-	"gitlab.com/spydotech-group/events-service/internal/platform"
-	"gitlab.com/spydotech-group/shared-entity/observability"
+	"github.com/MuhibNayem/connectify-v2/events-service/config"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/platform"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
 )
 
 func main() {

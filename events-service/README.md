@@ -1,6 +1,5 @@
 # 🎉 Connectify Events Service
 
-[![Pipeline Status](https://gitlab.com/spydotech-group/events-service/badges/main/pipeline.svg)](https://gitlab.com/spydotech-group/events-service/-/pipelines)
 [![Go Version](https://img.shields.io/badge/Go-1.25-blue)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
@@ -393,11 +392,10 @@ Ensure you have the following installed:
 
 ### Installation
 
-#### 1. Clone the Repository
+#### 1. Navigate to Events Service
 
 ```bash
-git clone https://gitlab.com/spydotech-group/events-service.git
-cd events-service
+cd connectify-v2/events-service
 ```
 
 #### 2. Install Dependencies
@@ -877,7 +875,7 @@ spec:
     spec:
       containers:
       - name: events-service
-        image: registry.gitlab.com/spydotech-group/events-service:latest
+        image: ghcr.io/connectify/events-service:latest
         ports:
         - containerPort: 9096
           name: grpc
@@ -908,31 +906,38 @@ spec:
 
 ### CI/CD Pipeline
 
-The service uses GitLab CI/CD for automated deployments:
+The service can be configured with GitHub Actions for automated deployments:
 
 ```yaml
-stages:
-  - test
-  - build
-  - deploy
+name: Build and Deploy
 
-test:
-  stage: test
-  script:
-    - go test -v ./...
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'events-service/**'
 
-build:
-  stage: build
-  script:
-    - docker build -t events-service:$CI_COMMIT_SHA .
-    - docker push events-service:$CI_COMMIT_SHA
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+      - run: |
+          cd events-service
+          go test -v ./...
 
-deploy:
-  stage: deploy
-  script:
-    - kubectl set image deployment/events-service events-service=events-service:$CI_COMMIT_SHA
-  only:
-    - main
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          cd events-service
+          docker build -t events-service:$GITHUB_SHA .
+          kubectl set image deployment/events-service events-service=events-service:$GITHUB_SHA
 ```
 
 ---
@@ -1031,14 +1036,18 @@ We welcome contributions! Please follow these guidelines:
 
 ---
 
-## 🔗 Related Repositories
+## 🔗 Related Services (Monorepo)
 
-| Repository | Purpose |
-|------------|---------|
-| [shared-entity](https://gitlab.com/spydotech-group/shared-entity) | Shared models, proto definitions, and utilities |
-| [messaging-app](https://gitlab.com/spydotech-group/messaging-app) | Main messaging and gateway service |
-| [user-service](https://gitlab.com/spydotech-group/user-service) | User management and authentication |
-| [story-service](https://gitlab.com/spydotech-group/story-service) | Social stories feature |
+This service is part of the Connectify monorepo. Other services in this repository:
+
+| Service | Path | Purpose |
+|---------|------|---------|
+| **shared-entity** | `/shared-entity` | Shared models, proto definitions, and utilities |
+| **messaging-app** | `/messaging-app` | Main messaging and API gateway service |
+| **user-service** | `/user-service` | User management and authentication |
+| **story-service** | `/story-service` | Social stories feature |
+| **marketplace-service** | `/marketplace-service` | Marketplace and e-commerce features |
+| **ai-service** | `/ai-service` | AI-powered recommendations and insights |
 
 ---
 

@@ -9,11 +9,11 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
-	"gitlab.com/spydotech-group/marketplace-service/config"
-	grpcserver "gitlab.com/spydotech-group/marketplace-service/internal/grpc"
-	"gitlab.com/spydotech-group/marketplace-service/internal/platform"
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	marketplacepb "gitlab.com/spydotech-group/shared-entity/proto/marketplace/v1"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/config"
+	grpcserver "github.com/MuhibNayem/connectify-v2/marketplace-service/internal/grpc"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/platform"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	marketplacepb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/marketplace/v1"
 	"google.golang.org/grpc"
 )
 

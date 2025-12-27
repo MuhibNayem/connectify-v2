@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	storypb "gitlab.com/spydotech-group/shared-entity/proto/story/v1"
-	"gitlab.com/spydotech-group/story-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	storypb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/story/v1"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"

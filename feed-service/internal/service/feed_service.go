@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
-	"gitlab.com/spydotech-group/feed-service/internal/events"
-	"gitlab.com/spydotech-group/feed-service/internal/repository"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/feed-service/internal/events"
+	"github.com/MuhibNayem/connectify-v2/feed-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -37,7 +38,19 @@ func (s *FeedService) UpdatePostStatus(ctx context.Context, postID, userID, stat
 	if err != nil {
 		return errors.New("invalid post ID")
 	}
-	// Verify ownership or admin rights (logic simplified for now)
+	uID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return errors.New("invalid user ID")
+	}
+
+	post, err := s.repo.GetPostByID(ctx, pID)
+	if err != nil {
+		return err
+	}
+	if post.UserID != uID {
+		return errors.New("unauthorized")
+	}
+
 	return s.repo.UpdatePostStatus(ctx, pID, status)
 }
 
@@ -254,8 +267,29 @@ func (s *FeedService) ListPosts(ctx context.Context, viewerID string, page, limi
 			// For simplicity, we assume map correlation or just return list.
 			// Ideally we should re-sort by CreatedAt if we mixed sources, but Timeline in Redis IS sorted.
 
-			result := make([]models.Post, 0, len(posts))
+			deduped := make([]*models.Post, 0, len(posts))
+			seen := make(map[string]struct{}, len(posts))
 			for _, p := range posts {
+				if p == nil {
+					continue
+				}
+				key := p.ID.Hex()
+				if _, ok := seen[key]; ok {
+					continue
+				}
+				seen[key] = struct{}{}
+				deduped = append(deduped, p)
+			}
+
+			sort.Slice(deduped, func(i, j int) bool {
+				return deduped[i].CreatedAt.After(deduped[j].CreatedAt)
+			})
+			if len(deduped) > int(limit) {
+				deduped = deduped[:limit]
+			}
+
+			result := make([]models.Post, 0, len(deduped))
+			for _, p := range deduped {
 				result = append(result, *p)
 			}
 			return result, nil
@@ -266,7 +300,7 @@ func (s *FeedService) ListPosts(ctx context.Context, viewerID string, page, limi
 	// Get Friends List from Neo4j
 	friendIDTags, err := s.graphRepo.GetFriendIDs(ctx, vID)
 	if err != nil {
-		return nil, err
+		fmt.Printf("Failed to resolve friend graph for %s: %v\n", viewerID, err)
 	}
 
 	// Convert string IDs to ObjectIDs for Mongo Query
@@ -280,18 +314,22 @@ func (s *FeedService) ListPosts(ctx context.Context, viewerID string, page, limi
 	// but keeping it simple.
 
 	// 2. Build Query
-	filter := bson.M{
-		"$or": []bson.M{
-			{
-				"user_id": bson.M{"$in": friendIDs},
-				"privacy": bson.M{"$in": []string{"PUBLIC", "FRIENDS"}},
-				"status":  "active", // Assuming lowercase based on previous view, usually ENUM is uppercase.
-			},
-			{
-				"user_id": vID,
-				"status":  "active",
-			},
+	orConditions := []bson.M{
+		{
+			"user_id": vID,
+			"status":  "active",
 		},
+	}
+	if len(friendIDs) > 0 {
+		orConditions = append(orConditions, bson.M{
+			"user_id": bson.M{"$in": friendIDs},
+			"privacy": bson.M{"$in": []string{"PUBLIC", "FRIENDS"}},
+			"status":  "active",
+		})
+	}
+
+	filter := bson.M{
+		"$or": orConditions,
 	}
 
 	// 3. Pagination is handled by repo (needs proper options construction)

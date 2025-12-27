@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"

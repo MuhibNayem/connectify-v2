@@ -1503,7 +1503,7 @@ const file_proto_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\rGetCategories\x12\x16.google.protobuf.Empty\x1a%.marketplace.v1.GetCategoriesResponse\x12h\n" +
 	"\x11ToggleSaveProduct\x12(.marketplace.v1.ToggleSaveProductRequest\x1a).marketplace.v1.ToggleSaveProductResponse\x12c\n" +
 	"\x10GetSavedProducts\x12'.marketplace.v1.GetSavedProductsRequest\x1a&.marketplace.v1.SearchProductsResponse\x12p\n" +
-	"\x1bGetMarketplaceConversations\x12'.marketplace.v1.GetConversationsRequest\x1a(.marketplace.v1.GetConversationsResponseBMZKgitlab.com/spydotech-group/shared-entity/proto/marketplace/v1;marketplacepbb\x06proto3"
+	"\x1bGetMarketplaceConversations\x12'.marketplace.v1.GetConversationsRequest\x1a(.marketplace.v1.GetConversationsResponseBMZKgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/marketplace/v1;marketplacepbb\x06proto3"
 
 var (
 	file_proto_marketplace_v1_marketplace_proto_rawDescOnce sync.Once

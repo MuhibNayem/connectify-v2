@@ -3463,7 +3463,7 @@ const file_events_v1_events_proto_rawDesc = "" +
 	"\x0fGetNearbyEvents\x12\x1e.events.v1.NearbyEventsRequest\x1a\x1d.events.v1.ListEventsResponse\x12Y\n" +
 	"\x12GetRecommendations\x12 .events.v1.RecommendationRequest\x1a!.events.v1.RecommendationResponse\x12R\n" +
 	"\vGetTrending\x12 .events.v1.TrendingEventsRequest\x1a!.events.v1.TrendingEventsResponse\x12L\n" +
-	"\x0fReportRSVPEvent\x12!.events.v1.ReportRSVPEventRequest\x1a\x16.google.protobuf.EmptyB,Z*gitlab.com/spydotech-group/shared-entity/proto/events/v1;eventspbb\x06proto3"
+	"\x0fReportRSVPEvent\x12!.events.v1.ReportRSVPEventRequest\x1a\x16.google.protobuf.EmptyB,Z*github.com/MuhibNayem/connectify-v2/shared-entity/proto/events/v1;eventspbb\x06proto3"
 
 var (
 	file_events_v1_events_proto_rawDescOnce sync.Once

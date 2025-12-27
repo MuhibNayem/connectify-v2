@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	marketplacepb "gitlab.com/spydotech-group/shared-entity/proto/marketplace/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	marketplacepb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/marketplace/v1"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/emptypb"
 )

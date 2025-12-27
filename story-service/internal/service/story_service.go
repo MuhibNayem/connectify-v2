@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"gitlab.com/spydotech-group/story-service/internal/producer"
-	"gitlab.com/spydotech-group/story-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/producer"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

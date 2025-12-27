@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	storypb "gitlab.com/spydotech-group/shared-entity/proto/story/v1"
-	"gitlab.com/spydotech-group/shared-entity/resilience"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	storypb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/story/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/resilience"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

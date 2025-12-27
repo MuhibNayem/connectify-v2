@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/spydotech-group/events-service/config"
-	"gitlab.com/spydotech-group/events-service/internal/controllers"
+	"github.com/MuhibNayem/connectify-v2/events-service/config"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/controllers"
 
-	"gitlab.com/spydotech-group/shared-entity/middleware"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

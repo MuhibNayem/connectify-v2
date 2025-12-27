@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/repositories"
 
 	"go.mongodb.org/mongo-driver/bson"

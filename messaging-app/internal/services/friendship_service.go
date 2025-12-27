@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 	"messaging-app/internal/kafka"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/repositories"
-	"gitlab.com/spydotech-group/shared-entity/events"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
 	"time"
 
 	kafkalib "github.com/segmentio/kafka-go"

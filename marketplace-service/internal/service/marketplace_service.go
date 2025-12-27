@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/spydotech-group/marketplace-service/internal/repository"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

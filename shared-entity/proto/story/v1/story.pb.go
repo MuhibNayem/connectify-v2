@@ -1013,7 +1013,7 @@ const file_proto_story_v1_story_proto_rawDesc = "" +
 	"\n" +
 	"RecordView\x12\x1b.story.v1.RecordViewRequest\x1a\x16.google.protobuf.Empty\x12E\n" +
 	"\fReactToStory\x12\x1d.story.v1.ReactToStoryRequest\x1a\x16.google.protobuf.Empty\x12S\n" +
-	"\x0fGetStoryViewers\x12 .story.v1.GetStoryViewersRequest\x1a\x1e.story.v1.StoryViewersResponseBAZ?gitlab.com/spydotech-group/shared-entity/proto/story/v1;storypbb\x06proto3"
+	"\x0fGetStoryViewers\x12 .story.v1.GetStoryViewersRequest\x1a\x1e.story.v1.StoryViewersResponseBAZ?github.com/MuhibNayem/connectify-v2/shared-entity/proto/story/v1;storypbb\x06proto3"
 
 var (
 	file_proto_story_v1_story_proto_rawDescOnce sync.Once

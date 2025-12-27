@@ -139,12 +139,5 @@ function getActiveAccessToken(): string | null {
 	if (auth.state.accessToken) {
 		return auth.state.accessToken;
 	}
-	if (browser) {
-		try {
-			return sessionStorage.getItem('accessToken');
-		} catch (error) {
-			console.error('Failed to read session storage token:', error);
-		}
-	}
 	return null;
 }

@@ -6,8 +6,8 @@ import (
 
 	"messaging-app/internal/services"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"gitlab.com/spydotech-group/shared-entity/utils"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"

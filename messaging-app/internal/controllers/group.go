@@ -3,9 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/services"
-	"gitlab.com/spydotech-group/shared-entity/utils"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

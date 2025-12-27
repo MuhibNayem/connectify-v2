@@ -37,6 +37,11 @@ type Config struct {
 
 	// Observability
 	JaegerOTLPEndpoint string
+
+	// Cookies
+	RefreshCookieName string
+	CookieDomain      string
+	CookieSecure      bool
 }
 
 func LoadConfig() *Config {
@@ -47,6 +52,8 @@ func LoadConfig() *Config {
 
 	accessTTL, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_TTL", "15"))
 	refreshTTL, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_TTL", "10080")) // 7 days in minutes
+
+	cookieSecure, _ := strconv.ParseBool(getEnv("COOKIE_SECURE", "false"))
 
 	return &Config{
 		ServerPort: getEnv("SERVER_PORT", "8083"), // Default user-service port
@@ -69,6 +76,10 @@ func LoadConfig() *Config {
 		RefreshTokenTTL: time.Minute * time.Duration(refreshTTL),
 
 		JaegerOTLPEndpoint: getEnv("JAEGER_OTLP_ENDPOINT", "localhost:4317"),
+
+		RefreshCookieName: getEnv("REFRESH_COOKIE_NAME", "connectify_refresh"),
+		CookieDomain:      getEnv("COOKIE_DOMAIN", ""),
+		CookieSecure:      cookieSecure,
 	}
 }
 

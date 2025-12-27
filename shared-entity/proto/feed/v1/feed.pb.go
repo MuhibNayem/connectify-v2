@@ -3088,7 +3088,7 @@ const file_proto_feed_v1_feed_proto_rawDesc = "" +
 	"ListAlbums\x12\x1a.feed.v1.ListAlbumsRequest\x1a\x1b.feed.v1.ListAlbumsResponse\x12O\n" +
 	"\x0fAddMediaToAlbum\x12\x1f.feed.v1.AddMediaToAlbumRequest\x1a\x1b.feed.v1.AlbumMediaResponse\x12T\n" +
 	"\x14RemoveMediaFromAlbum\x12$.feed.v1.RemoveMediaFromAlbumRequest\x1a\x16.google.protobuf.Empty\x12N\n" +
-	"\rGetAlbumMedia\x12\x1d.feed.v1.GetAlbumMediaRequest\x1a\x1e.feed.v1.GetAlbumMediaResponseB?Z=gitlab.com/spydotech-group/shared-entity/proto/feed/v1;feedpbb\x06proto3"
+	"\rGetAlbumMedia\x12\x1d.feed.v1.GetAlbumMediaRequest\x1a\x1e.feed.v1.GetAlbumMediaResponseB?Z=github.com/MuhibNayem/connectify-v2/shared-entity/proto/feed/v1;feedpbb\x06proto3"
 
 var (
 	file_proto_feed_v1_feed_proto_rawDescOnce sync.Once

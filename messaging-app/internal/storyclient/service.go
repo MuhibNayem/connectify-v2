@@ -3,8 +3,8 @@ package storyclient
 import (
 	"context"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	storypb "gitlab.com/spydotech-group/shared-entity/proto/story/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	storypb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/story/v1"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

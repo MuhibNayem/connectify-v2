@@ -1,15 +1,15 @@
-module gitlab.com/spydotech-group/marketplace-service
+module github.com/MuhibNayem/connectify-v2/marketplace-service
 
 go 1.25.1
 
 require (
+	github.com/MuhibNayem/connectify-v2/shared-entity v0.0.4
 	github.com/joho/godotenv v1.5.1
-	gitlab.com/spydotech-group/shared-entity v0.0.4
 	go.mongodb.org/mongo-driver v1.17.6
 	google.golang.org/grpc v1.77.0
 )
 
-replace gitlab.com/spydotech-group/shared-entity => ../shared-entity
+replace github.com/MuhibNayem/connectify-v2/shared-entity => ../shared-entity
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect

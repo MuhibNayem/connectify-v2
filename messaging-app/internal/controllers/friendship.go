@@ -3,7 +3,7 @@ package controllers
 import (
 	"errors"
 	"log"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/services"
 	"net/http"
 	"strconv"

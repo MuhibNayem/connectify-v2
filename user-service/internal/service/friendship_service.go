@@ -9,7 +9,7 @@ import (
 	"user-service/internal/events"
 	"user-service/internal/repository"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

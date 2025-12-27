@@ -8,9 +8,9 @@ import (
 
 	"messaging-app/config"
 
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	eventspb "gitlab.com/spydotech-group/shared-entity/proto/events/v1"
-	"gitlab.com/spydotech-group/shared-entity/resilience"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	eventspb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/events/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/resilience"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

@@ -3,13 +3,13 @@ module user-service
 go 1.25.1
 
 require (
+	github.com/MuhibNayem/connectify-v2/shared-entity v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.4
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/segmentio/kafka-go v0.4.49
-	gitlab.com/spydotech-group/shared-entity v0.0.0-00010101000000-000000000000
 	go.mongodb.org/mongo-driver v1.17.6
 	golang.org/x/crypto v0.45.0
 	google.golang.org/grpc v1.77.0
@@ -75,4 +75,4 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 )
 
-replace gitlab.com/spydotech-group/shared-entity => ../shared-entity
+replace github.com/MuhibNayem/connectify-v2/shared-entity => ../shared-entity

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/utils"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"

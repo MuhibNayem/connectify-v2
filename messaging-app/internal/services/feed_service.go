@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"gitlab.com/spydotech-group/shared-entity/utils"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
 
 	kafkago "github.com/segmentio/kafka-go"
 

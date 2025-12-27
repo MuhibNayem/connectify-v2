@@ -9,7 +9,7 @@ import (
 	"messaging-app/internal/controllers"
 	"messaging-app/internal/websocket"
 
-	"gitlab.com/spydotech-group/shared-entity/middleware"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

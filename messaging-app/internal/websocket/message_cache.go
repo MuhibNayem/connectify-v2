@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"gitlab.com/spydotech-group/shared-entity/models"
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 )
 
 // MessageCache handles storing and retrieving messages and pending queues.

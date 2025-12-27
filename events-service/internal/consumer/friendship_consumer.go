@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"gitlab.com/spydotech-group/events-service/internal/integration"
-	"gitlab.com/spydotech-group/shared-entity/events"
-	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
+	"github.com/MuhibNayem/connectify-v2/events-service/internal/integration"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
+	pkgkafka "github.com/MuhibNayem/connectify-v2/shared-entity/kafka"
 
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 )
 
 // StoryBroadcaster interface for real-time event publishing

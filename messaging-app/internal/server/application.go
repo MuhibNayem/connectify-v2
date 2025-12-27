@@ -23,9 +23,9 @@ import (
 	"messaging-app/internal/storyclient"
 	"messaging-app/internal/websocket"
 
-	pkgkafka "gitlab.com/spydotech-group/shared-entity/kafka"
-	"gitlab.com/spydotech-group/shared-entity/observability"
-	"gitlab.com/spydotech-group/shared-entity/redis"
+	pkgkafka "github.com/MuhibNayem/connectify-v2/shared-entity/kafka"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"

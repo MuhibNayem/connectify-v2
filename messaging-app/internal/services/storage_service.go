@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"messaging-app/config"
-	"gitlab.com/spydotech-group/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"mime/multipart"
 	"net/url"
 	"path/filepath"
