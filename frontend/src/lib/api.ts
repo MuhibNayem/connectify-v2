@@ -646,6 +646,8 @@ export interface CreateCommunityRequest {
 	name: string;
 	description: string;
 	category: string;
+	avatar?: string;
+	cover_image?: string;
 	privacy: CommunityPrivacy;
 	require_post_approval: boolean;
 	require_join_approval: boolean;

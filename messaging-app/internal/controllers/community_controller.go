@@ -3,9 +3,13 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
+
+	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
-	"messaging-app/internal/services"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
 
 	"github.com/gin-gonic/gin"
@@ -14,12 +18,92 @@ import (
 
 type CommunityController struct {
 	communityService *services.CommunityService
+	storageClient    *storageclient.Client
 }
 
-func NewCommunityController(communityService *services.CommunityService) *CommunityController {
+func NewCommunityController(communityService *services.CommunityService, storageClient *storageclient.Client) *CommunityController {
 	return &CommunityController{
 		communityService: communityService,
+		storageClient:    storageClient,
 	}
+}
+
+func (c *CommunityController) signCommunityMedia(ctx *gin.Context, communities ...*models.Community) {
+	if len(communities) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, com := range communities {
+		if com == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(cm *models.Community) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+			if cm.Avatar != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), cm.Avatar, 15*time.Minute)
+					if err == nil {
+						cm.Avatar = signed
+					}
+				}()
+			}
+			if cm.CoverImage != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), cm.CoverImage, 15*time.Minute)
+					if err == nil {
+						cm.CoverImage = signed
+					}
+				}()
+			}
+			localWg.Wait()
+		}(com)
+	}
+	wg.Wait()
+}
+
+func (c *CommunityController) signCommunityResponse(ctx *gin.Context, responses ...*models.CommunityResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, res := range responses {
+		if res == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(r *models.CommunityResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+			if r.Avatar != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), r.Avatar, 15*time.Minute)
+					if err == nil {
+						r.Avatar = signed
+					}
+				}()
+			}
+			if r.CoverImage != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), r.CoverImage, 15*time.Minute)
+					if err == nil {
+						r.CoverImage = signed
+					}
+				}()
+			}
+			localWg.Wait()
+		}(res)
+	}
+	wg.Wait()
 }
 
 func (c *CommunityController) CreateCommunity(ctx *gin.Context) {
@@ -41,6 +125,8 @@ func (c *CommunityController) CreateCommunity(ctx *gin.Context) {
 		return
 	}
 
+	c.signCommunityMedia(ctx, community)
+
 	ctx.JSON(http.StatusCreated, community)
 }
 
@@ -58,6 +144,8 @@ func (c *CommunityController) GetCommunity(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	c.signCommunityResponse(ctx, response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -80,6 +168,13 @@ func (c *CommunityController) ListCommunities(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	// Sign URLs for list
+	communityPtrs := make([]*models.CommunityResponse, len(communities))
+	for i := range communities {
+		communityPtrs[i] = &communities[i]
+	}
+	c.signCommunityResponse(ctx, communityPtrs...)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"communities": communities,
@@ -110,6 +205,14 @@ func (c *CommunityController) GetUserCommunities(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	// Sign URLs for list
+	// GetUserCommunities returns []models.Community
+	communityPtrs := make([]*models.Community, len(communities))
+	for i := range communities {
+		communityPtrs[i] = &communities[i]
+	}
+	c.signCommunityMedia(ctx, communityPtrs...)
 
 	ctx.JSON(http.StatusOK, communities)
 }

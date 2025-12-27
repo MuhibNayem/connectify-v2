@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"messaging-app/internal/marketplaceclient"
+	"messaging-app/internal/storageclient"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
@@ -11,11 +14,111 @@ import (
 )
 
 type MarketplaceController struct {
-	client *marketplaceclient.Client
+	client        *marketplaceclient.Client
+	storageClient *storageclient.Client
 }
 
-func NewMarketplaceController(client *marketplaceclient.Client) *MarketplaceController {
-	return &MarketplaceController{client: client}
+func NewMarketplaceController(client *marketplaceclient.Client, storageClient *storageclient.Client) *MarketplaceController {
+	return &MarketplaceController{
+		client:        client,
+		storageClient: storageClient,
+	}
+}
+
+func (c *MarketplaceController) signProduct(ctx *gin.Context, products ...*models.Product) {
+	if len(products) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, p := range products {
+		if p == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(prod *models.Product) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			// Sign Images
+			if len(prod.Images) > 0 {
+				localWg.Add(len(prod.Images))
+				for i, img := range prod.Images {
+					go func(idx int, url string) {
+						defer localWg.Done()
+						if url == "" {
+							return
+						}
+						signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), url, 15*time.Minute)
+						if err == nil {
+							prod.Images[idx] = signed
+						}
+					}(i, img)
+				}
+			}
+
+			// Sign Seller Avatar
+			if prod.SellerAvatar != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), prod.SellerAvatar, 15*time.Minute)
+					if err == nil {
+						prod.SellerAvatar = signed
+					}
+				}()
+			}
+			localWg.Wait()
+		}(p)
+	}
+	wg.Wait()
+}
+
+func (c *MarketplaceController) signProductResponse(ctx *gin.Context, responses ...*models.ProductResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, r := range responses {
+		if r == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(res *models.ProductResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			// Sign Images
+			if len(res.Images) > 0 {
+				localWg.Add(len(res.Images))
+				for i, img := range res.Images {
+					go func(idx int, url string) {
+						defer localWg.Done()
+						if url == "" {
+							return
+						}
+						signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), url, 15*time.Minute)
+						if err == nil {
+							res.Images[idx] = signed
+						}
+					}(i, img)
+				}
+			}
+
+			// Sign Seller Avatar in nested struct
+			if res.Seller.Avatar != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx.Request.Context(), res.Seller.Avatar, 15*time.Minute)
+					if err == nil {
+						res.Seller.Avatar = signed
+					}
+				}()
+			}
+			localWg.Wait()
+		}(r)
+	}
+	wg.Wait()
 }
 
 func (c *MarketplaceController) GetCategories(ctx *gin.Context) {
@@ -62,6 +165,7 @@ func (c *MarketplaceController) CreateProduct(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	c.signProduct(ctx, product)
 	ctx.JSON(http.StatusCreated, product)
 }
 
@@ -87,6 +191,8 @@ func (c *MarketplaceController) GetProduct(ctx *gin.Context) {
 		return
 	}
 
+	c.signProductResponse(ctx, product)
+
 	ctx.JSON(http.StatusOK, product)
 }
 
@@ -110,6 +216,13 @@ func (c *MarketplaceController) ListProducts(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Sign URLs
+	productPtrs := make([]*models.ProductResponse, len(products))
+	for i := range products {
+		productPtrs[i] = &products[i]
+	}
+	c.signProductResponse(ctx, productPtrs...)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"products": products,

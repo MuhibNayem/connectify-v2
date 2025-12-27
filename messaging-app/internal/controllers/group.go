@@ -3,25 +3,96 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/services"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
+	"messaging-app/internal/storageclient"
 	"net/http"
+	"sync"
+	"time"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type GroupController struct {
-	groupService *services.GroupService
-	userService  *services.UserService
+	groupService  *services.GroupService
+	userService   *services.UserService
+	storageClient *storageclient.Client
 }
 
-func NewGroupController(groupService *services.GroupService, userService *services.UserService) *GroupController {
+func NewGroupController(groupService *services.GroupService, userService *services.UserService, storageClient *storageclient.Client) *GroupController {
 	return &GroupController{
-		groupService: groupService,
-		userService:  userService,
+		groupService:  groupService,
+		userService:   userService,
+		storageClient: storageClient,
 	}
+}
+
+func (c *GroupController) signGroupResponse(ctx context.Context, responses ...*models.GroupResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+
+	for _, res := range responses {
+		if res == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(g *models.GroupResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			// Sign Group Avatar
+			if g.Avatar != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx, g.Avatar, 15*time.Minute)
+					if err == nil {
+						g.Avatar = signed
+					}
+				}()
+			}
+
+			// Sign Creator Avatar
+			if g.Creator.Avatar != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx, g.Creator.Avatar, 15*time.Minute)
+					if err == nil {
+						g.Creator.Avatar = signed
+					}
+				}()
+			}
+
+			// Helper to sign user list
+			signUsers := func(users []models.UserShortResponse) {
+				for i := range users {
+					if users[i].Avatar != "" {
+						localWg.Add(1)
+						go func(idx int) {
+							defer localWg.Done()
+							signed, err := c.storageClient.GetPresignedURL(ctx, users[idx].Avatar, 15*time.Minute)
+							if err == nil {
+								users[idx].Avatar = signed
+							}
+						}(i)
+					}
+				}
+			}
+
+			signUsers(g.Members)
+			signUsers(g.Admins)
+			signUsers(g.PendingMembers)
+
+			localWg.Wait()
+		}(res)
+	}
+	wg.Wait()
 }
 
 // Request/Response structures
@@ -77,6 +148,8 @@ func (c *GroupController) CreateGroup(ctx *gin.Context) {
 		return
 	}
 
+	c.signGroupResponse(ctx.Request.Context(), response)
+
 	ctx.JSON(http.StatusCreated, response)
 }
 
@@ -128,6 +201,8 @@ func (c *GroupController) GetGroup(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusInternalServerError, "Failed to prepare response")
 		return
 	}
+
+	c.signGroupResponse(ctx.Request.Context(), response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -291,6 +366,8 @@ func (c *GroupController) GetUserGroups(ctx *gin.Context) {
 	}
 
 	responses := make([]models.GroupResponse, len(groups))
+	// Collect pointers for bulk signing
+	responsePtrs := make([]*models.GroupResponse, len(groups))
 	for i, group := range groups {
 		response, err := c.convertGroupToResponse(ctx, group)
 		if err != nil {
@@ -298,7 +375,10 @@ func (c *GroupController) GetUserGroups(ctx *gin.Context) {
 			return
 		}
 		responses[i] = *response
+		responsePtrs[i] = &responses[i]
 	}
+
+	c.signGroupResponse(ctx.Request.Context(), responsePtrs...)
 
 	ctx.JSON(http.StatusOK, responses)
 }

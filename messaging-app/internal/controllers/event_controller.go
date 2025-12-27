@@ -1,10 +1,14 @@
 package controllers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	"messaging-app/internal/services"
+	"messaging-app/internal/storageclient"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/utils"
@@ -16,12 +20,14 @@ import (
 type EventController struct {
 	eventService          services.EventServiceContract
 	recommendationService services.EventRecommendationServiceContract
+	storageClient         *storageclient.Client
 }
 
-func NewEventController(eventService services.EventServiceContract, recommendationService services.EventRecommendationServiceContract) *EventController {
+func NewEventController(eventService services.EventServiceContract, recommendationService services.EventRecommendationServiceContract, storageClient *storageclient.Client) *EventController {
 	return &EventController{
 		eventService:          eventService,
 		recommendationService: recommendationService,
+		storageClient:         storageClient,
 	}
 }
 
@@ -42,6 +48,15 @@ func (c *EventController) GetRecommendations(ctx *gin.Context) {
 		return
 	}
 
+	// Sign URLs
+	if len(recommendations) > 0 {
+		eventPtrs := make([]*models.EventResponse, len(recommendations))
+		for i := range recommendations {
+			eventPtrs[i] = &recommendations[i].Event
+		}
+		c.signEventResponse(ctx.Request.Context(), eventPtrs...)
+	}
+
 	utils.RespondWithSuccess(ctx, recommendations)
 }
 
@@ -54,6 +69,17 @@ func (c *EventController) GetTrending(ctx *gin.Context) {
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// Sign URLs
+	if len(trending) > 0 {
+		eventPtrs := make([]*models.Event, 0, len(trending))
+		for i := range trending {
+			if trending[i].Event != nil {
+				eventPtrs = append(eventPtrs, trending[i].Event)
+			}
+		}
+		c.signEvent(ctx.Request.Context(), eventPtrs...)
 	}
 
 	utils.RespondWithSuccess(ctx, trending)
@@ -78,6 +104,8 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 		return
 	}
 
+	c.signEvent(ctx.Request.Context(), event)
+
 	ctx.JSON(http.StatusCreated, event)
 }
 
@@ -95,6 +123,8 @@ func (c *EventController) GetEvent(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	c.signEventResponse(ctx.Request.Context(), response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -123,6 +153,8 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	c.signEventResponse(ctx.Request.Context(), response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -163,6 +195,13 @@ func (c *EventController) ListEvents(ctx *gin.Context) {
 		return
 	}
 
+	// Sign URLs
+	eventPtrs := make([]*models.EventResponse, len(events))
+	for i := range events {
+		eventPtrs[i] = &events[i]
+	}
+	c.signEventResponse(ctx.Request.Context(), eventPtrs...)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"events": events,
 		"total":  total,
@@ -186,6 +225,13 @@ func (c *EventController) GetMyEvents(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	// Sign URLs
+	eventPtrs := make([]*models.EventResponse, len(events))
+	for i := range events {
+		eventPtrs[i] = &events[i]
+	}
+	c.signEventResponse(ctx.Request.Context(), eventPtrs...)
 
 	ctx.JSON(http.StatusOK, events)
 }
@@ -229,6 +275,8 @@ func (c *EventController) GetBirthdays(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	c.signBirthdayResponse(ctx.Request.Context(), response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -281,6 +329,13 @@ func (c *EventController) GetInvitations(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	// Sign URLs
+	invPtrs := make([]*models.EventInvitationResponse, len(invitations))
+	for i := range invitations {
+		invPtrs[i] = &invitations[i]
+	}
+	c.signInvitationResponse(ctx.Request.Context(), invPtrs...)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"invitations": invitations,
@@ -348,6 +403,8 @@ func (c *EventController) CreatePost(ctx *gin.Context) {
 		return
 	}
 
+	c.signEventPostResponse(ctx.Request.Context(), post)
+
 	ctx.JSON(http.StatusCreated, post)
 }
 
@@ -367,6 +424,13 @@ func (c *EventController) GetPosts(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	// Sign URLs
+	postPtrs := make([]*models.EventPostResponse, len(posts))
+	for i := range posts {
+		postPtrs[i] = &posts[i]
+	}
+	c.signEventPostResponse(ctx.Request.Context(), postPtrs...)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"posts": posts,
@@ -453,6 +517,8 @@ func (c *EventController) GetAttendees(ctx *gin.Context) {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
+
+	c.signAttendeeResponse(ctx.Request.Context(), response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -558,6 +624,13 @@ func (c *EventController) SearchEvents(ctx *gin.Context) {
 		return
 	}
 
+	// Sign URLs
+	eventPtrs := make([]*models.EventResponse, len(events))
+	for i := range events {
+		eventPtrs[i] = &events[i]
+	}
+	c.signEventResponse(ctx.Request.Context(), eventPtrs...)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"events": events,
 		"total":  total,
@@ -616,10 +689,263 @@ func (c *EventController) GetNearbyEvents(ctx *gin.Context) {
 		return
 	}
 
+	// Sign URLs
+	eventPtrs := make([]*models.EventResponse, len(events))
+	for i := range events {
+		eventPtrs[i] = &events[i]
+	}
+	c.signEventResponse(ctx, eventPtrs...)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"events": events,
 		"total":  total,
 		"page":   page,
 		"limit":  limit,
 	})
+}
+
+// ================================
+// Signing Helpers
+// ================================
+
+func (c *EventController) signUserShort(ctx context.Context, u *models.UserShort) {
+	if u.Avatar != "" {
+		signed, err := c.storageClient.GetPresignedURL(ctx, u.Avatar, 15*time.Minute)
+		if err == nil {
+			u.Avatar = signed
+		}
+	}
+}
+
+func (c *EventController) signEvent(ctx context.Context, events ...*models.Event) {
+	if len(events) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, e := range events {
+		if e == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(ev *models.Event) {
+			defer wg.Done()
+			if ev.CoverImage != "" {
+				signed, err := c.storageClient.GetPresignedURL(ctx, ev.CoverImage, 15*time.Minute)
+				if err == nil {
+					ev.CoverImage = signed
+				}
+			}
+		}(e)
+	}
+	wg.Wait()
+}
+
+func (c *EventController) signEventResponse(ctx context.Context, responses ...*models.EventResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, r := range responses {
+		if r == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(res *models.EventResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			if res.CoverImage != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx, res.CoverImage, 15*time.Minute)
+					if err == nil {
+						res.CoverImage = signed
+					}
+				}()
+			}
+
+			// Creator Avatar
+			localWg.Add(1)
+			go func() {
+				defer localWg.Done()
+				c.signUserShort(ctx, &res.Creator)
+			}()
+
+			// Friends Going Avatars
+			if len(res.FriendsGoing) > 0 {
+				localWg.Add(len(res.FriendsGoing))
+				for i := range res.FriendsGoing {
+					go func(idx int) {
+						defer localWg.Done()
+						c.signUserShort(ctx, &res.FriendsGoing[idx])
+					}(i)
+				}
+			}
+
+			localWg.Wait()
+		}(r)
+	}
+	wg.Wait()
+}
+
+func (c *EventController) signInvitationResponse(ctx context.Context, invitations ...*models.EventInvitationResponse) {
+	if len(invitations) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, inv := range invitations {
+		if inv == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(i *models.EventInvitationResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			// Event Cover Image
+			if i.Event.CoverImage != "" {
+				localWg.Add(1)
+				go func() {
+					defer localWg.Done()
+					signed, err := c.storageClient.GetPresignedURL(ctx, i.Event.CoverImage, 15*time.Minute)
+					if err == nil {
+						i.Event.CoverImage = signed
+					}
+				}()
+			}
+
+			// Inviter Avatar
+			localWg.Add(1)
+			go func() {
+				defer localWg.Done()
+				c.signUserShort(ctx, &i.Inviter)
+			}()
+
+			localWg.Wait()
+		}(inv)
+	}
+	wg.Wait()
+}
+
+func (c *EventController) signAttendeeResponse(ctx context.Context, response *models.AttendeesListResponse) {
+	if response == nil || len(response.Attendees) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	wg.Add(len(response.Attendees))
+	for i := range response.Attendees {
+		go func(idx int) {
+			defer wg.Done()
+			c.signUserShort(ctx, &response.Attendees[idx].User)
+		}(i)
+	}
+	wg.Wait()
+}
+
+func (c *EventController) signEventPostResponse(ctx context.Context, posts ...*models.EventPostResponse) {
+	if len(posts) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, p := range posts {
+		if p == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(post *models.EventPostResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			// Media URLs
+			if len(post.MediaURLs) > 0 {
+				localWg.Add(len(post.MediaURLs))
+				for i, url := range post.MediaURLs {
+					go func(idx int, u string) {
+						defer localWg.Done()
+						if u == "" {
+							return
+						}
+						signed, err := c.storageClient.GetPresignedURL(ctx, u, 15*time.Minute)
+						if err == nil {
+							post.MediaURLs[idx] = signed
+						}
+					}(i, url)
+				}
+			}
+
+			// Author Avatar
+			localWg.Add(1)
+			go func() {
+				defer localWg.Done()
+				c.signUserShort(ctx, &post.Author)
+			}()
+
+			// Reactions Avatars
+			if len(post.Reactions) > 0 {
+				localWg.Add(len(post.Reactions))
+				for i := range post.Reactions {
+					go func(idx int) {
+						defer localWg.Done()
+						c.signUserShort(ctx, &post.Reactions[idx].User)
+					}(i)
+				}
+			}
+
+			localWg.Wait()
+		}(p)
+	}
+	wg.Wait()
+}
+
+func (c *EventController) signBirthdayResponse(ctx context.Context, responses ...*models.BirthdayResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, r := range responses {
+		if r == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(res *models.BirthdayResponse) {
+			defer wg.Done()
+			var localWg sync.WaitGroup
+
+			// Today Avatars
+			if len(res.Today) > 0 {
+				localWg.Add(len(res.Today))
+				for i := range res.Today {
+					go func(idx int) {
+						defer localWg.Done()
+						if res.Today[idx].Avatar != "" {
+							signed, err := c.storageClient.GetPresignedURL(ctx, res.Today[idx].Avatar, 15*time.Minute)
+							if err == nil {
+								res.Today[idx].Avatar = signed
+							}
+						}
+					}(i)
+				}
+			}
+
+			// Upcoming Avatars
+			if len(res.Upcoming) > 0 {
+				localWg.Add(len(res.Upcoming))
+				for i := range res.Upcoming {
+					go func(idx int) {
+						defer localWg.Done()
+						if res.Upcoming[idx].Avatar != "" {
+							signed, err := c.storageClient.GetPresignedURL(ctx, res.Upcoming[idx].Avatar, 15*time.Minute)
+							if err == nil {
+								res.Upcoming[idx].Avatar = signed
+							}
+						}
+					}(i)
+				}
+			}
+
+			localWg.Wait()
+		}(r)
+	}
+	wg.Wait()
 }

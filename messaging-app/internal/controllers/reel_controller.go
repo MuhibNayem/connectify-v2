@@ -71,6 +71,8 @@ func (c *ReelController) CreateReel(ctx *gin.Context) {
 		return
 	}
 
+	c.signReelURLs(ctx, reel)
+
 	ctx.JSON(http.StatusCreated, reel)
 }
 

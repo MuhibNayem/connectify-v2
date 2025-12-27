@@ -15,6 +15,7 @@ It orchestrates the display of messages and the message input field.
 		updateUserProfile,
 		type UserKeys
 	} from '$lib/api';
+	import { uploadFiles } from '$lib/api';
 	import type { Message as MessageModel } from '$lib/types';
 	import { formatDistanceToNow } from 'date-fns';
 	import { tick, onMount } from 'svelte';
@@ -874,58 +875,53 @@ It orchestrates the display of messages and the message input field.
 
 		try {
 			let payload: any;
+			let uploadedMediaUrls: string[] = [];
 
 			if (files.length > 0) {
-				const formData = new FormData();
-				formData.append('content', encryptedContent);
-				// Default content type if mixed, backend will refine
-				formData.append('content_type', 'text');
-				if (isMsgEncrypted) {
-					formData.append('is_encrypted', 'true');
-					formData.append('iv', iv);
+				try {
+					const uploadedFiles = await uploadFiles(files);
+					uploadedMediaUrls = uploadedFiles.map((f) => f.url);
+				} catch (uploadErr) {
+					console.error('File upload failed:', uploadErr);
+					alert('Failed to upload files. Message not sent.');
+					isSending = false;
+					messages = messages.filter((msg) => msg.id !== tempId);
+					return;
 				}
+			}
 
-				if (type === 'group') {
-					formData.append('group_id', id);
-				} else {
-					// Use raw ID from conversationId split (id is already without prefix)
-					formData.append('receiver_id', id);
-				}
+			payload = {
+				content: encryptedContent,
+				content_type:
+					files.length > 0
+						? files.length > 1
+							? 'multiple'
+							: files[0].type.startsWith('image/')
+								? 'image'
+								: files[0].type.startsWith('video/')
+									? 'video'
+									: 'file'
+						: 'text',
+				is_encrypted: isMsgEncrypted,
+				iv: iv,
+				media_urls: uploadedMediaUrls
+			};
 
-				files.forEach((file) => {
-					formData.append('files', file);
-				});
-
-				// Marketplace context: always send is_marketplace flag
-				if (isMarketplace) {
-					formData.append('is_marketplace', 'true');
-				}
-
-				payload = formData;
+			if (type === 'group') {
+				payload['group_id'] = id;
 			} else {
-				payload = {
-					content: encryptedContent,
-					content_type: 'text',
-					is_encrypted: isMsgEncrypted,
-					iv: iv
-				};
-				if (type === 'group') {
-					payload['group_id'] = id;
-				} else {
-					// Use raw ID from conversationId split (id is already without prefix)
-					payload['receiver_id'] = id;
-				}
+				payload['receiver_id'] = id;
+			}
 
-				// Marketplace context: always send is_marketplace flag
-				if (isMarketplace) {
-					payload['is_marketplace'] = true;
-				}
+			// Marketplace context
+			if (isMarketplace) {
+				payload['is_marketplace'] = true;
+			}
 
-				// Product attachment (optional metadata for product card display)
-				if (productId) {
-					payload['product_id'] = productId;
-					payload['content_type'] = 'product';
-				}
+			// Product attachment
+			if (productId) {
+				payload['product_id'] = productId;
+				payload['content_type'] = 'product';
 			}
 
 			const serverMessage = await sendMessage(payload);

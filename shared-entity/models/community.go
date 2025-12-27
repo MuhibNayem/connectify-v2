@@ -66,6 +66,8 @@ type CreateCommunityRequest struct {
 	Name                string              `json:"name" binding:"required,min=3,max=50"`
 	Description         string              `json:"description" binding:"required,max=500"`
 	Category            string              `json:"category" binding:"required"`
+	Avatar              string              `json:"avatar"`
+	CoverImage          string              `json:"cover_image"`
 	Privacy             CommunityPrivacy    `json:"privacy" binding:"required,oneof=public private"`
 	Visibility          CommunityVisibility `json:"visibility" binding:"omitempty,oneof=visible hidden"`
 	RequirePostApproval bool                `json:"require_post_approval"`

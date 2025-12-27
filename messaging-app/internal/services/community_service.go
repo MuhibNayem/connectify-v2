@@ -5,8 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/repositories"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -38,6 +39,8 @@ func (s *CommunityService) CreateCommunity(ctx context.Context, userID primitive
 		Description: req.Description,
 		Slug:        slug,
 		Category:    req.Category,
+		Avatar:      req.Avatar,     // Assign from request
+		CoverImage:  req.CoverImage, // Assign from request
 		Privacy:     req.Privacy,
 		Visibility:  visibility,
 		CreatorID:   userID,

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { createCommunity, type CreateCommunityRequest } from '$lib/api';
+	import { createCommunity, type CreateCommunityRequest, uploadFiles } from '$lib/api';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, Upload, Shield, Globe, Lock, CheckCircle } from '@lucide/svelte';
+	import { ArrowLeft, Upload, Shield, Globe, Lock, CheckCircle, Camera, Image as ImageIcon } from '@lucide/svelte';
 
 	let loading = false;
 	let error = '';
@@ -12,8 +12,49 @@
 		category: 'general',
 		privacy: 'public',
 		require_post_approval: false,
-		require_join_approval: false
+		require_join_approval: false,
+		avatar: '',
+		cover_image: ''
 	};
+
+	let avatarFile: File | null = null;
+	let coverFile: File | null = null;
+	let avatarInput: HTMLInputElement;
+	let coverInput: HTMLInputElement;
+
+	async function handleAvatarUpload(e: Event) {
+		const files = (e.target as HTMLInputElement).files;
+		if (files && files.length > 0) {
+			loading = true;
+			try {
+				const uploaded = await uploadFiles(Array.from(files));
+				if (uploaded.length > 0) {
+					formData.avatar = uploaded[0].url;
+				}
+			} catch (e: any) {
+				error = 'Failed to upload avatar: ' + e.message;
+			} finally {
+				loading = false;
+			}
+		}
+	}
+
+	async function handleCoverUpload(e: Event) {
+		const files = (e.target as HTMLInputElement).files;
+		if (files && files.length > 0) {
+			loading = true;
+			try {
+				const uploaded = await uploadFiles(Array.from(files));
+				if (uploaded.length > 0) {
+					formData.cover_image = uploaded[0].url;
+				}
+			} catch (e: any) {
+				error = 'Failed to upload cover image: ' + e.message;
+			} finally {
+				loading = false;
+			}
+		}
+	}
 
 	async function handleSubmit() {
 		loading = true;
@@ -55,6 +96,65 @@
 		{/if}
 
 		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+			<!-- Visuals -->
+			<div class="space-y-4">
+				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Community Visuals</label>
+				
+				<!-- Cover Image -->
+				<div class="relative h-40 w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+					{#if formData.cover_image}
+						<img src={formData.cover_image} alt="Cover" class="h-full w-full object-cover" />
+					{:else}
+						<div class="flex h-full w-full items-center justify-center text-gray-400">
+							<ImageIcon class="h-8 w-8" />
+							<span class="ml-2 text-sm">Add Cover Image</span>
+						</div>
+					{/if}
+					
+					<button
+						type="button"
+						on:click={() => coverInput.click()}
+						class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100"
+					>
+						<span class="rounded-lg bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">Change Cover</span>
+					</button>
+					<input
+						type="file"
+						accept="image/*"
+						bind:this={coverInput}
+						on:change={handleCoverUpload}
+						hidden
+					/>
+				</div>
+
+				<!-- Avatar -->
+				<div class="-mt-12 ml-4 relative h-24 w-24">
+					<div class="h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-white shadow-sm dark:border-gray-900 dark:bg-gray-800">
+						{#if formData.avatar}
+							<img src={formData.avatar} alt="Avatar" class="h-full w-full object-cover" />
+						{:else}
+							<div class="flex h-full w-full items-center justify-center text-gray-400 bg-gray-100 dark:bg-gray-700">
+								<Camera class="h-8 w-8" />
+							</div>
+						{/if}
+					</div>
+					<button
+						type="button"
+						on:click={() => avatarInput.click()}
+						class="absolute bottom-0 right-0 rounded-full bg-blue-600 p-1.5 text-white shadow-md hover:bg-blue-700"
+					>
+						<Upload class="h-3 w-3" />
+					</button>
+					<input
+						type="file"
+						accept="image/*"
+						bind:this={avatarInput}
+						on:change={handleAvatarUpload}
+						hidden
+					/>
+				</div>
+			</div>
+
 			<!-- Name -->
 			<div>
 				<label for="name" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"

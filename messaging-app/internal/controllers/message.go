@@ -279,37 +279,7 @@ func (c *MessageController) MarkMessagesAsSeen(ctx *gin.Context) {
 		return
 	}
 
-	// Convert string IDs to ObjectIDs (for legacy signature)
-	// NOTE: The service now expects conversationID and MessageIDs.
-	// But Service signature for messageIDs is still []primitive.ObjectID (I missed updating that in previous step?)
-	// Step 1484 updated: `func (s *MessageService) MarkMessagesAsSeen(ctx context.Context, userID primitive.ObjectID, conversationID string, messageIDs []primitive.ObjectID) error`
-	// Wait, I SHOULD HAVE CHANGED messageIDs to []string because Cassandra uses UUID strings!
-	// In Step 1493 replacement content:
-	// `func (s *MessageService) MarkMessagesAsSeen(ctx context.Context, userID primitive.ObjectID, conversationID string, messageIDs []primitive.ObjectID) error`
-	// And inside it loops `for _, id := range messageIDs { strIDs = append(strIDs, id.Hex()) ... }`
-	// This forces me to convert strings to ObjectIDs just to convert them back to strings inside the service.
-	// This creates an issue if the ID is a Cassandra UUID string that IS NOT a valid ObjectID Hex.
-	//
-	// CRITICAL FIX: I must assume the IDs passed might NOT be ObjectIDs.
-	// But `primitive.ObjectIDFromHex` will fail if they are not.
-	// I need to update the SERVICE METHOD signature to accept `[]string` instead of `[]primitive.ObjectID`.
-	// But for now, to satisfy the CURRENT signature, I have to try to convert.
-	// BUT Cassandra IDs are UUIDs. Standard UUID is 36 chars. ObjectID is 24 hex chars.
-	// They are NOT compatible.
-	//
-	// I MUST update the service signature in `message_service.go` to `[]string`.
-	// I will do that in the NEXT step.
-	// For this step, I will prepare the controller to pass strings, but I acknowledge the service signature mismatch.
-	// Actually, Go won't compile if I pass []string to []ObjectID.
-	//
-	// I will convert them blindly to ObjectID for now? No, that will error.
-	//
-	// I MUST update the service signature FIRST or SIMULTANEOUSLY.
-	// Since I can't do multiple files in one step properly without potential conflict (though tool allows it, it's risky).
-	//
-	// I will update the Controller to assume Service takes `[]string`.
-	// AND I will update the Service in the next step to take `[]string`.
-
+	// Pass string IDs directly to service (Cassandra uses UUID strings)
 	err = c.messageService.MarkMessagesAsSeen(ctx.Request.Context(), currentUserID, req.ConversationID, req.MessageIDs)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
@@ -340,8 +310,6 @@ func (c *MessageController) MarkConversationAsSeen(ctx *gin.Context) {
 	}
 
 	conversationIDStr := ctx.Param("id")
-	// Removed ObjectID conversion here to support string IDs (dm_...).
-	// Validation (basic)
 	if conversationIDStr == "" {
 		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{Error: "conversation ID required"})
 		return
@@ -652,12 +620,6 @@ func (c *MessageController) MarkMessagesAsDelivered(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// Fallback for backward compatibility if just array is sent (though unlikely given the error)
-		// Or if user sends raw array, binding fails.
-		// Since we are fixing the API, we enforce the new struct.
-		// If binding fails, try binding raw array for legacy?
-		// No, user error showed "invalid message ID", meaning it DID bind to []string but failed on Hex conversion.
-		// Now we want to bind to a struct.
 		ctx.JSON(http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
 		return
 	}
