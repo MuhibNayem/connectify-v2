@@ -98,3 +98,25 @@ The service is configured via environment variables.
 | `REDIS_URL` | Redis Connection String | - |
 | `KAFKA_BROKERS` | Comma-separated broker list | - |
 | `USER_UPDATED_TOPIC` | Topic for profile events | `user.updated` |
+
+**Token Policy**
+- Access tokens default to 5 minutes (`ACCESS_TOKEN_TTL`) and are always checked against the Redis blacklist during `/users/me` calls.
+- Refresh tokens default to 24 hours (`REFRESH_TOKEN_TTL`), rotate on every refresh, and are stored under `refresh:<userID>` in Redis; loss of Redis invalidates refreshes (fail-closed).
+- When Redis (blacklist) is unreachable, privileged `/users/me` routes fail with `503` so revoked sessions cannot mutate profiles.
+
+## 📊 Rate-Limit Telemetry
+
+Rate limiting is observable via `user_service_rate_limit_hits_total{action="<scope>"}`. Each counter increments when a request is throttled:
+
+| Action | Scope | Suggested Alert |
+|--------|-------|-----------------|
+| `user:global` | Global IP limiter (entire HTTP server) | `rate(...[5m]) > 5` indicates flooding |
+| `auth:register` | `/api/v1/auth/register` | Alert if >1 hit/min (bot signup) |
+| `auth:login` | `/api/v1/auth/login` | Alert if >5 hits/min (credential stuffing) |
+| `auth:refresh` | `/api/v1/auth/refresh` | Alert if >3 hits/min (token churn) |
+
+**Grafana panels**
+1. `sum by (action)(increase(user_service_rate_limit_hits_total{action=~"auth:.*"}[5m]))` – visualize auth throttles.
+2. `rate(user_service_rate_limit_hits_total{action="user:global"}[1m])` – global flood trend with alert if sustained above baseline for >10 minutes.
+
+Documenting these series ensures SREs can wire them into dashboards/alerts immediately after deploy.

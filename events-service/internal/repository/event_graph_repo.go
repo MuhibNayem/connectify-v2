@@ -82,7 +82,6 @@ func (r *EventGraphRepository) GetFriendsGoing(ctx context.Context, userID, even
 //   - Geographic proximity (if applicable): +5 points within 50km
 func (r *EventGraphRepository) GetRecommendedEventsFromGraph(ctx context.Context, userID string, limit int) ([]service.GraphRecommendation, error) {
 	query := `
-		// Find events where friends or friends-of-friends are going
 		MATCH (me:User {id: $userID})
 		
 		// Pattern 1: Direct friends going to events
@@ -130,7 +129,6 @@ func (r *EventGraphRepository) GetRecommendedEventsFromGraph(ctx context.Context
 
 	result, err := neo4j.ExecuteQuery(ctx, r.driver, query, params, neo4j.EagerResultTransformer, neo4j.ExecuteQueryWithDatabase("neo4j"))
 	if err != nil {
-		// Fallback gracefully if graph is unavailable
 		return nil, err
 	}
 

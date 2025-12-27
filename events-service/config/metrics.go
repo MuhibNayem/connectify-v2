@@ -12,7 +12,7 @@ import (
 )
 
 type Metrics struct {
-	HTTPRequests          *prometheus.CounterVec
+	HTTPRequests         *prometheus.CounterVec
 	HTTPDuration         *prometheus.HistogramVec
 	WebsocketConnections prometheus.Gauge
 	KafkaMessages        *prometheus.CounterVec
@@ -88,7 +88,7 @@ func (r *responseRecorder) WriteHeader(statusCode int) {
 }
 
 // MetricsMiddleware captures HTTP metrics for Gin routes
-func MetricsMiddleware(metrics *Metrics) gin.HandlerFunc {	
+func MetricsMiddleware(metrics *Metrics) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		recorder := &responseRecorder{ResponseWriter: c.Writer, statusCode: http.StatusOK}

@@ -102,6 +102,6 @@ func (c *UserConsumer) processMessage(ctx context.Context, userID primitive.Obje
 		Avatar:      avatar,
 		DateOfBirth: dob,
 	}
-	// Note: UpsertUser updates the whole document.
+
 	return c.repo.UpsertUser(ctx, user)
 }

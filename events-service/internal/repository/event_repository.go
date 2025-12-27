@@ -20,14 +20,11 @@ type EventRepository struct {
 func NewEventRepository(db *mongo.Database) *EventRepository {
 	collection := db.Collection("events")
 
-	// Create indexes for optimized event queries
 	_, err := collection.Indexes().CreateMany(context.Background(), []mongo.IndexModel{
-		// Creator index for "Your Events" queries
 		{
 			Keys:    bson.D{{Key: "creator_id", Value: 1}},
 			Options: options.Index(),
 		},
-		// Start date index for chronological sorting
 		{
 			Keys:    bson.D{{Key: "start_date", Value: 1}},
 			Options: options.Index(),
@@ -59,7 +56,6 @@ func NewEventRepository(db *mongo.Database) *EventRepository {
 		},
 	})
 	if err != nil {
-		// Log but don't panic - indexes may already exist
 		// In production, consider logging this properly
 	}
 
@@ -76,7 +72,6 @@ func (r *EventRepository) Create(ctx context.Context, event *models.Event) error
 		InterestedCount: 0,
 		InvitedCount:    0,
 	}
-	// Initialize attendees as empty slice to avoid null in DB
 	if event.Attendees == nil {
 		event.Attendees = []models.EventAttendee{}
 	}
@@ -141,11 +136,6 @@ func (r *EventRepository) List(ctx context.Context, limit, page int64, filter bs
 }
 
 func (r *EventRepository) AddOrUpdateAttendee(ctx context.Context, eventID primitive.ObjectID, attendee models.EventAttendee) error {
-	// First pull existing attendee record if any (to avoid duplicates or update status)
-	// This is a bit inefficient (pull then push), but simpler given the document structure.
-	// A better way for pure status update would be arrayFilters, but we might want to update timestamp too.
-	// Actually, let's try to update if exists, otherwise push.
-
 	filter := bson.M{"_id": eventID, "attendees.user_id": attendee.UserID}
 	update := bson.M{
 		"$set": bson.M{
@@ -160,7 +150,6 @@ func (r *EventRepository) AddOrUpdateAttendee(ctx context.Context, eventID primi
 	}
 
 	if res.MatchedCount == 0 {
-		// Does not exist, push it
 		update = bson.M{
 			"$push": bson.M{"attendees": attendee},
 			"$set":  bson.M{"updated_at": time.Now()},
@@ -186,8 +175,6 @@ func (r *EventRepository) UpdateStats(ctx context.Context, eventID primitive.Obj
 	// Usually stats should be re-calculated or atomically incremented.
 	// For simplicity in this "best way" request, we might want to recalculate counts
 	// but atomic $inc is better for concurrency.
-	// Let's rely on the service to calculate delta or refetch counts.
-	// For now, let's provide a SET for stats to sync them.
 
 	update := bson.M{
 		"$set": bson.M{

@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/MuhibNayem/connectify-v2/events-service/config"
 	"github.com/MuhibNayem/connectify-v2/events-service/internal/platform"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -27,10 +27,7 @@ func run() error {
 	// Load configuration
 	cfg := config.LoadConfig()
 
-	// Initialize metrics
 	metrics := config.GetMetrics()
-
-	// Create and run application
 	app, err := platform.NewApplication(context.Background(), cfg, metrics)
 	if err != nil {
 		return err

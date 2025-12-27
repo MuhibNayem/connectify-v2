@@ -70,7 +70,11 @@ func (a *Application) registerHealthRoutes(router *gin.Engine) {
 }
 
 func (a *Application) registerAPIRoutes(router *gin.Engine, cfg RouterConfig) {
-	authMiddleware := middleware.AuthMiddleware(a.cfg.JWTSecret, a.redisClusterClient())
+	authMiddleware := middleware.AuthMiddleware(
+		a.cfg.JWTSecret,
+		a.redisClusterClient(),
+		middleware.WithFailClosedResponse(http.StatusServiceUnavailable, "authentication temporarily unavailable"),
+	)
 	api := router.Group("/api", authMiddleware)
 
 	eventGroup := api.Group("/events")

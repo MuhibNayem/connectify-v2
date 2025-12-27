@@ -68,7 +68,6 @@ func (r *FriendshipLocalRepository) UpsertFriendship(ctx context.Context, friend
 // RemoveFriendship deletes a friendship
 func (r *FriendshipLocalRepository) RemoveFriendship(ctx context.Context, requesterID, receiverID primitive.ObjectID) error {
 	// Friendship order in graph/logic might vary, but in DB usually Requester/Receiver are fixed per request.
-	// But to be safe, we delete matching pair.
 	filter := bson.M{
 		"$or": []bson.M{
 			{"requester_id": requesterID, "receiver_id": receiverID},

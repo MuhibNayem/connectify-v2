@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,6 +13,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// ErrRevocationCheckFailed indicates we could not verify the token's revocation status.
+var ErrRevocationCheckFailed = errors.New("revocation check failed")
+
 // TokenBlacklist defines the interface for checking/adding token blacklist
 // This allows any Redis client type (single, cluster, sentinel) to be used
 type TokenBlacklist interface {
@@ -19,9 +23,42 @@ type TokenBlacklist interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 }
 
+type authSettings struct {
+	failClosed     bool
+	failStatusCode int
+	failMessage    string
+}
+
+// AuthOption configures optional behavior for the auth middleware.
+type AuthOption func(*authSettings)
+
+// WithFailClosed enables fail-closed behavior when the blacklist cannot be checked.
+func WithFailClosed() AuthOption {
+	return func(s *authSettings) {
+		s.failClosed = true
+	}
+}
+
+// WithFailClosedResponse enables fail-closed behavior and customizes the HTTP response for that scenario.
+func WithFailClosedResponse(statusCode int, message string) AuthOption {
+	return func(s *authSettings) {
+		s.failClosed = true
+		s.failStatusCode = statusCode
+		s.failMessage = message
+	}
+}
+
 // AuthMiddleware creates a Gin middleware for JWT authentication
 // blacklist can be nil for stateless JWT validation (no revocation support)
-func AuthMiddleware(jwtSecret string, blacklist TokenBlacklist) gin.HandlerFunc {
+func AuthMiddleware(jwtSecret string, blacklist TokenBlacklist, opts ...AuthOption) gin.HandlerFunc {
+	settings := authSettings{
+		failStatusCode: http.StatusServiceUnavailable,
+		failMessage:    "authentication temporarily unavailable",
+	}
+	for _, opt := range opts {
+		opt(&settings)
+	}
+
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -29,8 +66,20 @@ func AuthMiddleware(jwtSecret string, blacklist TokenBlacklist) gin.HandlerFunc 
 			return
 		}
 
-		userID, err := ValidateTokenWithBlacklist(authHeader, jwtSecret, blacklist)
+		userID, err := validateTokenWithBlacklist(authHeader, jwtSecret, blacklist, settings.failClosed)
 		if err != nil {
+			if settings.failClosed && errors.Is(err, ErrRevocationCheckFailed) {
+				status := settings.failStatusCode
+				if status == 0 {
+					status = http.StatusServiceUnavailable
+				}
+				message := settings.failMessage
+				if message == "" {
+					message = "authentication unavailable"
+				}
+				c.AbortWithStatusJSON(status, gin.H{"error": message})
+				return
+			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
@@ -49,7 +98,11 @@ func JWTAuthSimple(jwtSecret string) gin.HandlerFunc {
 
 const wsAuthProtocolName = "connectify.auth"
 
-func WSJwtAuthMiddleware(jwtSecret string, blacklist TokenBlacklist) gin.HandlerFunc {
+func WSJwtAuthMiddleware(jwtSecret string, blacklist TokenBlacklist, opts ...AuthOption) gin.HandlerFunc {
+	settings := authSettings{}
+	for _, opt := range opts {
+		opt(&settings)
+	}
 	return func(c *gin.Context) {
 		tokenString, err := extractWebsocketToken(c.GetHeader("Sec-WebSocket-Protocol"))
 		if err != nil {
@@ -57,7 +110,7 @@ func WSJwtAuthMiddleware(jwtSecret string, blacklist TokenBlacklist) gin.Handler
 			return
 		}
 
-		userID, err := ValidateTokenWithBlacklist(tokenString, jwtSecret, blacklist)
+		userID, err := validateTokenWithBlacklist(tokenString, jwtSecret, blacklist, settings.failClosed)
 		if err != nil {
 			fmt.Printf("WS Auth Error: %v\n", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -89,6 +142,10 @@ func extractWebsocketToken(header string) (string, error) {
 // ValidateTokenWithBlacklist validates a JWT token with optional blacklist check
 // If blacklist is nil, only JWT signature validation is performed
 func ValidateTokenWithBlacklist(tokenString, jwtSecret string, blacklist TokenBlacklist) (string, error) {
+	return validateTokenWithBlacklist(tokenString, jwtSecret, blacklist, false)
+}
+
+func validateTokenWithBlacklist(tokenString, jwtSecret string, blacklist TokenBlacklist, failClosed bool) (string, error) {
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	if tokenString == "" {
 		return "", fmt.Errorf("bearer token required")
@@ -100,8 +157,9 @@ func ValidateTokenWithBlacklist(tokenString, jwtSecret string, blacklist TokenBl
 		if err == nil {
 			return "", fmt.Errorf("token revoked")
 		} else if err != redis.Nil {
-			// Log but don't fail - graceful degradation
-			// In production, you might want to fail-closed instead
+			if failClosed {
+				return "", fmt.Errorf("%w: %v", ErrRevocationCheckFailed, err)
+			}
 		}
 	}
 

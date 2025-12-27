@@ -141,7 +141,11 @@ func run() error {
 
 		// Protected user routes (require JWT auth)
 		me := api.Group("/users/me")
-		me.Use(middleware.JWTAuthSimple(cfg.JWTSecret))
+		me.Use(middleware.AuthMiddleware(
+			cfg.JWTSecret,
+			redisClient,
+			middleware.WithFailClosedResponse(http.StatusServiceUnavailable, "authentication temporarily unavailable, please retry"),
+		))
 		{
 			me.GET("", userHandler.GetProfile)
 			me.PATCH("", userHandler.UpdateProfile)

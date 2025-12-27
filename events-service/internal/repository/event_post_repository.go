@@ -20,9 +20,7 @@ type EventPostRepository struct {
 func NewEventPostRepository(db *mongo.Database) *EventPostRepository {
 	collection := db.Collection("event_posts")
 
-	// Create indexes for optimized post queries
 	_, err := collection.Indexes().CreateMany(context.Background(), []mongo.IndexModel{
-		// Event ID + created_at for paginated post listing
 		{
 			Keys:    bson.D{{Key: "event_id", Value: 1}, {Key: "created_at", Value: -1}},
 			Options: options.Index(),
@@ -34,7 +32,6 @@ func NewEventPostRepository(db *mongo.Database) *EventPostRepository {
 		},
 	})
 	if err != nil {
-		// Log but don't panic - indexes may already exist
 	}
 
 	return &EventPostRepository{
@@ -42,7 +39,6 @@ func NewEventPostRepository(db *mongo.Database) *EventPostRepository {
 	}
 }
 
-// Create creates a new discussion post for an event
 func (r *EventPostRepository) Create(ctx context.Context, post *models.EventPost) error {
 	post.CreatedAt = time.Now()
 	post.UpdatedAt = time.Now()
@@ -104,7 +100,6 @@ func (r *EventPostRepository) GetByEventID(ctx context.Context, eventID primitiv
 	return posts, total, nil
 }
 
-// Update updates a post
 func (r *EventPostRepository) Update(ctx context.Context, post *models.EventPost) error {
 	post.UpdatedAt = time.Now()
 	_, err := r.collection.ReplaceOne(ctx, bson.M{"_id": post.ID}, post)
@@ -125,7 +120,7 @@ func (r *EventPostRepository) DeleteByEventID(ctx context.Context, eventID primi
 
 // AddReaction adds a reaction to a post
 func (r *EventPostRepository) AddReaction(ctx context.Context, postID primitive.ObjectID, reaction models.EventPostReaction) error {
-	// First, remove existing reaction from same user (if any)
+
 	_, _ = r.collection.UpdateOne(ctx, bson.M{"_id": postID}, bson.M{
 		"$pull": bson.M{"reactions": bson.M{"user_id": reaction.UserID}},
 	})

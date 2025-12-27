@@ -91,7 +91,6 @@ func (b *EventBuilder) WithAttendee(userID primitive.ObjectID, status models.RSV
 		Status:    status,
 		Timestamp: time.Now(),
 	})
-	// Update stats
 	switch status {
 	case models.RSVPStatusGoing:
 		b.event.Stats.GoingCount++
@@ -140,7 +139,6 @@ type CreateEventRequestBuilder struct {
 
 func NewCreateEventRequestBuilder() *CreateEventRequestBuilder {
 	now := time.Now()
-	// CreateEventRequest does not have Coordinates field, only Location string
 	return &CreateEventRequestBuilder{
 		req: &models.CreateEventRequest{
 			Title:       "Test Event",

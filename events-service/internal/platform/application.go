@@ -168,11 +168,10 @@ func (a *Application) Close() {
 func (a *Application) bootstrap() error {
 	var err error
 
-	// Initialize Tracer
 	tp, err := observability.InitTracer(a.ctx, observability.TracerConfig{
 		ServiceName:    "events-service",
 		ServiceVersion: "1.0.0",
-		Environment:    "development", // TODO: Configurable
+		Environment:    "development",
 		JaegerEndpoint: a.cfg.JaegerOTLPEndpoint,
 	})
 	if err != nil {
@@ -257,7 +256,6 @@ func (a *Application) bootstrap() error {
 		Handler: metricsMux,
 	}
 
-	// Initialize gRPC Server
 	a.grpcServer = grpc.NewServer(
 		observability.GetGRPCServerOption(),
 	)

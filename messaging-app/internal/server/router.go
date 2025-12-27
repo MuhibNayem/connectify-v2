@@ -109,7 +109,11 @@ func (a *Application) registerAuthRoutes(router *gin.Engine, ctrl *controllers.A
 }
 
 func (a *Application) registerAPIRoutes(router *gin.Engine, cfg routerConfig) {
-	authMiddleware := middleware.AuthMiddleware(a.cfg.JWTSecret, a.redisClient.GetClient())
+	authMiddleware := middleware.AuthMiddleware(
+		a.cfg.JWTSecret,
+		a.redisClient.GetClient(),
+		middleware.WithFailClosedResponse(http.StatusServiceUnavailable, "authentication temporarily unavailable"),
+	)
 	api := router.Group("/api", authMiddleware)
 
 	api.POST("/upload", cfg.uploadController.Upload)
@@ -335,7 +339,11 @@ func (a *Application) registerAPIRoutes(router *gin.Engine, cfg routerConfig) {
 }
 
 func (a *Application) registerWebSocketRoutes(router *gin.Engine) {
-	wsMiddleware := middleware.WSJwtAuthMiddleware(a.cfg.JWTSecret, a.redisClient.GetClient())
+	wsMiddleware := middleware.WSJwtAuthMiddleware(
+		a.cfg.JWTSecret,
+		a.redisClient.GetClient(),
+		middleware.WithFailClosedResponse(http.StatusServiceUnavailable, "authentication temporarily unavailable"),
+	)
 	router.GET("/ws", wsMiddleware, func(c *gin.Context) {
 		config.IncWebsocketConnections(a.metrics)
 		defer config.DecWebsocketConnections(a.metrics)

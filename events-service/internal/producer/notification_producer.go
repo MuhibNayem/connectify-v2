@@ -3,9 +3,9 @@ package producer
 import (
 	"context"
 	"encoding/json"
-	"log"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/events"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	"log"
 	"time"
 
 	"github.com/segmentio/kafka-go"

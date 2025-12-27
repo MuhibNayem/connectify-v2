@@ -2,14 +2,18 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 	"github.com/MuhibNayem/connectify-v2/story-service/config"
 	storygrpc "github.com/MuhibNayem/connectify-v2/story-service/internal/grpc"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/httpapi"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/producer"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/repository"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/service"
@@ -23,6 +27,8 @@ type Application struct {
 	mongoClient *mongo.Client
 	grpcServer  *grpc.Server
 	producer    *producer.StoryProducer
+	httpServer  *http.Server
+	redisClient *redis.ClusterClient
 
 	// Repositories
 	storyRepo *repository.StoryRepository
@@ -88,12 +94,41 @@ func (a *Application) Bootstrap() error {
 	a.grpcHandler = storygrpc.NewServer(a.storyService)
 	a.grpcHandler.Register(a.grpcServer)
 
+	if err := a.initRedis(); err != nil {
+		return fmt.Errorf("failed to initialize redis: %w", err)
+	}
+
+	httpHandler := httpapi.NewStoryHandler(a.storyService)
+	router := httpapi.BuildRouter(a.cfg, httpHandler, a.redisClient)
+	a.httpServer = &http.Server{
+		Addr:    fmt.Sprintf(":%s", a.cfg.ServerPort),
+		Handler: router,
+	}
+
 	slog.Info("Application bootstrapped successfully")
 	return nil
 }
 
 func (a *Application) Run() error {
-	// Start gRPC server
+	errCh := make(chan error, 2)
+
+	if a.httpServer != nil {
+		go func() {
+			slog.Info("Story service HTTP server listening", "port", a.cfg.ServerPort)
+			if err := a.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				errCh <- err
+			}
+		}()
+	}
+
+	go func() {
+		errCh <- a.startGRPC()
+	}()
+
+	return <-errCh
+}
+
+func (a *Application) startGRPC() error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", a.cfg.GRPCPort))
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %s: %w", a.cfg.GRPCPort, err)
@@ -102,6 +137,9 @@ func (a *Application) Run() error {
 	slog.Info("Story service gRPC server listening", "port", a.cfg.GRPCPort)
 
 	if err := a.grpcServer.Serve(lis); err != nil {
+		if errors.Is(err, grpc.ErrServerStopped) {
+			return nil
+		}
 		return fmt.Errorf("gRPC server error: %w", err)
 	}
 
@@ -110,6 +148,16 @@ func (a *Application) Run() error {
 
 func (a *Application) Shutdown() {
 	slog.Info("Shutting down story-service...")
+
+	if a.httpServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := a.httpServer.Shutdown(ctx); err != nil {
+			slog.Error("Error shutting down HTTP server", "error", err)
+		} else {
+			slog.Info("HTTP server stopped")
+		}
+	}
 
 	// Stop gRPC server
 	if a.grpcServer != nil {
@@ -137,5 +185,41 @@ func (a *Application) Shutdown() {
 		}
 	}
 
+	if a.redisClient != nil {
+		if err := a.redisClient.Close(); err != nil {
+			slog.Error("Error closing Redis connection", "error", err)
+		} else {
+			slog.Info("Redis client closed")
+		}
+	}
+
 	slog.Info("Story service shutdown complete")
+}
+
+func (a *Application) initRedis() error {
+	cfg := redis.Config{
+		RedisURLs: a.cfg.RedisURLs,
+		RedisPass: a.cfg.RedisPass,
+	}
+	client := redis.NewClusterClient(cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("failed to connect to Redis cluster within timeout")
+		case <-ticker.C:
+			if client.IsAvailable(context.Background()) {
+				a.redisClient = client
+				slog.Info("Connected to Redis cluster")
+				return nil
+			}
+			slog.Warn("Waiting for Redis cluster...")
+		}
+	}
 }

@@ -53,8 +53,8 @@ func LoadConfig() *Config {
 		log.Println("Using environment variables directly")
 	}
 
-	accessTTL, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_TTL", "15"))
-	refreshTTL, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_TTL", "10080")) // 7 days in minutes
+	accessTTL, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_TTL", "5"))      // minutes
+	refreshTTL, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_TTL", "1440")) // 24 hours in minutes
 	rateLimitEnabled, _ := strconv.ParseBool(getEnv("RATE_LIMIT_ENABLED", "true"))
 	rateLimitLimit, _ := strconv.ParseFloat(getEnv("RATE_LIMIT_LIMIT", "50"), 64)
 	rateLimitBurst, _ := strconv.Atoi(getEnv("RATE_LIMIT_BURST", "100"))

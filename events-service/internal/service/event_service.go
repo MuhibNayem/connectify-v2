@@ -100,7 +100,7 @@ type EventService struct {
 	notificationProducer *producer.NotificationProducer
 	eventCache           EventCache
 	broadcaster          EventBroadcaster
-	asyncRunner          *async.Runner // Added field
+	asyncRunner          *async.Runner
 	breaker              *CircuitBreakerWrapper
 	metrics              *metrics.BusinessMetrics
 }
@@ -114,7 +114,7 @@ func NewEventService(
 	notificationProducer *producer.NotificationProducer,
 	eventCache EventCache,
 	broadcaster EventBroadcaster,
-	logger *slog.Logger, // Added parameter
+	logger *slog.Logger,
 	breaker *CircuitBreakerWrapper,
 	metrics *metrics.BusinessMetrics,
 ) *EventService {
@@ -127,7 +127,7 @@ func NewEventService(
 		notificationProducer: notificationProducer,
 		eventCache:           eventCache,
 		broadcaster:          broadcaster,
-		asyncRunner:          async.NewRunner(logger), // Initialized asyncRunner
+		asyncRunner:          async.NewRunner(logger),
 		breaker:              breaker,
 		metrics:              metrics,
 	}
@@ -170,7 +170,6 @@ func (s *EventService) fetchFriendsGoing(ctx context.Context, viewerID, eventID 
 }
 
 func (s *EventService) CreateEvent(ctx context.Context, userID primitive.ObjectID, req models.CreateEventRequest) (*models.Event, error) {
-	// Validate request
 	if err := validation.ValidateCreateEventRequest(&req); err != nil {
 		return nil, err
 	}
@@ -244,21 +243,18 @@ func (s *EventService) canAccessPrivateEvent(ctx context.Context, event *models.
 		return true
 	}
 
-	// Check if viewer is an attendee
 	for _, attendee := range event.Attendees {
 		if attendee.UserID == viewerID {
 			return true
 		}
 	}
 
-	// Check if viewer is a co-host
 	for _, coHost := range event.CoHosts {
 		if coHost.UserID == viewerID {
 			return true
 		}
 	}
 
-	// Check if viewer has an invitation
 	if s.invitationRepo != nil {
 		localCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
@@ -281,7 +277,6 @@ func (s *EventService) UpdateEvent(ctx context.Context, id, userID primitive.Obj
 		return nil, errors.New("unauthorized: only creator can update event")
 	}
 
-	// Validate request
 	if err := validation.ValidateUpdateEventRequest(&req); err != nil {
 		return nil, err
 	}
@@ -369,7 +364,6 @@ func (s *EventService) ListEvents(ctx context.Context, userID primitive.ObjectID
 	filter := bson.M{}
 
 	// Privacy and Visibility
-	// Show Public events OR Friend events (if logic implemented) OR Events I created/attending
 	// complex visibility logic. For now, let's just return Public events + My events.
 	// Or simpler: Just return public events by default for Discover.
 	filter["privacy"] = models.EventPrivacyPublic
@@ -427,7 +421,6 @@ func (s *EventService) GetUserEvents(ctx context.Context, userID primitive.Objec
 }
 
 func (s *EventService) GetFriendBirthdays(ctx context.Context, userID primitive.ObjectID) (*models.BirthdayResponse, error) {
-	// 1. Get current user to find friends
 	currentUser, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -440,7 +433,6 @@ func (s *EventService) GetFriendBirthdays(ctx context.Context, userID primitive.
 		}, nil
 	}
 
-	// 2. Fetch friend birthdays efficiently
 	todayUsers, upcomingUsers, err := s.userRepo.FindFriendBirthdays(ctx, currentUser.Friends)
 	if err != nil {
 		return nil, err
@@ -478,7 +470,7 @@ func (s *EventService) GetFriendBirthdays(ctx context.Context, userID primitive.
 		}
 		// Age will be turning age? Usually users want "Turning X"
 		// If birthday hasn't happened yet this year, they are age. On birthday they will be age+1.
-		// Let's display the age they WILL be.
+
 		age++
 
 		// Format date
@@ -506,7 +498,6 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 		return err
 	}
 
-	// Update RSVP
 	attendee := models.EventAttendee{
 		UserID:    userID,
 		Status:    status,
@@ -518,7 +509,7 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 	}
 
 	// Recalculate stats
-	// This is heavy but mostly accurate.
+
 	// Optimally we'd do this incrementally or async.
 	updatedEvent, _ := s.eventRepo.GetByID(ctx, eventID)
 	if updatedEvent != nil {
@@ -541,17 +532,14 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 		}
 		s.eventRepo.UpdateStats(ctx, eventID, stats)
 
-		// Cache the updated stats
 		if s.eventCache != nil {
 			s.eventCache.SetEventStats(ctx, eventID.Hex(), &stats)
-			// Invalidate user's RSVP status cache
 			s.eventCache.InvalidateUserRSVPStatus(ctx, userID.Hex(), eventID.Hex())
 			// Cache the new RSVP status
 			s.eventCache.SetUserRSVPStatus(ctx, userID.Hex(), eventID.Hex(), status)
 			s.invalidateFriendsGoing(ctx, eventID, userID)
 		}
 
-		// Broadcast RSVP update
 		if s.broadcaster != nil {
 			s.broadcaster.BroadcastRSVP(models.EventRSVPEvent{
 				EventID:   eventID.Hex(),
@@ -567,7 +555,6 @@ func (s *EventService) RSVP(ctx context.Context, eventID primitive.ObjectID, use
 		s.metrics.IncrementRSVP(string(status))
 	}
 
-	// Update Graph (Async)
 	if s.eventGraphRepo != nil {
 		taskCtx := s.detachContext(ctx)
 		s.asyncRunner.RunAsyncRetry(taskCtx, "update_rsvp_graph", func() error {
@@ -704,7 +691,6 @@ func (s *EventService) invalidateFriendsGoing(ctx context.Context, eventID, user
 
 // InviteFriends sends invitations to multiple friends
 func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID primitive.ObjectID, friendIDs []string, message string) error {
-	// Verify event exists and inviter has permission
 	event, err := s.eventRepo.GetByID(ctx, eventID)
 	if err != nil {
 		return err
@@ -732,7 +718,6 @@ func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID pri
 		return errors.New("unauthorized: you cannot invite to this event")
 	}
 
-	// Create invitations
 	var invitations []models.EventInvitation
 	for _, friendIDStr := range friendIDs {
 		friendID, err := primitive.ObjectIDFromHex(friendIDStr)
@@ -740,13 +725,11 @@ func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID pri
 			continue
 		}
 
-		// Check if already invited
 		existing, _ := s.invitationRepo.CheckExisting(ctx, eventID, friendID)
 		if existing != nil {
 			continue
 		}
 
-		// Check if already attending
 		isAttendee := false
 		for _, a := range event.Attendees {
 			if a.UserID == friendID {
@@ -776,7 +759,6 @@ func (s *EventService) InviteFriends(ctx context.Context, eventID, inviterID pri
 			s.metrics.IncrementInvitations(len(invitations))
 		}
 
-		// Create notifications for each invitee
 		if s.notificationProducer != nil {
 			inviter, _ := s.userRepo.FindByID(ctx, inviterID)
 			inviterUsername := "Someone"
@@ -828,13 +810,11 @@ func (s *EventService) GetUserInvitations(ctx context.Context, userID primitive.
 
 	responses := make([]models.EventInvitationResponse, 0, len(invitations))
 	for _, inv := range invitations {
-		// Get event info
 		event, err := s.eventRepo.GetByID(ctx, inv.EventID)
 		if err != nil {
 			continue
 		}
 
-		// Get inviter info
 		inviter, _ := s.userRepo.FindByID(ctx, inv.InviterID)
 		inviterShort := models.UserShort{ID: inv.InviterID.Hex(), Username: "Unknown"}
 		if inviter != nil {
@@ -877,7 +857,6 @@ func (s *EventService) RespondToInvitation(ctx context.Context, invitationID, us
 		return errors.New("invitation already responded")
 	}
 
-	// Get event info for notification
 	event, err := s.eventRepo.GetByID(ctx, invitation.EventID)
 	if err != nil {
 		return err
@@ -898,7 +877,6 @@ func (s *EventService) RespondToInvitation(ctx context.Context, invitationID, us
 		return err
 	}
 
-	// Broadcast Invitation Update
 	if s.broadcaster != nil {
 		s.broadcaster.PublishInvitationUpdated(ctx, models.EventInvitationUpdatedEvent{
 			InvitationID: invitationID.Hex(),
@@ -909,7 +887,6 @@ func (s *EventService) RespondToInvitation(ctx context.Context, invitationID, us
 		})
 	}
 
-	// Create notification for the inviter
 	if s.notificationProducer != nil {
 		invitee, _ := s.userRepo.FindByID(ctx, userID)
 		inviteeUsername := "Someone"
@@ -965,13 +942,11 @@ func (s *EventService) RespondToInvitation(ctx context.Context, invitationID, us
 
 // CreatePost creates a discussion post on an event
 func (s *EventService) CreatePost(ctx context.Context, eventID, authorID primitive.ObjectID, req models.CreateEventPostRequest) (*models.EventPostResponse, error) {
-	// Verify event exists
 	event, err := s.eventRepo.GetByID(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if user can post (attendee or host)
 	canPost := event.CreatorID == authorID
 	if !canPost {
 		for _, a := range event.Attendees {
@@ -996,7 +971,6 @@ func (s *EventService) CreatePost(ctx context.Context, eventID, authorID primiti
 		return nil, err
 	}
 
-	// Get author info for response
 	author, _ := s.userRepo.FindByID(ctx, authorID)
 	authorShort := models.UserShort{ID: authorID.Hex(), Username: "Unknown"}
 	if author != nil {
@@ -1037,7 +1011,6 @@ func (s *EventService) GetPosts(ctx context.Context, eventID primitive.ObjectID,
 
 	responses := make([]models.EventPostResponse, 0, len(posts))
 	for _, post := range posts {
-		// Get author info
 		author, _ := s.userRepo.FindByID(ctx, post.AuthorID)
 		authorShort := models.UserShort{ID: post.AuthorID.Hex(), Username: "Unknown"}
 		if author != nil {
@@ -1086,7 +1059,6 @@ func (s *EventService) DeletePost(ctx context.Context, eventID, postID, userID p
 		return errors.New("post does not belong to this event")
 	}
 
-	// Only author or event host can delete
 	event, _ := s.eventRepo.GetByID(ctx, eventID)
 	if post.AuthorID != userID && event.CreatorID != userID {
 		return errors.New("unauthorized")
@@ -1199,7 +1171,6 @@ func (s *EventService) AddCoHost(ctx context.Context, eventID, userID, coHostID 
 		return errors.New("only the event creator can add co-hosts")
 	}
 
-	// Check if user is already a co-host
 	for _, ch := range event.CoHosts {
 		if ch.UserID == coHostID {
 			return errors.New("user is already a co-host")

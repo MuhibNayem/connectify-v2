@@ -43,7 +43,6 @@ func TestEventService_CreateEvent(t *testing.T) {
 				if event == nil {
 					t.Fatal("expected event to be created, got nil")
 				}
-				// Verify event created with correct data
 				assert.NotNil(t, event.ID)
 				assert.Equal(t, "Team Meetup", event.Title)
 				assert.Equal(t, "Test Description", event.Description)
@@ -51,13 +50,11 @@ func TestEventService_CreateEvent(t *testing.T) {
 				assert.Equal(t, models.EventPrivacyPublic, event.Privacy)
 				assert.Equal(t, int64(1), event.Stats.GoingCount)
 
-				// Verify creator is attendee
 				assert.Len(t, event.Attendees, 1)
 				assert.Equal(t, userID, event.Attendees[0].UserID)
 				assert.Equal(t, models.RSVPStatusGoing, event.Attendees[0].Status)
 				assert.WithinDuration(t, time.Now(), event.Attendees[0].Timestamp, time.Second)
 
-				// Verify repo call - This check is already outside the validateEvent func, removing duplicate
 			},
 		},
 		{
@@ -98,7 +95,6 @@ func TestEventService_CreateEvent(t *testing.T) {
 			mockBroadcaster := &mocks.MockEventBroadcaster{}
 			tt.mockSetup(mockRepo, mockBroadcaster)
 
-			// Create service with mocks
 			svc := &EventService{
 				eventRepo:   mockRepo,
 				userRepo:    nil, // Not needed for this test
@@ -110,7 +106,6 @@ func TestEventService_CreateEvent(t *testing.T) {
 			ctx := context.Background()
 			event, err := svc.CreateEvent(ctx, tt.userID, *tt.req)
 
-			// Verify error
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -125,12 +120,10 @@ func TestEventService_CreateEvent(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			// Validate result
 			if tt.validateEvent != nil {
 				tt.validateEvent(t, event)
 			}
 
-			// Verify repository was called
 			if mockRepo.CreateCalls != 1 {
 				t.Errorf("expected Create to be called once, got %d calls", mockRepo.CreateCalls)
 			}

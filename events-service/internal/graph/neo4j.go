@@ -17,7 +17,6 @@ func NewNeo4jClient(uri, username, password string) (*Neo4jClient, error) {
 		return nil, err
 	}
 
-	// Verify connection
 	ctx := context.Background()
 	if err := driver.VerifyConnectivity(ctx); err != nil {
 		return nil, err

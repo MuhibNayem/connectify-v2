@@ -124,7 +124,6 @@ func (c *FriendshipConsumer) processEvent(ctx context.Context, event events.Frie
 		if err := c.friendshipRepo.UpsertFriendship(ctx, friendship); err != nil {
 			return err
 		}
-		// Update Users (Add Friend)
 		_ = c.userRepo.AddFriend(ctx, reqID, recID)
 		_ = c.userRepo.AddFriend(ctx, recID, reqID)
 
@@ -133,7 +132,6 @@ func (c *FriendshipConsumer) processEvent(ctx context.Context, event events.Frie
 		if err := c.friendshipRepo.RemoveFriendship(ctx, reqID, recID); err != nil {
 			return err
 		}
-		// Update Users (Remove Friend)
 		_ = c.userRepo.RemoveFriend(ctx, reqID, recID)
 		_ = c.userRepo.RemoveFriend(ctx, recID, reqID)
 

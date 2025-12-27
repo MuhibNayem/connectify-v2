@@ -61,8 +61,6 @@ func (s *EventRecommendationService) GetRecommendations(ctx context.Context, use
 }
 
 func (s *EventRecommendationService) computeRecommendations(ctx context.Context, userID primitive.ObjectID, limit int) ([]EventRecommendation, error) {
-	// 1. Get user's friends
-	// 1. Get user's friend IDs
 	friendIDs, err := s.friendshipRepo.GetFriends(ctx, userID)
 	if err != nil {
 		return s.getPopularEvents(ctx, limit)
@@ -72,10 +70,8 @@ func (s *EventRecommendationService) computeRecommendations(ctx context.Context,
 		return s.getPopularEvents(ctx, limit)
 	}
 
-	// Fetch friend details from User Local Repo
 	friends, err := s.userRepo.FindByIDs(ctx, friendIDs)
 	if err != nil {
-		// If fails, we can just proceed with empty friends map or return popular
 		return s.getPopularEvents(ctx, limit)
 	}
 
@@ -93,7 +89,6 @@ func (s *EventRecommendationService) computeRecommendations(ctx context.Context,
 		return s.getPopularEvents(ctx, limit)
 	}
 
-	// 2. Get upcoming public events
 	filter := bson.M{
 		"privacy":    models.EventPrivacyPublic,
 		"start_date": bson.M{"$gt": time.Now()},
@@ -103,11 +98,9 @@ func (s *EventRecommendationService) computeRecommendations(ctx context.Context,
 		return nil, err
 	}
 
-	// 3. Score events based on how many friends are attending
 	recommendations := []EventRecommendation{}
 
 	for _, event := range events {
-		// Skip events user is already attending
 		isAttending := false
 		for _, a := range event.Attendees {
 			if a.UserID == userID {
@@ -148,12 +141,10 @@ func (s *EventRecommendationService) computeRecommendations(ctx context.Context,
 		})
 	}
 
-	// 4. Sort by score descending
 	sort.Slice(recommendations, func(i, j int) bool {
 		return recommendations[i].Score > recommendations[j].Score
 	})
 
-	// 5. Limit results
 	if len(recommendations) > limit {
 		recommendations = recommendations[:limit]
 	}
@@ -275,7 +266,6 @@ func (s *EventRecommendationService) buildReason(friendCount int) string {
 }
 
 func (s *EventRecommendationService) getPopularEvents(ctx context.Context, limit int) ([]EventRecommendation, error) {
-	// Get upcoming public events sorted by popularity
 	filter := bson.M{
 		"privacy":    models.EventPrivacyPublic,
 		"start_date": bson.M{"$gt": time.Now()},

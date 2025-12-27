@@ -980,6 +980,23 @@ Available at `http://localhost:9100/metrics`:
 | `mongodb_query_duration_seconds` | Histogram | Database query time |
 | `neo4j_query_duration_seconds` | Histogram | Graph query time |
 
+### Rate-Limit Telemetry
+
+The service exports `event_service_rate_limit_hits_total{action="<scope>"}` whenever an HTTP request is throttled. Available `action` labels:
+
+| Action | Description | Suggested Alert |
+|--------|-------------|-----------------|
+| `events:global` | Global IP limiter (all routes) | `rate(event_service_rate_limit_hits_total{action="events:global"}[5m]) > 5` |
+| `events:create` | POST `/api/events` | Alert if >2 hits/min (signal spammy creations) |
+| `events:recommendations` / `events:trending` / `events:search` | Discovery endpoints | Alert if >10 hits/min to detect bot scraping |
+| `events:rsvp` / `events:invite` / `events:posts` | Stateful write actions | Alert if sustained >3 hits/min (spam/invite abuse) |
+
+**Grafana panels**
+1. *Rate-Limit Hits (per action)* – Query: `sum by (action)(increase(event_service_rate_limit_hits_total[5m]))`
+2. *Recommendation Throttle Rate* – Query: `rate(event_service_rate_limit_hits_total{action="events:recommendations"}[1m])`
+
+Use these to correlate spikes with downstream errors, and page SREs if thresholds exceed “normal” baselines for >10 minutes.
+
 ### Distributed Tracing (Jaeger)
 
 The service automatically exports traces to Jaeger:
