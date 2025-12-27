@@ -437,6 +437,8 @@ services:
       EVENTS_GRPC_HOST: events-service
       STORY_GRPC_HOST: story-service
       STORY_GRPC_PORT: "9097"
+      REEL_GRPC_HOST: reel-service
+      STORAGE_GRPC_HOST: storage-service
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -459,6 +461,10 @@ services:
       user-service:
         condition: service_started
       story-service:
+        condition: service_started
+      reel-service:
+        condition: service_started
+      storage-service:
         condition: service_started
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
