@@ -3,21 +3,50 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
-	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/metrics"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/resilience"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/validation"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type MarketplaceService struct {
-	repo *repository.MarketplaceRepository
+// MarketplaceRepository defines the data access layer interface
+type MarketplaceRepository interface {
+	GetCategories(ctx context.Context) ([]models.Category, error)
+	CreateProduct(ctx context.Context, product *models.Product) (*models.Product, error)
+	GetProductByID(ctx context.Context, id primitive.ObjectID) (*models.Product, error)
+	ListProducts(ctx context.Context, filter models.ProductFilter) ([]models.ProductResponse, int64, error)
+	GetMarketplaceConversations(ctx context.Context, userID primitive.ObjectID) ([]models.ConversationSummary, error)
+	UpdateProduct(ctx context.Context, id primitive.ObjectID, update bson.M) (*models.Product, error)
+	DeleteProduct(ctx context.Context, id primitive.ObjectID) error
+	IncrementViews(ctx context.Context, id primitive.ObjectID) error
 }
 
-func NewMarketplaceService(repo *repository.MarketplaceRepository) *MarketplaceService {
+type MarketplaceService struct {
+	repo    MarketplaceRepository
+	metrics *metrics.BusinessMetrics
+	logger  *slog.Logger
+	cb      *resilience.CircuitBreaker // Optional: If we have external service calls
+}
+
+func NewMarketplaceService(
+	repo MarketplaceRepository,
+	metrics *metrics.BusinessMetrics,
+	logger *slog.Logger,
+	cb *resilience.CircuitBreaker,
+) *MarketplaceService {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &MarketplaceService{
-		repo: repo,
+		repo:    repo,
+		metrics: metrics,
+		logger:  logger,
+		cb:      cb,
 	}
 }
 
@@ -26,6 +55,12 @@ func (s *MarketplaceService) GetCategories(ctx context.Context) ([]models.Catego
 }
 
 func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive.ObjectID, req models.CreateProductRequest) (*models.Product, error) {
+	// 1. Validation
+	if err := validation.ValidateCreateProductRequest(&req); err != nil {
+		s.logger.Warn("Invalid create product request", "error", err, "user_id", userID)
+		return nil, err
+	}
+
 	catID, err := primitive.ObjectIDFromHex(req.CategoryID)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
@@ -42,16 +77,33 @@ func (s *MarketplaceService) CreateProduct(ctx context.Context, userID primitive
 		Location:    models.ProductLocation{City: req.Location}, // Convert string to structured location
 		Status:      models.ProductStatusAvailable,
 		Tags:        req.Tags,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
-	return s.repo.CreateProduct(ctx, product)
+	createdProduct, err := s.repo.CreateProduct(ctx, product)
+	if err != nil {
+		s.logger.Error("Failed to create product", "error", err, "user_id", userID)
+		return nil, err
+	}
+
+	// Metrics
+	s.metrics.IncrementProductsCreated()
+	s.logger.Info("Product created", "product_id", createdProduct.ID, "user_id", userID)
+
+	return createdProduct, nil
 }
 
 func (s *MarketplaceService) GetProductByID(ctx context.Context, id primitive.ObjectID, viewerID primitive.ObjectID) (*models.ProductResponse, error) {
+	// Async view increment with error logging safety
 	go func() {
 		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = s.repo.IncrementViews(bgCtx, id)
+		if err := s.repo.IncrementViews(bgCtx, id); err != nil {
+			s.logger.Warn("Failed to increment views", "error", err, "product_id", id)
+		} else {
+			s.metrics.IncrementProductViews()
+		}
 	}()
 
 	product, err := s.repo.GetProductByID(ctx, id)
@@ -68,6 +120,8 @@ func (s *MarketplaceService) GetProductByID(ctx context.Context, id primitive.Ob
 				break
 			}
 		}
+	} else {
+		s.logger.Warn("Failed to fetch categories during product get", "error", err)
 	}
 
 	isSaved := false
@@ -105,6 +159,7 @@ type MarketplaceListResponse struct {
 func (s *MarketplaceService) SearchProducts(ctx context.Context, filter models.ProductFilter) (*MarketplaceListResponse, error) {
 	products, total, err := s.repo.ListProducts(ctx, filter)
 	if err != nil {
+		s.logger.Error("Failed to search products", "error", err)
 		return nil, err
 	}
 
@@ -130,8 +185,18 @@ func (s *MarketplaceService) MarkProductSold(ctx context.Context, productID, use
 		return errors.New("unauthorized")
 	}
 
-	_, err = s.repo.UpdateProduct(ctx, productID, bson.M{"status": models.ProductStatusSold})
-	return err
+	_, err = s.repo.UpdateProduct(ctx, productID, bson.M{
+		"status":     models.ProductStatusSold,
+		"updated_at": time.Now(),
+	})
+	if err != nil {
+		s.logger.Error("Failed to mark product sold", "error", err, "product_id", productID)
+		return err
+	}
+
+	s.metrics.IncrementProductsSold()
+	s.logger.Info("Product marked as sold", "product_id", productID, "user_id", userID)
+	return nil
 }
 
 func (s *MarketplaceService) DeleteProduct(ctx context.Context, productID, userID primitive.ObjectID) error {
@@ -142,7 +207,15 @@ func (s *MarketplaceService) DeleteProduct(ctx context.Context, productID, userI
 	if product.SellerID != userID {
 		return errors.New("unauthorized")
 	}
-	return s.repo.DeleteProduct(ctx, productID)
+
+	if err := s.repo.DeleteProduct(ctx, productID); err != nil {
+		s.logger.Error("Failed to delete product", "error", err, "product_id", productID)
+		return err
+	}
+
+	s.metrics.IncrementProductsDeleted()
+	s.logger.Info("Product deleted", "product_id", productID, "user_id", userID)
+	return nil
 }
 
 func (s *MarketplaceService) ToggleSaveProduct(ctx context.Context, productID, userID primitive.ObjectID) (bool, error) {
@@ -165,9 +238,11 @@ func (s *MarketplaceService) ToggleSaveProduct(ctx context.Context, productID, u
 	} else {
 		update = bson.M{"$addToSet": bson.M{"saved_by": userID}}
 	}
+	update["updated_at"] = time.Now()
 
 	_, err = s.repo.UpdateProduct(ctx, productID, update)
 	if err != nil {
+		s.logger.Error("Failed to toggle save product", "error", err, "product_id", productID)
 		return false, err
 	}
 

@@ -19,6 +19,7 @@ import (
 	marketplacepb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/marketplace/v1"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
 
@@ -58,6 +59,12 @@ func run() error {
 	)
 	marketplacepb.RegisterMarketplaceServiceServer(grpcSrv, grpcserver.NewServer(deps.MarketplaceService))
 
+	// Setup metrics server
+	metricsServer := &http.Server{
+		Addr:    fmt.Sprintf(":%s", cfg.MetricsPort),
+		Handler: promhttp.Handler(),
+	}
+
 	// Start listening
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))
 	if err != nil {
@@ -77,6 +84,13 @@ func run() error {
 	}()
 
 	go func() {
+		slog.Info("Marketplace Metrics Service listening", "port", cfg.MetricsPort)
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Metrics server error", "error", err)
+		}
+	}()
+
+	go func() {
 		slog.Info("Marketplace gRPC Service listening", "port", cfg.GRPCPort)
 		if err := grpcSrv.Serve(lis); err != nil {
 			slog.Error("Failed to serve", "error", err)
@@ -89,8 +103,15 @@ func run() error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		slog.Error("HTTP server shutdown error", "error", err)
+	}
+
+	if metricsServer != nil {
+		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+			slog.Error("Metrics server shutdown error", "error", err)
+		}
 	}
 
 	grpcSrv.GracefulStop()

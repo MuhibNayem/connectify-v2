@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/config"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/resilience"
 	"github.com/MuhibNayem/connectify-v2/marketplace-service/internal/service"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,6 +21,7 @@ type Dependencies struct {
 	MongoDB            *mongo.Database
 	MarketplaceRepo    *repository.MarketplaceRepository
 	MarketplaceService *service.MarketplaceService
+	Metrics            *metrics.BusinessMetrics
 }
 
 func InitializeDependencies(cfg *config.Config) (*Dependencies, error) {
@@ -51,12 +54,22 @@ func InitializeDependencies(cfg *config.Config) (*Dependencies, error) {
 
 	mongoDB := mongoClient.Database("messaging_app")
 	marketplaceRepo := repository.NewMarketplaceRepository(mongoDB)
-	marketplaceService := service.NewMarketplaceService(marketplaceRepo)
+
+	businessMetrics := metrics.NewBusinessMetrics()
+	cb := resilience.NewCircuitBreaker(resilience.DefaultConfig("marketplace-db"), slog.Default())
+
+	marketplaceService := service.NewMarketplaceService(
+		marketplaceRepo,
+		businessMetrics,
+		slog.Default(),
+		cb,
+	)
 
 	return &Dependencies{
 		Config:             cfg,
 		MongoDB:            mongoDB,
 		MarketplaceRepo:    marketplaceRepo,
 		MarketplaceService: marketplaceService,
+		Metrics:            businessMetrics,
 	}, nil
 }
