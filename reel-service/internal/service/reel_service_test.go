@@ -133,12 +133,7 @@ func TestCreateReel_Success(t *testing.T) {
 
 	ctx := context.Background()
 	userID := primitive.NewObjectID()
-	author := models.PostAuthor{
-		ID:       userID.Hex(),
-		Username: "testuser",
-		Avatar:   "avatar.png",
-		FullName: "Test User",
-	}
+
 	req := CreateReelRequest{
 		VideoURL:     "https://example.com/video.mp4",
 		ThumbnailURL: "https://example.com/thumb.jpg",
@@ -147,6 +142,7 @@ func TestCreateReel_Success(t *testing.T) {
 		Privacy:      models.PrivacySettingPublic,
 	}
 
+	// User client nil -> resolveAuthor returns simplified author with just ID
 	expectedReel := &models.Reel{
 		ID:           primitive.NewObjectID(),
 		UserID:       userID,
@@ -155,13 +151,13 @@ func TestCreateReel_Success(t *testing.T) {
 		Caption:      req.Caption,
 		Duration:     req.Duration,
 		Privacy:      req.Privacy,
-		Author:       author,
+		Author:       models.PostAuthor{ID: userID.Hex()},
 	}
 
 	mockRepo.On("CreateReel", ctx, mock.AnythingOfType("*models.Reel")).Return(expectedReel, nil)
 	mockBroadcaster.On("PublishReelCreated", ctx, mock.AnythingOfType("producer.ReelCreatedEvent")).Return()
 
-	reel, err := svc.CreateReel(ctx, userID, author, req)
+	reel, err := svc.CreateReel(ctx, userID, req)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, reel)
@@ -178,12 +174,12 @@ func TestCreateReel_EmptyVideoURL(t *testing.T) {
 
 	ctx := context.Background()
 	userID := primitive.NewObjectID()
-	author := models.PostAuthor{ID: userID.Hex()}
+
 	req := CreateReelRequest{
 		VideoURL: "",
 	}
 
-	reel, err := svc.CreateReel(ctx, userID, author, req)
+	reel, err := svc.CreateReel(ctx, userID, req)
 
 	assert.Error(t, err)
 	assert.Nil(t, reel)
@@ -197,7 +193,7 @@ func TestCreateReel_DefaultPrivacy(t *testing.T) {
 
 	ctx := context.Background()
 	userID := primitive.NewObjectID()
-	author := models.PostAuthor{ID: userID.Hex()}
+
 	req := CreateReelRequest{
 		VideoURL: "https://example.com/video.mp4",
 		Privacy:  "",
@@ -215,7 +211,7 @@ func TestCreateReel_DefaultPrivacy(t *testing.T) {
 	})).Return(expectedReel, nil)
 	mockBroadcaster.On("PublishReelCreated", ctx, mock.Anything).Return()
 
-	reel, err := svc.CreateReel(ctx, userID, author, req)
+	reel, err := svc.CreateReel(ctx, userID, req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, models.PrivacySettingPublic, reel.Privacy)
@@ -399,14 +395,10 @@ func TestAddComment_Success(t *testing.T) {
 	reelID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()
 	content := "Great reel!"
-	author := models.PostAuthor{
-		ID:       userID.Hex(),
-		Username: "testuser",
-	}
 
 	mockRepo.On("AddComment", ctx, reelID, mock.AnythingOfType("models.Comment")).Return(nil)
 
-	comment, err := svc.AddComment(ctx, reelID, userID, content, author, nil)
+	comment, err := svc.AddComment(ctx, reelID, userID, content, nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
@@ -424,14 +416,14 @@ func TestAddComment_WithMentions(t *testing.T) {
 	userID := primitive.NewObjectID()
 	mentionedUserID := primitive.NewObjectID()
 	content := "Check this out!"
-	author := models.PostAuthor{ID: userID.Hex()}
+
 	explicitMentions := []primitive.ObjectID{mentionedUserID}
 
 	mockRepo.On("AddComment", ctx, reelID, mock.MatchedBy(func(c models.Comment) bool {
 		return len(c.Mentions) > 0
 	})).Return(nil)
 
-	comment, err := svc.AddComment(ctx, reelID, userID, content, author, explicitMentions)
+	comment, err := svc.AddComment(ctx, reelID, userID, content, explicitMentions)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
@@ -489,11 +481,10 @@ func TestAddReply_Success(t *testing.T) {
 	commentID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()
 	content := "Nice comment!"
-	author := models.PostAuthor{ID: userID.Hex()}
 
 	mockRepo.On("AddReply", ctx, reelID, commentID, mock.AnythingOfType("models.Reply")).Return(nil)
 
-	reply, err := svc.AddReply(ctx, reelID, commentID, userID, content, author)
+	reply, err := svc.AddReply(ctx, reelID, commentID, userID, content)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, reply)
@@ -589,14 +580,14 @@ func TestCreateReel_RepoError(t *testing.T) {
 
 	ctx := context.Background()
 	userID := primitive.NewObjectID()
-	author := models.PostAuthor{ID: userID.Hex()}
+
 	req := CreateReelRequest{
 		VideoURL: "https://example.com/video.mp4",
 	}
 
 	mockRepo.On("CreateReel", ctx, mock.Anything).Return(nil, assert.AnError)
 
-	reel, err := svc.CreateReel(ctx, userID, author, req)
+	reel, err := svc.CreateReel(ctx, userID, req)
 
 	assert.Error(t, err)
 	assert.Nil(t, reel)
@@ -628,7 +619,6 @@ func TestAddComment_SetsCreatedAt(t *testing.T) {
 	ctx := context.Background()
 	reelID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()
-	author := models.PostAuthor{ID: userID.Hex()}
 
 	before := time.Now()
 
@@ -636,7 +626,7 @@ func TestAddComment_SetsCreatedAt(t *testing.T) {
 		return !c.CreatedAt.IsZero() && c.CreatedAt.After(before.Add(-time.Second))
 	})).Return(nil)
 
-	comment, err := svc.AddComment(ctx, reelID, userID, "Test", author, nil)
+	comment, err := svc.AddComment(ctx, reelID, userID, "Test", nil)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)

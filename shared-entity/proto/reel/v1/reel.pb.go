@@ -302,6 +302,886 @@ func (x *GetReelsFeedResponse) GetReels() []*Reel {
 	return nil
 }
 
+type CreateReelRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // Used for context validtion
+	VideoUrl       string                 `protobuf:"bytes,2,opt,name=video_url,json=videoUrl,proto3" json:"video_url,omitempty"`
+	ThumbnailUrl   string                 `protobuf:"bytes,3,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
+	Caption        string                 `protobuf:"bytes,4,opt,name=caption,proto3" json:"caption,omitempty"`
+	Duration       float64                `protobuf:"fixed64,5,opt,name=duration,proto3" json:"duration,omitempty"`
+	Privacy        string                 `protobuf:"bytes,6,opt,name=privacy,proto3" json:"privacy,omitempty"`
+	AllowedViewers []string               `protobuf:"bytes,7,rep,name=allowed_viewers,json=allowedViewers,proto3" json:"allowed_viewers,omitempty"`
+	BlockedViewers []string               `protobuf:"bytes,8,rep,name=blocked_viewers,json=blockedViewers,proto3" json:"blocked_viewers,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CreateReelRequest) Reset() {
+	*x = CreateReelRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateReelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateReelRequest) ProtoMessage() {}
+
+func (x *CreateReelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateReelRequest.ProtoReflect.Descriptor instead.
+func (*CreateReelRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CreateReelRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CreateReelRequest) GetVideoUrl() string {
+	if x != nil {
+		return x.VideoUrl
+	}
+	return ""
+}
+
+func (x *CreateReelRequest) GetThumbnailUrl() string {
+	if x != nil {
+		return x.ThumbnailUrl
+	}
+	return ""
+}
+
+func (x *CreateReelRequest) GetCaption() string {
+	if x != nil {
+		return x.Caption
+	}
+	return ""
+}
+
+func (x *CreateReelRequest) GetDuration() float64 {
+	if x != nil {
+		return x.Duration
+	}
+	return 0
+}
+
+func (x *CreateReelRequest) GetPrivacy() string {
+	if x != nil {
+		return x.Privacy
+	}
+	return ""
+}
+
+func (x *CreateReelRequest) GetAllowedViewers() []string {
+	if x != nil {
+		return x.AllowedViewers
+	}
+	return nil
+}
+
+func (x *CreateReelRequest) GetBlockedViewers() []string {
+	if x != nil {
+		return x.BlockedViewers
+	}
+	return nil
+}
+
+type CreateReelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reel          *Reel                  `protobuf:"bytes,1,opt,name=reel,proto3" json:"reel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateReelResponse) Reset() {
+	*x = CreateReelResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateReelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateReelResponse) ProtoMessage() {}
+
+func (x *CreateReelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateReelResponse.ProtoReflect.Descriptor instead.
+func (*CreateReelResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CreateReelResponse) GetReel() *Reel {
+	if x != nil {
+		return x.Reel
+	}
+	return nil
+}
+
+type DeleteReelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReelId        string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteReelRequest) Reset() {
+	*x = DeleteReelRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteReelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteReelRequest) ProtoMessage() {}
+
+func (x *DeleteReelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteReelRequest.ProtoReflect.Descriptor instead.
+func (*DeleteReelRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DeleteReelRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *DeleteReelRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type DeleteReelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteReelResponse) Reset() {
+	*x = DeleteReelResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteReelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteReelResponse) ProtoMessage() {}
+
+func (x *DeleteReelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteReelResponse.ProtoReflect.Descriptor instead.
+func (*DeleteReelResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteReelResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type AddCommentRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	ReelId           string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	UserId           string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Content          string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	ExplicitMentions []string               `protobuf:"bytes,4,rep,name=explicit_mentions,json=explicitMentions,proto3" json:"explicit_mentions,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *AddCommentRequest) Reset() {
+	*x = AddCommentRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddCommentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddCommentRequest) ProtoMessage() {}
+
+func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddCommentRequest.ProtoReflect.Descriptor instead.
+func (*AddCommentRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AddCommentRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *AddCommentRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AddCommentRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *AddCommentRequest) GetExplicitMentions() []string {
+	if x != nil {
+		return x.ExplicitMentions
+	}
+	return nil
+}
+
+type AddCommentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Comment       *Comment               `protobuf:"bytes,1,opt,name=comment,proto3" json:"comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddCommentResponse) Reset() {
+	*x = AddCommentResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddCommentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddCommentResponse) ProtoMessage() {}
+
+func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddCommentResponse.ProtoReflect.Descriptor instead.
+func (*AddCommentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AddCommentResponse) GetComment() *Comment {
+	if x != nil {
+		return x.Comment
+	}
+	return nil
+}
+
+type AddReplyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReelId        string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	CommentId     string                 `protobuf:"bytes,2,opt,name=comment_id,json=commentId,proto3" json:"comment_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddReplyRequest) Reset() {
+	*x = AddReplyRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddReplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddReplyRequest) ProtoMessage() {}
+
+func (x *AddReplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddReplyRequest.ProtoReflect.Descriptor instead.
+func (*AddReplyRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AddReplyRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *AddReplyRequest) GetCommentId() string {
+	if x != nil {
+		return x.CommentId
+	}
+	return ""
+}
+
+func (x *AddReplyRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AddReplyRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type AddReplyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reply         *Reply                 `protobuf:"bytes,1,opt,name=reply,proto3" json:"reply,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddReplyResponse) Reset() {
+	*x = AddReplyResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddReplyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddReplyResponse) ProtoMessage() {}
+
+func (x *AddReplyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddReplyResponse.ProtoReflect.Descriptor instead.
+func (*AddReplyResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AddReplyResponse) GetReply() *Reply {
+	if x != nil {
+		return x.Reply
+	}
+	return nil
+}
+
+type ReactToCommentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReelId        string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	CommentId     string                 `protobuf:"bytes,2,opt,name=comment_id,json=commentId,proto3" json:"comment_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ReactionType  string                 `protobuf:"bytes,4,opt,name=reaction_type,json=reactionType,proto3" json:"reaction_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReactToCommentRequest) Reset() {
+	*x = ReactToCommentRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReactToCommentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReactToCommentRequest) ProtoMessage() {}
+
+func (x *ReactToCommentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReactToCommentRequest.ProtoReflect.Descriptor instead.
+func (*ReactToCommentRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ReactToCommentRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *ReactToCommentRequest) GetCommentId() string {
+	if x != nil {
+		return x.CommentId
+	}
+	return ""
+}
+
+func (x *ReactToCommentRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ReactToCommentRequest) GetReactionType() string {
+	if x != nil {
+		return x.ReactionType
+	}
+	return ""
+}
+
+type ReactToCommentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReactToCommentResponse) Reset() {
+	*x = ReactToCommentResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReactToCommentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReactToCommentResponse) ProtoMessage() {}
+
+func (x *ReactToCommentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReactToCommentResponse.ProtoReflect.Descriptor instead.
+func (*ReactToCommentResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ReactToCommentResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ReactToReelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReelId        string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ReactionType  string                 `protobuf:"bytes,3,opt,name=reaction_type,json=reactionType,proto3" json:"reaction_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReactToReelRequest) Reset() {
+	*x = ReactToReelRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReactToReelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReactToReelRequest) ProtoMessage() {}
+
+func (x *ReactToReelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReactToReelRequest.ProtoReflect.Descriptor instead.
+func (*ReactToReelRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ReactToReelRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *ReactToReelRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ReactToReelRequest) GetReactionType() string {
+	if x != nil {
+		return x.ReactionType
+	}
+	return ""
+}
+
+type ReactToReelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReactToReelResponse) Reset() {
+	*x = ReactToReelResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReactToReelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReactToReelResponse) ProtoMessage() {}
+
+func (x *ReactToReelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReactToReelResponse.ProtoReflect.Descriptor instead.
+func (*ReactToReelResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ReactToReelResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type GetCommentsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReelId        string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int64                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCommentsRequest) Reset() {
+	*x = GetCommentsRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCommentsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCommentsRequest) ProtoMessage() {}
+
+func (x *GetCommentsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCommentsRequest.ProtoReflect.Descriptor instead.
+func (*GetCommentsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetCommentsRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *GetCommentsRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GetCommentsRequest) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type GetCommentsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Comments      []*Comment             `protobuf:"bytes,1,rep,name=comments,proto3" json:"comments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCommentsResponse) Reset() {
+	*x = GetCommentsResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCommentsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCommentsResponse) ProtoMessage() {}
+
+func (x *GetCommentsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCommentsResponse.ProtoReflect.Descriptor instead.
+func (*GetCommentsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetCommentsResponse) GetComments() []*Comment {
+	if x != nil {
+		return x.Comments
+	}
+	return nil
+}
+
+type IncrementViewRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReelId        string                 `protobuf:"bytes,1,opt,name=reel_id,json=reelId,proto3" json:"reel_id,omitempty"`
+	ViewerId      string                 `protobuf:"bytes,2,opt,name=viewer_id,json=viewerId,proto3" json:"viewer_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncrementViewRequest) Reset() {
+	*x = IncrementViewRequest{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncrementViewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncrementViewRequest) ProtoMessage() {}
+
+func (x *IncrementViewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncrementViewRequest.ProtoReflect.Descriptor instead.
+func (*IncrementViewRequest) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *IncrementViewRequest) GetReelId() string {
+	if x != nil {
+		return x.ReelId
+	}
+	return ""
+}
+
+func (x *IncrementViewRequest) GetViewerId() string {
+	if x != nil {
+		return x.ViewerId
+	}
+	return ""
+}
+
+type IncrementViewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncrementViewResponse) Reset() {
+	*x = IncrementViewResponse{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncrementViewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncrementViewResponse) ProtoMessage() {}
+
+func (x *IncrementViewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncrementViewResponse.ProtoReflect.Descriptor instead.
+func (*IncrementViewResponse) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *IncrementViewResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 type Reel struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -323,7 +1203,7 @@ type Reel struct {
 
 func (x *Reel) Reset() {
 	*x = Reel{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[6]
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -335,7 +1215,7 @@ func (x *Reel) String() string {
 func (*Reel) ProtoMessage() {}
 
 func (x *Reel) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[6]
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -348,7 +1228,7 @@ func (x *Reel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reel.ProtoReflect.Descriptor instead.
 func (*Reel) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{6}
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Reel) GetId() string {
@@ -442,6 +1322,230 @@ func (x *Reel) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type Comment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Author        *Author                `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	Mentions      []string               `protobuf:"bytes,5,rep,name=mentions,proto3" json:"mentions,omitempty"` // User IDs
+	LikeCount     int64                  `protobuf:"varint,6,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
+	ReplyCount    int64                  `protobuf:"varint,7,opt,name=reply_count,json=replyCount,proto3" json:"reply_count,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Replies       []*Reply               `protobuf:"bytes,10,rep,name=replies,proto3" json:"replies,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Comment) Reset() {
+	*x = Comment{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Comment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Comment) ProtoMessage() {}
+
+func (x *Comment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Comment.ProtoReflect.Descriptor instead.
+func (*Comment) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *Comment) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Comment) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *Comment) GetAuthor() *Author {
+	if x != nil {
+		return x.Author
+	}
+	return nil
+}
+
+func (x *Comment) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *Comment) GetMentions() []string {
+	if x != nil {
+		return x.Mentions
+	}
+	return nil
+}
+
+func (x *Comment) GetLikeCount() int64 {
+	if x != nil {
+		return x.LikeCount
+	}
+	return 0
+}
+
+func (x *Comment) GetReplyCount() int64 {
+	if x != nil {
+		return x.ReplyCount
+	}
+	return 0
+}
+
+func (x *Comment) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Comment) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *Comment) GetReplies() []*Reply {
+	if x != nil {
+		return x.Replies
+	}
+	return nil
+}
+
+type Reply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CommentId     string                 `protobuf:"bytes,2,opt,name=comment_id,json=commentId,proto3" json:"comment_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Author        *Author                `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
+	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	Mentions      []string               `protobuf:"bytes,6,rep,name=mentions,proto3" json:"mentions,omitempty"`
+	LikeCount     int64                  `protobuf:"varint,7,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Reply) Reset() {
+	*x = Reply{}
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Reply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Reply) ProtoMessage() {}
+
+func (x *Reply) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Reply.ProtoReflect.Descriptor instead.
+func (*Reply) Descriptor() ([]byte, []int) {
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *Reply) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Reply) GetCommentId() string {
+	if x != nil {
+		return x.CommentId
+	}
+	return ""
+}
+
+func (x *Reply) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *Reply) GetAuthor() *Author {
+	if x != nil {
+		return x.Author
+	}
+	return nil
+}
+
+func (x *Reply) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *Reply) GetMentions() []string {
+	if x != nil {
+		return x.Mentions
+	}
+	return nil
+}
+
+func (x *Reply) GetLikeCount() int64 {
+	if x != nil {
+		return x.LikeCount
+	}
+	return 0
+}
+
+func (x *Reply) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Reply) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
 type Author struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -454,7 +1558,7 @@ type Author struct {
 
 func (x *Author) Reset() {
 	*x = Author{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[7]
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -466,7 +1570,7 @@ func (x *Author) String() string {
 func (*Author) ProtoMessage() {}
 
 func (x *Author) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[7]
+	mi := &file_proto_reel_v1_reel_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -479,7 +1583,7 @@ func (x *Author) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Author.ProtoReflect.Descriptor instead.
 func (*Author) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{7}
+	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Author) GetId() string {
@@ -528,7 +1632,63 @@ const file_proto_reel_v1_reel_proto_rawDesc = "" +
 	"\x05limit\x18\x02 \x01(\x03R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x03 \x01(\x03R\x06offset\";\n" +
 	"\x14GetReelsFeedResponse\x12#\n" +
-	"\x05reels\x18\x01 \x03(\v2\r.reel.v1.ReelR\x05reels\"\xa8\x03\n" +
+	"\x05reels\x18\x01 \x03(\v2\r.reel.v1.ReelR\x05reels\"\x90\x02\n" +
+	"\x11CreateReelRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tvideo_url\x18\x02 \x01(\tR\bvideoUrl\x12#\n" +
+	"\rthumbnail_url\x18\x03 \x01(\tR\fthumbnailUrl\x12\x18\n" +
+	"\acaption\x18\x04 \x01(\tR\acaption\x12\x1a\n" +
+	"\bduration\x18\x05 \x01(\x01R\bduration\x12\x18\n" +
+	"\aprivacy\x18\x06 \x01(\tR\aprivacy\x12'\n" +
+	"\x0fallowed_viewers\x18\a \x03(\tR\x0eallowedViewers\x12'\n" +
+	"\x0fblocked_viewers\x18\b \x03(\tR\x0eblockedViewers\"7\n" +
+	"\x12CreateReelResponse\x12!\n" +
+	"\x04reel\x18\x01 \x01(\v2\r.reel.v1.ReelR\x04reel\"E\n" +
+	"\x11DeleteReelRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\".\n" +
+	"\x12DeleteReelResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x8c\x01\n" +
+	"\x11AddCommentRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\x12+\n" +
+	"\x11explicit_mentions\x18\x04 \x03(\tR\x10explicitMentions\"@\n" +
+	"\x12AddCommentResponse\x12*\n" +
+	"\acomment\x18\x01 \x01(\v2\x10.reel.v1.CommentR\acomment\"|\n" +
+	"\x0fAddReplyRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x1d\n" +
+	"\n" +
+	"comment_id\x18\x02 \x01(\tR\tcommentId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\"8\n" +
+	"\x10AddReplyResponse\x12$\n" +
+	"\x05reply\x18\x01 \x01(\v2\x0e.reel.v1.ReplyR\x05reply\"\x8d\x01\n" +
+	"\x15ReactToCommentRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x1d\n" +
+	"\n" +
+	"comment_id\x18\x02 \x01(\tR\tcommentId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
+	"\rreaction_type\x18\x04 \x01(\tR\freactionType\"2\n" +
+	"\x16ReactToCommentResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"k\n" +
+	"\x12ReactToReelRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12#\n" +
+	"\rreaction_type\x18\x03 \x01(\tR\freactionType\"/\n" +
+	"\x13ReactToReelResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"[\n" +
+	"\x12GetCommentsRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x03R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x03R\x06offset\"C\n" +
+	"\x13GetCommentsResponse\x12,\n" +
+	"\bcomments\x18\x01 \x03(\v2\x10.reel.v1.CommentR\bcomments\"L\n" +
+	"\x14IncrementViewRequest\x12\x17\n" +
+	"\areel_id\x18\x01 \x01(\tR\x06reelId\x12\x1b\n" +
+	"\tviewer_id\x18\x02 \x01(\tR\bviewerId\"1\n" +
+	"\x15IncrementViewResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xa8\x03\n" +
 	"\x04Reel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
@@ -545,16 +1705,57 @@ const file_proto_reel_v1_reel_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"i\n" +
+	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xf1\x02\n" +
+	"\aComment\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12'\n" +
+	"\x06author\x18\x03 \x01(\v2\x0f.reel.v1.AuthorR\x06author\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x12\x1a\n" +
+	"\bmentions\x18\x05 \x03(\tR\bmentions\x12\x1d\n" +
+	"\n" +
+	"like_count\x18\x06 \x01(\x03R\tlikeCount\x12\x1f\n" +
+	"\vreply_count\x18\a \x01(\x03R\n" +
+	"replyCount\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12(\n" +
+	"\areplies\x18\n" +
+	" \x03(\v2\x0e.reel.v1.ReplyR\areplies\"\xc3\x02\n" +
+	"\x05Reply\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"comment_id\x18\x02 \x01(\tR\tcommentId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12'\n" +
+	"\x06author\x18\x04 \x01(\v2\x0f.reel.v1.AuthorR\x06author\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\tR\acontent\x12\x1a\n" +
+	"\bmentions\x18\x06 \x03(\tR\bmentions\x12\x1d\n" +
+	"\n" +
+	"like_count\x18\a \x01(\x03R\tlikeCount\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"i\n" +
 	"\x06Author\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x16\n" +
 	"\x06avatar\x18\x03 \x01(\tR\x06avatar\x12\x1b\n" +
-	"\tfull_name\x18\x04 \x01(\tR\bfullName2\xe5\x01\n" +
+	"\tfull_name\x18\x04 \x01(\tR\bfullName2\xb2\x06\n" +
 	"\vReelService\x12<\n" +
 	"\aGetReel\x12\x17.reel.v1.GetReelRequest\x1a\x18.reel.v1.GetReelResponse\x12K\n" +
 	"\fGetUserReels\x12\x1c.reel.v1.GetUserReelsRequest\x1a\x1d.reel.v1.GetUserReelsResponse\x12K\n" +
-	"\fGetReelsFeed\x12\x1c.reel.v1.GetReelsFeedRequest\x1a\x1d.reel.v1.GetReelsFeedResponseBHZFgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/reel/v1;reelpbb\x06proto3"
+	"\fGetReelsFeed\x12\x1c.reel.v1.GetReelsFeedRequest\x1a\x1d.reel.v1.GetReelsFeedResponse\x12E\n" +
+	"\n" +
+	"CreateReel\x12\x1a.reel.v1.CreateReelRequest\x1a\x1b.reel.v1.CreateReelResponse\x12E\n" +
+	"\n" +
+	"DeleteReel\x12\x1a.reel.v1.DeleteReelRequest\x1a\x1b.reel.v1.DeleteReelResponse\x12E\n" +
+	"\n" +
+	"AddComment\x12\x1a.reel.v1.AddCommentRequest\x1a\x1b.reel.v1.AddCommentResponse\x12?\n" +
+	"\bAddReply\x12\x18.reel.v1.AddReplyRequest\x1a\x19.reel.v1.AddReplyResponse\x12Q\n" +
+	"\x0eReactToComment\x12\x1e.reel.v1.ReactToCommentRequest\x1a\x1f.reel.v1.ReactToCommentResponse\x12N\n" +
+	"\rIncrementView\x12\x1d.reel.v1.IncrementViewRequest\x1a\x1e.reel.v1.IncrementViewResponse\x12H\n" +
+	"\vReactToReel\x12\x1b.reel.v1.ReactToReelRequest\x1a\x1c.reel.v1.ReactToReelResponse\x12H\n" +
+	"\vGetComments\x12\x1b.reel.v1.GetCommentsRequest\x1a\x1c.reel.v1.GetCommentsResponseBHZFgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/reel/v1;reelpbb\x06proto3"
 
 var (
 	file_proto_reel_v1_reel_proto_rawDescOnce sync.Once
@@ -568,36 +1769,81 @@ func file_proto_reel_v1_reel_proto_rawDescGZIP() []byte {
 	return file_proto_reel_v1_reel_proto_rawDescData
 }
 
-var file_proto_reel_v1_reel_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_reel_v1_reel_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_proto_reel_v1_reel_proto_goTypes = []any{
-	(*GetReelRequest)(nil),        // 0: reel.v1.GetReelRequest
-	(*GetReelResponse)(nil),       // 1: reel.v1.GetReelResponse
-	(*GetUserReelsRequest)(nil),   // 2: reel.v1.GetUserReelsRequest
-	(*GetUserReelsResponse)(nil),  // 3: reel.v1.GetUserReelsResponse
-	(*GetReelsFeedRequest)(nil),   // 4: reel.v1.GetReelsFeedRequest
-	(*GetReelsFeedResponse)(nil),  // 5: reel.v1.GetReelsFeedResponse
-	(*Reel)(nil),                  // 6: reel.v1.Reel
-	(*Author)(nil),                // 7: reel.v1.Author
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*GetReelRequest)(nil),         // 0: reel.v1.GetReelRequest
+	(*GetReelResponse)(nil),        // 1: reel.v1.GetReelResponse
+	(*GetUserReelsRequest)(nil),    // 2: reel.v1.GetUserReelsRequest
+	(*GetUserReelsResponse)(nil),   // 3: reel.v1.GetUserReelsResponse
+	(*GetReelsFeedRequest)(nil),    // 4: reel.v1.GetReelsFeedRequest
+	(*GetReelsFeedResponse)(nil),   // 5: reel.v1.GetReelsFeedResponse
+	(*CreateReelRequest)(nil),      // 6: reel.v1.CreateReelRequest
+	(*CreateReelResponse)(nil),     // 7: reel.v1.CreateReelResponse
+	(*DeleteReelRequest)(nil),      // 8: reel.v1.DeleteReelRequest
+	(*DeleteReelResponse)(nil),     // 9: reel.v1.DeleteReelResponse
+	(*AddCommentRequest)(nil),      // 10: reel.v1.AddCommentRequest
+	(*AddCommentResponse)(nil),     // 11: reel.v1.AddCommentResponse
+	(*AddReplyRequest)(nil),        // 12: reel.v1.AddReplyRequest
+	(*AddReplyResponse)(nil),       // 13: reel.v1.AddReplyResponse
+	(*ReactToCommentRequest)(nil),  // 14: reel.v1.ReactToCommentRequest
+	(*ReactToCommentResponse)(nil), // 15: reel.v1.ReactToCommentResponse
+	(*ReactToReelRequest)(nil),     // 16: reel.v1.ReactToReelRequest
+	(*ReactToReelResponse)(nil),    // 17: reel.v1.ReactToReelResponse
+	(*GetCommentsRequest)(nil),     // 18: reel.v1.GetCommentsRequest
+	(*GetCommentsResponse)(nil),    // 19: reel.v1.GetCommentsResponse
+	(*IncrementViewRequest)(nil),   // 20: reel.v1.IncrementViewRequest
+	(*IncrementViewResponse)(nil),  // 21: reel.v1.IncrementViewResponse
+	(*Reel)(nil),                   // 22: reel.v1.Reel
+	(*Comment)(nil),                // 23: reel.v1.Comment
+	(*Reply)(nil),                  // 24: reel.v1.Reply
+	(*Author)(nil),                 // 25: reel.v1.Author
+	(*timestamppb.Timestamp)(nil),  // 26: google.protobuf.Timestamp
 }
 var file_proto_reel_v1_reel_proto_depIdxs = []int32{
-	6, // 0: reel.v1.GetReelResponse.reel:type_name -> reel.v1.Reel
-	6, // 1: reel.v1.GetUserReelsResponse.reels:type_name -> reel.v1.Reel
-	6, // 2: reel.v1.GetReelsFeedResponse.reels:type_name -> reel.v1.Reel
-	7, // 3: reel.v1.Reel.author:type_name -> reel.v1.Author
-	8, // 4: reel.v1.Reel.created_at:type_name -> google.protobuf.Timestamp
-	8, // 5: reel.v1.Reel.updated_at:type_name -> google.protobuf.Timestamp
-	0, // 6: reel.v1.ReelService.GetReel:input_type -> reel.v1.GetReelRequest
-	2, // 7: reel.v1.ReelService.GetUserReels:input_type -> reel.v1.GetUserReelsRequest
-	4, // 8: reel.v1.ReelService.GetReelsFeed:input_type -> reel.v1.GetReelsFeedRequest
-	1, // 9: reel.v1.ReelService.GetReel:output_type -> reel.v1.GetReelResponse
-	3, // 10: reel.v1.ReelService.GetUserReels:output_type -> reel.v1.GetUserReelsResponse
-	5, // 11: reel.v1.ReelService.GetReelsFeed:output_type -> reel.v1.GetReelsFeedResponse
-	9, // [9:12] is the sub-list for method output_type
-	6, // [6:9] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	22, // 0: reel.v1.GetReelResponse.reel:type_name -> reel.v1.Reel
+	22, // 1: reel.v1.GetUserReelsResponse.reels:type_name -> reel.v1.Reel
+	22, // 2: reel.v1.GetReelsFeedResponse.reels:type_name -> reel.v1.Reel
+	22, // 3: reel.v1.CreateReelResponse.reel:type_name -> reel.v1.Reel
+	23, // 4: reel.v1.AddCommentResponse.comment:type_name -> reel.v1.Comment
+	24, // 5: reel.v1.AddReplyResponse.reply:type_name -> reel.v1.Reply
+	23, // 6: reel.v1.GetCommentsResponse.comments:type_name -> reel.v1.Comment
+	25, // 7: reel.v1.Reel.author:type_name -> reel.v1.Author
+	26, // 8: reel.v1.Reel.created_at:type_name -> google.protobuf.Timestamp
+	26, // 9: reel.v1.Reel.updated_at:type_name -> google.protobuf.Timestamp
+	25, // 10: reel.v1.Comment.author:type_name -> reel.v1.Author
+	26, // 11: reel.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
+	26, // 12: reel.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
+	24, // 13: reel.v1.Comment.replies:type_name -> reel.v1.Reply
+	25, // 14: reel.v1.Reply.author:type_name -> reel.v1.Author
+	26, // 15: reel.v1.Reply.created_at:type_name -> google.protobuf.Timestamp
+	26, // 16: reel.v1.Reply.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 17: reel.v1.ReelService.GetReel:input_type -> reel.v1.GetReelRequest
+	2,  // 18: reel.v1.ReelService.GetUserReels:input_type -> reel.v1.GetUserReelsRequest
+	4,  // 19: reel.v1.ReelService.GetReelsFeed:input_type -> reel.v1.GetReelsFeedRequest
+	6,  // 20: reel.v1.ReelService.CreateReel:input_type -> reel.v1.CreateReelRequest
+	8,  // 21: reel.v1.ReelService.DeleteReel:input_type -> reel.v1.DeleteReelRequest
+	10, // 22: reel.v1.ReelService.AddComment:input_type -> reel.v1.AddCommentRequest
+	12, // 23: reel.v1.ReelService.AddReply:input_type -> reel.v1.AddReplyRequest
+	14, // 24: reel.v1.ReelService.ReactToComment:input_type -> reel.v1.ReactToCommentRequest
+	20, // 25: reel.v1.ReelService.IncrementView:input_type -> reel.v1.IncrementViewRequest
+	16, // 26: reel.v1.ReelService.ReactToReel:input_type -> reel.v1.ReactToReelRequest
+	18, // 27: reel.v1.ReelService.GetComments:input_type -> reel.v1.GetCommentsRequest
+	1,  // 28: reel.v1.ReelService.GetReel:output_type -> reel.v1.GetReelResponse
+	3,  // 29: reel.v1.ReelService.GetUserReels:output_type -> reel.v1.GetUserReelsResponse
+	5,  // 30: reel.v1.ReelService.GetReelsFeed:output_type -> reel.v1.GetReelsFeedResponse
+	7,  // 31: reel.v1.ReelService.CreateReel:output_type -> reel.v1.CreateReelResponse
+	9,  // 32: reel.v1.ReelService.DeleteReel:output_type -> reel.v1.DeleteReelResponse
+	11, // 33: reel.v1.ReelService.AddComment:output_type -> reel.v1.AddCommentResponse
+	13, // 34: reel.v1.ReelService.AddReply:output_type -> reel.v1.AddReplyResponse
+	15, // 35: reel.v1.ReelService.ReactToComment:output_type -> reel.v1.ReactToCommentResponse
+	21, // 36: reel.v1.ReelService.IncrementView:output_type -> reel.v1.IncrementViewResponse
+	17, // 37: reel.v1.ReelService.ReactToReel:output_type -> reel.v1.ReactToReelResponse
+	19, // 38: reel.v1.ReelService.GetComments:output_type -> reel.v1.GetCommentsResponse
+	28, // [28:39] is the sub-list for method output_type
+	17, // [17:28] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_proto_reel_v1_reel_proto_init() }
@@ -611,7 +1857,7 @@ func file_proto_reel_v1_reel_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_reel_v1_reel_proto_rawDesc), len(file_proto_reel_v1_reel_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -10,6 +10,14 @@ service ReelService {
   rpc GetReel(GetReelRequest) returns (GetReelResponse);
   rpc GetUserReels(GetUserReelsRequest) returns (GetUserReelsResponse);
   rpc GetReelsFeed(GetReelsFeedRequest) returns (GetReelsFeedResponse);
+  rpc CreateReel(CreateReelRequest) returns (CreateReelResponse);
+  rpc DeleteReel(DeleteReelRequest) returns (DeleteReelResponse);
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+  rpc AddReply(AddReplyRequest) returns (AddReplyResponse);
+  rpc ReactToComment(ReactToCommentRequest) returns (ReactToCommentResponse);
+  rpc IncrementView(IncrementViewRequest) returns (IncrementViewResponse);
+  rpc ReactToReel(ReactToReelRequest) returns (ReactToReelResponse);
+  rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
 }
 
 message GetReelRequest {
@@ -38,6 +46,92 @@ message GetReelsFeedResponse {
   repeated Reel reels = 1;
 }
 
+message CreateReelRequest {
+  string user_id = 1; // Used for context validtion
+  string video_url = 2;
+  string thumbnail_url = 3;
+  string caption = 4;
+  double duration = 5;
+  string privacy = 6;
+  repeated string allowed_viewers = 7;
+  repeated string blocked_viewers = 8;
+}
+
+message CreateReelResponse {
+  Reel reel = 1;
+}
+
+message DeleteReelRequest {
+  string reel_id = 1;
+  string user_id = 2;
+}
+
+message DeleteReelResponse {
+  bool success = 1;
+}
+
+message AddCommentRequest {
+  string reel_id = 1;
+  string user_id = 2;
+  string content = 3;
+  repeated string explicit_mentions = 4;
+}
+
+message AddCommentResponse {
+  Comment comment = 1;
+}
+
+message AddReplyRequest {
+  string reel_id = 1;
+  string comment_id = 2;
+  string user_id = 3;
+  string content = 4;
+}
+
+message AddReplyResponse {
+  Reply reply = 1;
+}
+
+message ReactToCommentRequest {
+  string reel_id = 1;
+  string comment_id = 2;
+  string user_id = 3;
+  string reaction_type = 4;
+}
+
+message ReactToCommentResponse {
+  bool success = 1;
+}
+
+message ReactToReelRequest {
+  string reel_id = 1;
+  string user_id = 2;
+  string reaction_type = 3;
+}
+
+message ReactToReelResponse {
+  bool success = 1;
+}
+
+message GetCommentsRequest {
+  string reel_id = 1;
+  int64 limit = 2;
+  int64 offset = 3;
+}
+
+message GetCommentsResponse {
+  repeated Comment comments = 1;
+}
+
+message IncrementViewRequest {
+  string reel_id = 1;
+  string viewer_id = 2;
+}
+
+message IncrementViewResponse {
+  bool success = 1;
+}
+
 message Reel {
   string id = 1;
   string user_id = 2;
@@ -52,6 +146,31 @@ message Reel {
   Author author = 11;
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp updated_at = 13;
+}
+
+message Comment {
+  string id = 1;
+  string user_id = 2;
+  Author author = 3;
+  string content = 4;
+  repeated string mentions = 5; // User IDs
+  int64 like_count = 6;
+  int64 reply_count = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  repeated Reply replies = 10;
+}
+
+message Reply {
+  string id = 1;
+  string comment_id = 2;
+  string user_id = 3;
+  Author author = 4;
+  string content = 5;
+  repeated string mentions = 6;
+  int64 like_count = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
 }
 
 message Author {

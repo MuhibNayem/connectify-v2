@@ -19,9 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ReelService_GetReel_FullMethodName      = "/reel.v1.ReelService/GetReel"
-	ReelService_GetUserReels_FullMethodName = "/reel.v1.ReelService/GetUserReels"
-	ReelService_GetReelsFeed_FullMethodName = "/reel.v1.ReelService/GetReelsFeed"
+	ReelService_GetReel_FullMethodName        = "/reel.v1.ReelService/GetReel"
+	ReelService_GetUserReels_FullMethodName   = "/reel.v1.ReelService/GetUserReels"
+	ReelService_GetReelsFeed_FullMethodName   = "/reel.v1.ReelService/GetReelsFeed"
+	ReelService_CreateReel_FullMethodName     = "/reel.v1.ReelService/CreateReel"
+	ReelService_DeleteReel_FullMethodName     = "/reel.v1.ReelService/DeleteReel"
+	ReelService_AddComment_FullMethodName     = "/reel.v1.ReelService/AddComment"
+	ReelService_AddReply_FullMethodName       = "/reel.v1.ReelService/AddReply"
+	ReelService_ReactToComment_FullMethodName = "/reel.v1.ReelService/ReactToComment"
+	ReelService_IncrementView_FullMethodName  = "/reel.v1.ReelService/IncrementView"
+	ReelService_ReactToReel_FullMethodName    = "/reel.v1.ReelService/ReactToReel"
+	ReelService_GetComments_FullMethodName    = "/reel.v1.ReelService/GetComments"
 )
 
 // ReelServiceClient is the client API for ReelService service.
@@ -31,6 +39,14 @@ type ReelServiceClient interface {
 	GetReel(ctx context.Context, in *GetReelRequest, opts ...grpc.CallOption) (*GetReelResponse, error)
 	GetUserReels(ctx context.Context, in *GetUserReelsRequest, opts ...grpc.CallOption) (*GetUserReelsResponse, error)
 	GetReelsFeed(ctx context.Context, in *GetReelsFeedRequest, opts ...grpc.CallOption) (*GetReelsFeedResponse, error)
+	CreateReel(ctx context.Context, in *CreateReelRequest, opts ...grpc.CallOption) (*CreateReelResponse, error)
+	DeleteReel(ctx context.Context, in *DeleteReelRequest, opts ...grpc.CallOption) (*DeleteReelResponse, error)
+	AddComment(ctx context.Context, in *AddCommentRequest, opts ...grpc.CallOption) (*AddCommentResponse, error)
+	AddReply(ctx context.Context, in *AddReplyRequest, opts ...grpc.CallOption) (*AddReplyResponse, error)
+	ReactToComment(ctx context.Context, in *ReactToCommentRequest, opts ...grpc.CallOption) (*ReactToCommentResponse, error)
+	IncrementView(ctx context.Context, in *IncrementViewRequest, opts ...grpc.CallOption) (*IncrementViewResponse, error)
+	ReactToReel(ctx context.Context, in *ReactToReelRequest, opts ...grpc.CallOption) (*ReactToReelResponse, error)
+	GetComments(ctx context.Context, in *GetCommentsRequest, opts ...grpc.CallOption) (*GetCommentsResponse, error)
 }
 
 type reelServiceClient struct {
@@ -71,6 +87,86 @@ func (c *reelServiceClient) GetReelsFeed(ctx context.Context, in *GetReelsFeedRe
 	return out, nil
 }
 
+func (c *reelServiceClient) CreateReel(ctx context.Context, in *CreateReelRequest, opts ...grpc.CallOption) (*CreateReelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateReelResponse)
+	err := c.cc.Invoke(ctx, ReelService_CreateReel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) DeleteReel(ctx context.Context, in *DeleteReelRequest, opts ...grpc.CallOption) (*DeleteReelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteReelResponse)
+	err := c.cc.Invoke(ctx, ReelService_DeleteReel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) AddComment(ctx context.Context, in *AddCommentRequest, opts ...grpc.CallOption) (*AddCommentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddCommentResponse)
+	err := c.cc.Invoke(ctx, ReelService_AddComment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) AddReply(ctx context.Context, in *AddReplyRequest, opts ...grpc.CallOption) (*AddReplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddReplyResponse)
+	err := c.cc.Invoke(ctx, ReelService_AddReply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) ReactToComment(ctx context.Context, in *ReactToCommentRequest, opts ...grpc.CallOption) (*ReactToCommentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReactToCommentResponse)
+	err := c.cc.Invoke(ctx, ReelService_ReactToComment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) IncrementView(ctx context.Context, in *IncrementViewRequest, opts ...grpc.CallOption) (*IncrementViewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IncrementViewResponse)
+	err := c.cc.Invoke(ctx, ReelService_IncrementView_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) ReactToReel(ctx context.Context, in *ReactToReelRequest, opts ...grpc.CallOption) (*ReactToReelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReactToReelResponse)
+	err := c.cc.Invoke(ctx, ReelService_ReactToReel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reelServiceClient) GetComments(ctx context.Context, in *GetCommentsRequest, opts ...grpc.CallOption) (*GetCommentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCommentsResponse)
+	err := c.cc.Invoke(ctx, ReelService_GetComments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReelServiceServer is the server API for ReelService service.
 // All implementations must embed UnimplementedReelServiceServer
 // for forward compatibility.
@@ -78,6 +174,14 @@ type ReelServiceServer interface {
 	GetReel(context.Context, *GetReelRequest) (*GetReelResponse, error)
 	GetUserReels(context.Context, *GetUserReelsRequest) (*GetUserReelsResponse, error)
 	GetReelsFeed(context.Context, *GetReelsFeedRequest) (*GetReelsFeedResponse, error)
+	CreateReel(context.Context, *CreateReelRequest) (*CreateReelResponse, error)
+	DeleteReel(context.Context, *DeleteReelRequest) (*DeleteReelResponse, error)
+	AddComment(context.Context, *AddCommentRequest) (*AddCommentResponse, error)
+	AddReply(context.Context, *AddReplyRequest) (*AddReplyResponse, error)
+	ReactToComment(context.Context, *ReactToCommentRequest) (*ReactToCommentResponse, error)
+	IncrementView(context.Context, *IncrementViewRequest) (*IncrementViewResponse, error)
+	ReactToReel(context.Context, *ReactToReelRequest) (*ReactToReelResponse, error)
+	GetComments(context.Context, *GetCommentsRequest) (*GetCommentsResponse, error)
 	mustEmbedUnimplementedReelServiceServer()
 }
 
@@ -96,6 +200,30 @@ func (UnimplementedReelServiceServer) GetUserReels(context.Context, *GetUserReel
 }
 func (UnimplementedReelServiceServer) GetReelsFeed(context.Context, *GetReelsFeedRequest) (*GetReelsFeedResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetReelsFeed not implemented")
+}
+func (UnimplementedReelServiceServer) CreateReel(context.Context, *CreateReelRequest) (*CreateReelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateReel not implemented")
+}
+func (UnimplementedReelServiceServer) DeleteReel(context.Context, *DeleteReelRequest) (*DeleteReelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteReel not implemented")
+}
+func (UnimplementedReelServiceServer) AddComment(context.Context, *AddCommentRequest) (*AddCommentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddComment not implemented")
+}
+func (UnimplementedReelServiceServer) AddReply(context.Context, *AddReplyRequest) (*AddReplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddReply not implemented")
+}
+func (UnimplementedReelServiceServer) ReactToComment(context.Context, *ReactToCommentRequest) (*ReactToCommentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReactToComment not implemented")
+}
+func (UnimplementedReelServiceServer) IncrementView(context.Context, *IncrementViewRequest) (*IncrementViewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IncrementView not implemented")
+}
+func (UnimplementedReelServiceServer) ReactToReel(context.Context, *ReactToReelRequest) (*ReactToReelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReactToReel not implemented")
+}
+func (UnimplementedReelServiceServer) GetComments(context.Context, *GetCommentsRequest) (*GetCommentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetComments not implemented")
 }
 func (UnimplementedReelServiceServer) mustEmbedUnimplementedReelServiceServer() {}
 func (UnimplementedReelServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +300,150 @@ func _ReelService_GetReelsFeed_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReelService_CreateReel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateReelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).CreateReel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_CreateReel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).CreateReel(ctx, req.(*CreateReelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_DeleteReel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteReelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).DeleteReel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_DeleteReel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).DeleteReel(ctx, req.(*DeleteReelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_AddComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddCommentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).AddComment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_AddComment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).AddComment(ctx, req.(*AddCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_AddReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddReplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).AddReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_AddReply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).AddReply(ctx, req.(*AddReplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_ReactToComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReactToCommentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).ReactToComment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_ReactToComment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).ReactToComment(ctx, req.(*ReactToCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_IncrementView_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IncrementViewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).IncrementView(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_IncrementView_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).IncrementView(ctx, req.(*IncrementViewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_ReactToReel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReactToReelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).ReactToReel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_ReactToReel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).ReactToReel(ctx, req.(*ReactToReelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReelService_GetComments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCommentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReelServiceServer).GetComments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReelService_GetComments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReelServiceServer).GetComments(ctx, req.(*GetCommentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReelService_ServiceDesc is the grpc.ServiceDesc for ReelService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +462,38 @@ var ReelService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetReelsFeed",
 			Handler:    _ReelService_GetReelsFeed_Handler,
+		},
+		{
+			MethodName: "CreateReel",
+			Handler:    _ReelService_CreateReel_Handler,
+		},
+		{
+			MethodName: "DeleteReel",
+			Handler:    _ReelService_DeleteReel_Handler,
+		},
+		{
+			MethodName: "AddComment",
+			Handler:    _ReelService_AddComment_Handler,
+		},
+		{
+			MethodName: "AddReply",
+			Handler:    _ReelService_AddReply_Handler,
+		},
+		{
+			MethodName: "ReactToComment",
+			Handler:    _ReelService_ReactToComment_Handler,
+		},
+		{
+			MethodName: "IncrementView",
+			Handler:    _ReelService_IncrementView_Handler,
+		},
+		{
+			MethodName: "ReactToReel",
+			Handler:    _ReelService_ReactToReel_Handler,
+		},
+		{
+			MethodName: "GetComments",
+			Handler:    _ReelService_GetComments_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

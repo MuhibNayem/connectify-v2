@@ -14,6 +14,7 @@ import (
 	userpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/sync/singleflight"
 )
 
 type ReelRepository interface {
@@ -33,13 +34,14 @@ type ReelRepository interface {
 }
 
 type ReelService struct {
-	reelRepo    ReelRepository
-	broadcaster producer.ReelBroadcaster
-	userClient  userpb.UserServiceClient
-	breaker     *resilience.CircuitBreaker
-	metrics     *metrics.BusinessMetrics
-	logger      *slog.Logger
-	redisClient *redis.ClusterClient
+	reelRepo     ReelRepository
+	broadcaster  producer.ReelBroadcaster
+	userClient   userpb.UserServiceClient
+	breaker      *resilience.CircuitBreaker
+	metrics      *metrics.BusinessMetrics
+	logger       *slog.Logger
+	redisClient  *redis.ClusterClient
+	requestGroup singleflight.Group
 }
 
 func NewReelService(
@@ -65,7 +67,13 @@ func NewReelService(
 	}
 }
 
-func (s *ReelService) CreateReel(ctx context.Context, userID primitive.ObjectID, author models.PostAuthor, req CreateReelRequest) (*models.Reel, error) {
+func (s *ReelService) CreateReel(ctx context.Context, userID primitive.ObjectID, req CreateReelRequest) (*models.Reel, error) {
+	// Fetch author info from user-service
+	author, err := s.resolveAuthor(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolving author: %w", err)
+	}
+
 	if req.VideoURL == "" {
 		return nil, fmt.Errorf("video URL is required")
 	}
@@ -266,7 +274,12 @@ func (s *ReelService) ReactToReel(ctx context.Context, reelID, userID primitive.
 }
 
 // AddComment adds a comment to a reel
-func (s *ReelService) AddComment(ctx context.Context, reelID, userID primitive.ObjectID, content string, author models.PostAuthor, explicitMentions []primitive.ObjectID) (*models.Comment, error) {
+func (s *ReelService) AddComment(ctx context.Context, reelID, userID primitive.ObjectID, content string, explicitMentions []primitive.ObjectID) (*models.Comment, error) {
+	author, err := s.resolveAuthor(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolving author: %w", err)
+	}
+
 	// Parse mentions from content and merge with explicit mentions
 	parsedMentions := s.ParseMentions(ctx, content)
 
@@ -293,7 +306,7 @@ func (s *ReelService) AddComment(ctx context.Context, reelID, userID primitive.O
 		CreatedAt: time.Now(),
 	}
 
-	err := s.reelRepo.AddComment(ctx, reelID, comment)
+	err = s.reelRepo.AddComment(ctx, reelID, comment)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +330,12 @@ func (s *ReelService) GetComments(ctx context.Context, reelID primitive.ObjectID
 }
 
 // AddReply adds a reply to a comment on a reel
-func (s *ReelService) AddReply(ctx context.Context, reelID, commentID, userID primitive.ObjectID, content string, author models.PostAuthor) (*models.Reply, error) {
+func (s *ReelService) AddReply(ctx context.Context, reelID, commentID, userID primitive.ObjectID, content string) (*models.Reply, error) {
+	author, err := s.resolveAuthor(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolving author: %w", err)
+	}
+
 	// Parse mentions from content
 	mentions := s.ParseMentions(ctx, content)
 
@@ -331,7 +349,7 @@ func (s *ReelService) AddReply(ctx context.Context, reelID, commentID, userID pr
 		CreatedAt: time.Now(),
 	}
 
-	err := s.reelRepo.AddReply(ctx, reelID, commentID, reply)
+	err = s.reelRepo.AddReply(ctx, reelID, commentID, reply)
 	if err != nil {
 		return nil, err
 	}
@@ -435,6 +453,35 @@ func splitString(s, sep string) []string {
 		result = append(result, current)
 	}
 	return result
+}
+
+func (s *ReelService) resolveAuthor(ctx context.Context, userID primitive.ObjectID) (models.PostAuthor, error) {
+	if s.userClient == nil {
+		// Fallback for tests or when service is isolated
+		return models.PostAuthor{ID: userID.Hex()}, nil
+	}
+
+	// Use singleflight to deduplicate concurrent requests for the same user
+	val, err, _ := s.requestGroup.Do(userID.Hex(), func() (interface{}, error) {
+		// Check cache? For now just call user service (it has caching)
+		resp, err := s.userClient.GetUser(ctx, &userpb.GetUserRequest{UserId: userID.Hex()})
+		if err != nil {
+			return models.PostAuthor{}, err
+		}
+
+		user := resp.GetUser()
+		return models.PostAuthor{
+			ID:       user.Id,
+			Username: user.Username,
+			Avatar:   user.Avatar,
+			FullName: user.FullName,
+		}, nil
+	})
+
+	if err != nil {
+		return models.PostAuthor{}, err
+	}
+	return val.(models.PostAuthor), nil
 }
 
 type CreateReelRequest struct {

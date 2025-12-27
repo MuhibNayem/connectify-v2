@@ -19,16 +19,16 @@ import (
 )
 
 type ReelService interface {
-	CreateReel(ctx context.Context, userID primitive.ObjectID, author models.PostAuthor, req service.CreateReelRequest) (*models.Reel, error)
+	CreateReel(ctx context.Context, userID primitive.ObjectID, req service.CreateReelRequest) (*models.Reel, error)
 	GetReel(ctx context.Context, reelID primitive.ObjectID) (*models.Reel, error)
 	GetUserReels(ctx context.Context, userID primitive.ObjectID) ([]models.Reel, error)
 	DeleteReel(ctx context.Context, reelID, userID primitive.ObjectID) error
 	GetReelsFeed(ctx context.Context, viewerID primitive.ObjectID, limit, offset int64) ([]models.Reel, error)
 	IncrementViews(ctx context.Context, reelID, viewerID primitive.ObjectID) error
 	ReactToReel(ctx context.Context, reelID, userID primitive.ObjectID, reactionType models.ReactionType) error
-	AddComment(ctx context.Context, reelID, userID primitive.ObjectID, content string, author models.PostAuthor, mentions []primitive.ObjectID) (*models.Comment, error)
+	AddComment(ctx context.Context, reelID, userID primitive.ObjectID, content string, mentions []primitive.ObjectID) (*models.Comment, error)
 	GetComments(ctx context.Context, reelID primitive.ObjectID, limit, offset int64) ([]models.Comment, error)
-	AddReply(ctx context.Context, reelID, commentID, userID primitive.ObjectID, content string, author models.PostAuthor) (*models.Reply, error)
+	AddReply(ctx context.Context, reelID, commentID, userID primitive.ObjectID, content string) (*models.Reply, error)
 	ReactToComment(ctx context.Context, reelID, commentID, userID primitive.ObjectID, reactionType models.ReactionType) error
 }
 
@@ -109,13 +109,7 @@ func (h *ReelHandler) CreateReel(c *gin.Context) {
 		return
 	}
 
-	author, err := h.getAuthor(c.Request.Context(), userID.(string))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-		return
-	}
-
-	reel, err := h.reelService.CreateReel(c.Request.Context(), objUserID, author, req)
+	reel, err := h.reelService.CreateReel(c.Request.Context(), objUserID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -272,13 +266,7 @@ func (h *ReelHandler) AddComment(c *gin.Context) {
 		return
 	}
 
-	author, err := h.getAuthor(c.Request.Context(), userID.(string))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-		return
-	}
-
-	comment, err := h.reelService.AddComment(c.Request.Context(), reelID, objUserID, req.Content, author, req.Mentions)
+	comment, err := h.reelService.AddComment(c.Request.Context(), reelID, objUserID, req.Content, req.Mentions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -311,13 +299,7 @@ func (h *ReelHandler) AddReply(c *gin.Context) {
 		return
 	}
 
-	author, err := h.getAuthor(c.Request.Context(), userID.(string))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-		return
-	}
-
-	reply, err := h.reelService.AddReply(c.Request.Context(), reelID, commentID, objUserID, req.Content, author)
+	reply, err := h.reelService.AddReply(c.Request.Context(), reelID, commentID, objUserID, req.Content)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

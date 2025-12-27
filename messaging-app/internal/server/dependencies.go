@@ -8,6 +8,7 @@ import (
 	"messaging-app/internal/cache"
 	"messaging-app/internal/controllers"
 	cassdb "messaging-app/internal/db"
+	"messaging-app/internal/eventsclient"
 	"messaging-app/internal/feedclient"
 	"messaging-app/internal/graph"
 	"messaging-app/internal/marketplaceclient"
@@ -100,7 +101,6 @@ type serviceBundle struct {
 	Conversation        *services.ConversationService
 	Community           *services.CommunityService
 	Reel                *services.ReelService
-	Marketplace         *services.MarketplaceService
 	Event               services.EventServiceContract
 	EventRecommendation services.EventRecommendationServiceContract
 	EventCache          *cache.EventCache
@@ -150,10 +150,14 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	conversationService := services.NewConversationService(repos.Conversation, repos.MessageCassandra, repos.User, repos.Group)
 	communityService := services.NewCommunityService(repos.Community, repos.User)
 	reelService := services.NewReelService(repos.Reel, repos.User, repos.Friendship)
-	marketplaceService := services.NewMarketplaceService(repos.Marketplace, repos.User, repos.MessageCassandra)
-
 	eventCache := cache.NewEventCache(a.redisClient)
 	cleanupService := services.NewCleanupService(repos.Story, storageClient)
+
+	// Initialize Events Client
+	eventsClient, err := eventsclient.New(context.Background(), a.cfg)
+	if err != nil {
+		log.Printf("Failed to create events client: %v", err)
+	}
 
 	return serviceBundle{
 		Auth:                authService,
@@ -169,11 +173,10 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 		Conversation:        conversationService,
 		Community:           communityService,
 		Reel:                reelService,
-		Marketplace:         marketplaceService,
 		EventCache:          eventCache,
 		Cleanup:             cleanupService,
-		Event:               nil, // initialized after hub/broadcaster are ready
-		EventRecommendation: nil,
+		Event:               eventsClient,
+		EventRecommendation: eventsClient,
 	}, nil
 }
 
