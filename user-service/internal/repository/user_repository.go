@@ -184,3 +184,25 @@ func (r *UserRepository) FindUsersByIDs(ctx context.Context, ids []primitive.Obj
 	}
 	return users, nil
 }
+
+func (r *UserRepository) FindUsersByUsernames(ctx context.Context, usernames []string) ([]models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if len(usernames) == 0 {
+		return []models.User{}, nil
+	}
+
+	filter := bson.M{"username": bson.M{"$in": usernames}}
+	cursor, err := r.db.Collection("users").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []models.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
+}

@@ -202,7 +202,9 @@ func (s *ReelService) DeleteReel(ctx context.Context, reelID, userID primitive.O
 	return nil
 }
 
-// IncrementViews increments view count, excluding self-views
+// IncrementViews publishes a view event for async batch processing
+// For TikTok-scale (1M+ views/sec), we avoid direct DB writes here.
+// A separate Kafka consumer batches updates (e.g., $inc: { views: 500 }) to MongoDB.
 func (s *ReelService) IncrementViews(ctx context.Context, reelID, viewerID primitive.ObjectID) error {
 	// Fetch reel to check author
 	reel, err := s.reelRepo.GetReelByID(ctx, reelID)
@@ -215,6 +217,7 @@ func (s *ReelService) IncrementViews(ctx context.Context, reelID, viewerID primi
 		return nil
 	}
 
+	// Only publish Kafka event - consumer handles batch DB updates
 	if s.broadcaster != nil {
 		s.broadcaster.PublishReelViewed(ctx, producer.ReelViewedEvent{
 			ReelID:   reelID.Hex(),
@@ -222,7 +225,9 @@ func (s *ReelService) IncrementViews(ctx context.Context, reelID, viewerID primi
 		})
 	}
 
-	return s.reelRepo.IncrementViews(ctx, reelID)
+	// Note: Direct DB write removed for scale optimization
+	// View counts are updated by the Kafka consumer in batches
+	return nil
 }
 
 // ReactToReel handles toggling a reaction on a reel
@@ -340,39 +345,44 @@ func (s *ReelService) ReactToComment(ctx context.Context, reelID, commentID, use
 }
 
 // ParseMentions extracts @username mentions from content and validates them via user-service
+// Uses batch RPC (GetUsersByUsernames) for efficient single network call
 func (s *ReelService) ParseMentions(ctx context.Context, content string) []primitive.ObjectID {
 	// Regex for @username (alphanumeric + underscores, min 3 chars)
 	re := regexp.MustCompile(`@([a-zA-Z0-9_]{3,})`)
 	matches := re.FindAllStringSubmatch(content, -1)
 
-	uniqueUsernames := make(map[string]bool)
+	if len(matches) == 0 {
+		return []primitive.ObjectID{}
+	}
+
+	// Collect unique usernames
+	uniqueUsernames := make([]string, 0)
+	seen := make(map[string]bool)
 	for _, match := range matches {
-		if len(match) > 1 {
-			uniqueUsernames[match[1]] = true
+		if len(match) > 1 && !seen[match[1]] {
+			seen[match[1]] = true
+			uniqueUsernames = append(uniqueUsernames, match[1])
 		}
 	}
 
-	mentionIDs := make([]primitive.ObjectID, 0)
+	if len(uniqueUsernames) == 0 || s.userClient == nil {
+		return []primitive.ObjectID{}
+	}
 
-	// Resolve usernames to user IDs via user-service
-	for username := range uniqueUsernames {
-		if s.userClient != nil {
-			// Use ListUsers with search to find user by username
-			resp, err := s.userClient.ListUsers(ctx, &userpb.ListUsersRequest{
-				Search: username,
-				Limit:  1,
-			})
-			if err == nil && len(resp.Users) > 0 {
-				// Check exact match
-				for _, user := range resp.Users {
-					if user.Username == username {
-						if oid, err := primitive.ObjectIDFromHex(user.Id); err == nil {
-							mentionIDs = append(mentionIDs, oid)
-						}
-						break
-					}
-				}
-			}
+	// Single batch RPC call to resolve all usernames
+	resp, err := s.userClient.GetUsersByUsernames(ctx, &userpb.GetUsersByUsernamesRequest{
+		Usernames: uniqueUsernames,
+	})
+	if err != nil {
+		s.logger.Warn("Failed to resolve mentions via batch RPC", "error", err)
+		return []primitive.ObjectID{}
+	}
+
+	// Convert to ObjectIDs
+	mentionIDs := make([]primitive.ObjectID, 0, len(resp.Users))
+	for _, user := range resp.Users {
+		if oid, err := primitive.ObjectIDFromHex(user.Id); err == nil {
+			mentionIDs = append(mentionIDs, oid)
 		}
 	}
 

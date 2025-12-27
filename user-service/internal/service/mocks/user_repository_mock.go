@@ -99,3 +99,11 @@ func (m *MockUserRepository) AddFriend(ctx context.Context, userID1, userID2 pri
 func (m *MockUserRepository) RemoveFriend(ctx context.Context, userID, friendID primitive.ObjectID) error {
 	return nil
 }
+
+func (m *MockUserRepository) FindUsersByUsernames(ctx context.Context, usernames []string) ([]models.User, error) {
+	users := make([]models.User, len(usernames))
+	for i, username := range usernames {
+		users[i] = models.User{ID: primitive.NewObjectID(), Username: username}
+	}
+	return users, nil
+}

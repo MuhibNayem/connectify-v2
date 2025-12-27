@@ -10,6 +10,7 @@ service UserService {
   // Read Operations
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
   rpc GetUsers (GetUsersRequest) returns (GetUsersResponse);
+  rpc GetUsersByUsernames (GetUsersByUsernamesRequest) returns (GetUsersByUsernamesResponse);
   rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
   rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse);
   rpc GetUsersPresence (GetUsersPresenceRequest) returns (GetUsersPresenceResponse);
@@ -44,6 +45,14 @@ message GetUsersRequest {
 }
 
 message GetUsersResponse {
+  repeated User users = 1;
+}
+
+message GetUsersByUsernamesRequest {
+  repeated string usernames = 1;
+}
+
+message GetUsersByUsernamesResponse {
   repeated User users = 1;
 }
 

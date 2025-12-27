@@ -94,6 +94,13 @@ func (s *UserService) GetUserByID(ctx context.Context, id primitive.ObjectID) (*
 	return user, nil
 }
 
+func (s *UserService) GetUsersByUsernames(ctx context.Context, usernames []string) ([]models.User, error) {
+	if len(usernames) == 0 {
+		return []models.User{}, nil
+	}
+	return s.userRepo.FindUsersByUsernames(ctx, usernames)
+}
+
 func (s *UserService) GetUsersByIDs(ctx context.Context, ids []primitive.ObjectID) ([]models.User, error) {
 	if len(ids) == 0 {
 		return []models.User{}, nil

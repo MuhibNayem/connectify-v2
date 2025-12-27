@@ -15,6 +15,7 @@ type UserRepository interface {
 	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
 	FindUserByUserName(ctx context.Context, username string) (*models.User, error)
 	FindUsersByIDs(ctx context.Context, ids []primitive.ObjectID) ([]models.User, error)
+	FindUsersByUsernames(ctx context.Context, usernames []string) ([]models.User, error)
 	FindUsers(ctx context.Context, filter bson.M, opts *options.FindOptions) ([]models.User, error)
 	CountUsers(ctx context.Context, filter bson.M) (int64, error)
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)

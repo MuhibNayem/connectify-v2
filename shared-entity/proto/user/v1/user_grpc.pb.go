@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	UserService_GetUser_FullMethodName                    = "/user.v1.UserService/GetUser"
 	UserService_GetUsers_FullMethodName                   = "/user.v1.UserService/GetUsers"
+	UserService_GetUsersByUsernames_FullMethodName        = "/user.v1.UserService/GetUsersByUsernames"
 	UserService_ListUsers_FullMethodName                  = "/user.v1.UserService/ListUsers"
 	UserService_GetUserStatus_FullMethodName              = "/user.v1.UserService/GetUserStatus"
 	UserService_GetUsersPresence_FullMethodName           = "/user.v1.UserService/GetUsersPresence"
@@ -43,6 +44,7 @@ type UserServiceClient interface {
 	// Read Operations
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
+	GetUsersByUsernames(ctx context.Context, in *GetUsersByUsernamesRequest, opts ...grpc.CallOption) (*GetUsersByUsernamesResponse, error)
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
 	GetUserStatus(ctx context.Context, in *GetUserStatusRequest, opts ...grpc.CallOption) (*GetUserStatusResponse, error)
 	GetUsersPresence(ctx context.Context, in *GetUsersPresenceRequest, opts ...grpc.CallOption) (*GetUsersPresenceResponse, error)
@@ -82,6 +84,16 @@ func (c *userServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, o
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUsersResponse)
 	err := c.cc.Invoke(ctx, UserService_GetUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetUsersByUsernames(ctx context.Context, in *GetUsersByUsernamesRequest, opts ...grpc.CallOption) (*GetUsersByUsernamesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUsersByUsernamesResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUsersByUsernames_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -225,6 +237,7 @@ type UserServiceServer interface {
 	// Read Operations
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
+	GetUsersByUsernames(context.Context, *GetUsersByUsernamesRequest) (*GetUsersByUsernamesResponse, error)
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
 	GetUserStatus(context.Context, *GetUserStatusRequest) (*GetUserStatusResponse, error)
 	GetUsersPresence(context.Context, *GetUsersPresenceRequest) (*GetUsersPresenceResponse, error)
@@ -255,6 +268,9 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) 
 }
 func (UnimplementedUserServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUsers not implemented")
+}
+func (UnimplementedUserServiceServer) GetUsersByUsernames(context.Context, *GetUsersByUsernamesRequest) (*GetUsersByUsernamesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUsersByUsernames not implemented")
 }
 func (UnimplementedUserServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
@@ -348,6 +364,24 @@ func _UserService_GetUsers_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetUsers(ctx, req.(*GetUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetUsersByUsernames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersByUsernamesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUsersByUsernames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUsersByUsernames_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUsersByUsernames(ctx, req.(*GetUsersByUsernamesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -600,6 +634,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUsers",
 			Handler:    _UserService_GetUsers_Handler,
+		},
+		{
+			MethodName: "GetUsersByUsernames",
+			Handler:    _UserService_GetUsersByUsernames_Handler,
 		},
 		{
 			MethodName: "ListUsers",

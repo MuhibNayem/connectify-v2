@@ -66,6 +66,24 @@ func (h *UserHandler) GetUsers(ctx context.Context, req *pb.GetUsersRequest) (*p
 	return &pb.GetUsersResponse{Users: pbUsers}, nil
 }
 
+func (h *UserHandler) GetUsersByUsernames(ctx context.Context, req *pb.GetUsersByUsernamesRequest) (*pb.GetUsersByUsernamesResponse, error) {
+	if len(req.Usernames) == 0 {
+		return &pb.GetUsersByUsernamesResponse{Users: []*pb.User{}}, nil
+	}
+
+	users, err := h.userService.GetUsersByUsernames(ctx, req.Usernames)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var pbUsers []*pb.User
+	for _, u := range users {
+		pbUsers = append(pbUsers, mapModelToProto(&u))
+	}
+
+	return &pb.GetUsersByUsernamesResponse{Users: pbUsers}, nil
+}
+
 func (h *UserHandler) ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResponse, error) {
 	page := req.Page
 	if page < 1 {
