@@ -1,5 +1,8 @@
 package repositories
 
+// Deprecated: This file is deprecated and will be removed in a future release.
+// Use the standalone reel-service microservice instead.
+
 import (
 	"context"
 	"time"
@@ -12,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Deprecated: ReelRepository is deprecated. Use reel-service microservice via gRPC.
 type ReelRepository struct {
 	collection          *mongo.Collection
 	commentsCollection  *mongo.Collection

@@ -48,6 +48,8 @@ type Config struct {
 	StoryGRPCHost       string
 	RealtimeGRPCPort    string
 	RealtimeGRPCHost    string
+	ReelGRPCHost        string
+	ReelGRPCPort        string
 
 	CORSAllowedOrigins []string
 	RefreshCookieName  string
@@ -98,6 +100,8 @@ func LoadConfig() *Config {
 	storyGRPCHost := getEnv("STORY_GRPC_HOST", "localhost")
 	realtimeGRPCPort := getEnv("REALTIME_GRPC_PORT", "9099")
 	realtimeGRPCHost := getEnv("REALTIME_GRPC_HOST", "localhost")
+	reelGRPCHost := getEnv("REEL_GRPC_HOST", "localhost")
+	reelGRPCPort := getEnv("REEL_GRPC_PORT", "9096")
 	feedServiceHost := getEnv("FEED_SERVICE_HOST", "localhost")
 	feedServicePort := getEnv("FEED_SERVICE_PORT", "9098")
 	userServiceHost := getEnv("USER_SERVICE_HOST", "localhost")
@@ -141,6 +145,8 @@ func LoadConfig() *Config {
 		StoryGRPCHost:       storyGRPCHost,
 		RealtimeGRPCPort:    realtimeGRPCPort,
 		RealtimeGRPCHost:    realtimeGRPCHost,
+		ReelGRPCHost:        reelGRPCHost,
+		ReelGRPCPort:        reelGRPCPort,
 		CORSAllowedOrigins:  corsOrigins,
 		RefreshCookieName:   getEnv("REFRESH_COOKIE_NAME", "connectify_refresh"),
 		CookieDomain:        getEnv("COOKIE_DOMAIN", ""),

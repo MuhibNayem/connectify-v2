@@ -587,6 +587,30 @@ services:
     networks:
       - messaging-net
 
+  reel-service:
+    build:
+      context: .
+      dockerfile: reel-service/Dockerfile
+    container_name: reel-service
+    ports:
+      - "8086:8086"
+      - "9096:9096"
+    env_file:
+      - ".env"
+    environment:
+      HTTP_PORT: 8086
+      GRPC_PORT: 9096
+      KAFKA_TOPIC: reel-events
+      REEL_GRPC_HOST: reel-service
+      REEL_GRPC_PORT: 9096
+    depends_on:
+      mongodb3:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      - messaging-net
+
   # MinIO Service
   minio:
     image: minio/minio

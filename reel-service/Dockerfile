@@ -1,24 +1,28 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-COPY ../shared-entity ../shared-entity
+RUN apk add --no-cache git
 
+COPY shared-entity ./shared-entity
+
+COPY reel-service/go.mod reel-service/go.sum ./reel-service/
+WORKDIR /app/reel-service
 RUN go mod download
 
-COPY . .
+COPY reel-service .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /reel-service ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/reel-service ./cmd/main.go
 
-FROM alpine:latest
+FROM gcr.io/distroless/base-debian12
 
-RUN apk --no-cache add ca-certificates
+ENV HTTP_PORT=8086
+ENV GRPC_PORT=9096
 
-WORKDIR /root/
-
-COPY --from=builder /reel-service .
+COPY --from=builder /bin/reel-service /bin/reel-service
 
 EXPOSE 8086 9096
 
-CMD ["./reel-service"]
+USER nonroot:nonroot
+
+ENTRYPOINT ["/bin/reel-service"]

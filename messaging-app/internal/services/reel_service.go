@@ -1,15 +1,21 @@
 package services
 
+// Deprecated: This file is deprecated and will be removed in a future release.
+// Use the standalone reel-service microservice instead.
+// Migration: Connect to reel-service via gRPC using messaging-app/internal/reelclient
+
 import (
 	"context"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/repositories"
 	"regexp"
 	"time"
 
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Deprecated: ReelService is deprecated. Use reel-service microservice via gRPC.
 type ReelService struct {
 	reelRepo       *repositories.ReelRepository
 	userRepo       *repositories.UserRepository

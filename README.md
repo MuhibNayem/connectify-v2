@@ -123,6 +123,7 @@ graph TD
         API --> FeedSvc[Feed Service]
         API --> EventSvc[Events Service]
         API --> MktSvc[Marketplace]
+        API --> ReelSvc[Reel Service]
     end
 
     subgraph DataStores
@@ -184,11 +185,12 @@ graph TD
 | Service | Port | Responsibilities |
 |---------|------|------------------|
 | **user-service** | 8080 / 9090 | Authentication, profiles, privacy, presence, E2EE keys |
-| **messaging-app** | 8081 / 9091 | DMs, groups, reactions, archival, reels, communities |
+| **messaging-app** | 8081 / 9091 | DMs, groups, reactions, archival, communities |
 | **story-service** | 8082 / 9092 | Ephemeral stories, view tracking, reactions |
 | **feed-service** | 8083 / 9093 | Posts, comments, replies, albums, hashtags |
 | **events-service** | 8084 / 9094 | Events, RSVPs, recommendations, co-hosts |
 | **marketplace-service** | 8085 / 9095 | Products, categories, search, view counts |
+| **reel-service** | 8086 / 9096 | Short-form video reels, reactions, comments |
 | **shared-entity** | — | Proto definitions, shared models |
 
 ---
@@ -271,6 +273,7 @@ cd story-service && make run
 cd feed-service && make run
 cd events-service && make run
 cd marketplace-service && make run
+cd reel-service && make run
 ```
 
 ---
