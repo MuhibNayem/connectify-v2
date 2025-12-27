@@ -94,8 +94,14 @@ kind: ConfigMap
 metadata:
   name: marketplace-service-config
 data:
+  SERVER_PORT: "8087"
   GRPC_PORT: "9095"
   METRICS_PORT: "9198"
   MONGO_URI: "mongodb://mongodb:27017/connectify"
   CASSANDRA_HOSTS: "cassandra:9042"
+  REDIS_URL: "redis:6379"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_LIMIT: "50"
+  RATE_LIMIT_BURST: "100"
+  CORS_ALLOWED_ORIGINS: "http://localhost:5173"
   JAEGER_OTLP_ENDPOINT: "jaeger-collector:4317"

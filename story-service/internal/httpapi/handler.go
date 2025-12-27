@@ -1,23 +1,38 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/MuhibNayem/connectify-v2/shared-entity/middleware"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	userpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type StoryHandler struct {
-	storyService *service.StoryService
+	storyService       *service.StoryService
+	userClient         userpb.UserServiceClient
+	rateLimitObserver  func(action string)
 }
 
-func NewStoryHandler(storyService *service.StoryService) *StoryHandler {
-	return &StoryHandler{storyService: storyService}
+func NewStoryHandler(storyService *service.StoryService, userClient userpb.UserServiceClient, businessMetrics *metrics.BusinessMetrics) *StoryHandler {
+	var observer func(action string)
+	if businessMetrics != nil {
+		observer = businessMetrics.RecordRateLimitHit
+	}
+	
+	return &StoryHandler{
+		storyService:      storyService,
+		userClient:        userClient,
+		rateLimitObserver: observer,
+	}
 }
 
 func (h *StoryHandler) RegisterRoutes(router *gin.Engine, auth gin.HandlerFunc) {
@@ -25,13 +40,25 @@ func (h *StoryHandler) RegisterRoutes(router *gin.Engine, auth gin.HandlerFunc) 
 	stories := api.Group("/stories")
 	stories.Use(auth)
 	{
-		stories.POST("", h.CreateStory)
-		stories.GET("/feed", h.GetStoriesFeed)
+		stories.POST("", 
+			middleware.StrictRateLimiter(0.2, 5, "stories:create", h.rateLimitObserver),
+			h.CreateStory,
+		)
+		stories.GET("/feed", 
+			middleware.StrictRateLimiter(2, 10, "stories:feed", h.rateLimitObserver),
+			h.GetStoriesFeed,
+		)
 		stories.GET("/user/:id", h.GetUserStories)
 		stories.GET("/:id", h.GetStory)
 		stories.DELETE("/:id", h.DeleteStory)
-		stories.POST("/:id/view", h.RecordView)
-		stories.POST("/:id/react", h.ReactToStory)
+		stories.POST("/:id/view", 
+			middleware.StrictRateLimiter(5, 20, "stories:view", h.rateLimitObserver),
+			h.RecordView,
+		)
+		stories.POST("/:id/react", 
+			middleware.StrictRateLimiter(1, 10, "stories:react", h.rateLimitObserver),
+			h.ReactToStory,
+		)
 		stories.GET("/:id/viewers", h.GetStoryViewers)
 	}
 }
@@ -76,7 +103,7 @@ func (h *StoryHandler) CreateStory(c *gin.Context) {
 
 	story, err := h.storyService.CreateStory(c.Request.Context(), userID, author, serviceReq)
 	if err != nil {
-		respondWithError(c, http.StatusInternalServerError, err)
+		respondWithError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -90,7 +117,13 @@ func (h *StoryHandler) GetStory(c *gin.Context) {
 		return
 	}
 
-	story, err := h.storyService.GetStory(c.Request.Context(), storyID)
+	viewerID, err := h.userIDFromContext(c)
+	if err != nil {
+		respondWithError(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	story, err := h.storyService.GetStory(c.Request.Context(), storyID, viewerID)
 	if err != nil {
 		respondWithError(c, http.StatusNotFound, err)
 		return
@@ -136,7 +169,10 @@ func (h *StoryHandler) GetStoriesFeed(c *gin.Context) {
 		offset = 0
 	}
 
-	friendIDs := parseObjectIDs(strings.Split(c.DefaultQuery("friend_ids", ""), ","))
+	friendIDs := h.fetchFriendIDs(c.Request.Context(), userID)
+	if query := strings.TrimSpace(c.DefaultQuery("friend_ids", "")); query != "" {
+		friendIDs = append(friendIDs, parseObjectIDs(strings.Split(query, ","))...)
+	}
 
 	stories, err := h.storyService.GetStoriesFeed(c.Request.Context(), userID, friendIDs, limit, offset)
 	if err != nil {
@@ -183,7 +219,11 @@ func (h *StoryHandler) RecordView(c *gin.Context) {
 	}
 
 	if err := h.storyService.RecordView(c.Request.Context(), storyID, viewerID); err != nil {
-		respondWithError(c, http.StatusInternalServerError, err)
+		if err.Error() == "story not found" {
+			respondWithError(c, http.StatusNotFound, err)
+		} else {
+			respondWithError(c, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -214,7 +254,13 @@ func (h *StoryHandler) ReactToStory(c *gin.Context) {
 	}
 
 	if err := h.storyService.ReactToStory(c.Request.Context(), storyID, userID, req.ReactionType); err != nil {
-		respondWithError(c, http.StatusInternalServerError, err)
+		if err.Error() == "story not found" {
+			respondWithError(c, http.StatusNotFound, err)
+		} else if err.Error() == "invalid reaction type" {
+			respondWithError(c, http.StatusBadRequest, err)
+		} else {
+			respondWithError(c, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -287,4 +333,17 @@ func parseObjectIDs(values []string) []primitive.ObjectID {
 		}
 	}
 	return results
+}
+
+func (h *StoryHandler) fetchFriendIDs(ctx context.Context, userID primitive.ObjectID) []primitive.ObjectID {
+	if h.userClient == nil {
+		return []primitive.ObjectID{}
+	}
+
+	resp, err := h.userClient.GetFriendIDs(ctx, &userpb.GetFriendIDsRequest{UserId: userID.Hex()})
+	if err != nil || resp == nil || len(resp.FriendIds) == 0 {
+		return []primitive.ObjectID{}
+	}
+
+	return parseObjectIDs(resp.FriendIds)
 }

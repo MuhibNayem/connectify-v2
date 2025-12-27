@@ -13,6 +13,7 @@ service UserService {
   rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
   rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse);
   rpc GetUsersPresence (GetUsersPresenceRequest) returns (GetUsersPresenceResponse);
+  rpc GetFriendIDs (GetFriendIDsRequest) returns (GetFriendIDsResponse);
   
   // Write Operations
   rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
@@ -23,6 +24,9 @@ service UserService {
   rpc UpdatePublicKey (UpdatePublicKeyRequest) returns (UpdatePublicKeyResponse);
   rpc UpdatePrivacySettings (UpdatePrivacySettingsRequest) returns (UpdatePrivacySettingsResponse);
   rpc UpdateNotificationSettings (UpdateNotificationSettingsRequest) returns (UpdateNotificationSettingsResponse);
+  
+  // Relationship Checks
+  rpc CheckRelationship (CheckRelationshipRequest) returns (CheckRelationshipResponse);
 }
 
 // ==================== READ OPERATIONS ====================
@@ -222,3 +226,22 @@ message NotificationSettings {
     bool notify_on_event_invite = 9;
 }
 
+message GetFriendIDsRequest {
+  string user_id = 1;
+}
+
+message GetFriendIDsResponse {
+  repeated string friend_ids = 1;
+}
+
+message CheckRelationshipRequest {
+  string user_id = 1;      // The user initiating the check (e.g., the viewer)
+  string target_id = 2;    // The user being checked against (e.g., the story author)
+}
+
+message CheckRelationshipResponse {
+  bool is_friend = 1;
+  bool is_blocked_by_user = 2;   // User has blocked Target
+  bool is_blocked_by_target = 3; // Target has blocked User
+  bool is_following = 4;
+}

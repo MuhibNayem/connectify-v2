@@ -100,7 +100,7 @@ func run() error {
 	// 5. Handlers
 	authHandler := httphandler.NewAuthHandler(authService, cfg)
 	userHandler := httphandler.NewUserHandler(userService)
-	userGrpcHandler := grpchandler.NewUserHandler(userService)
+	userGrpcHandler := grpchandler.NewUserHandler(userService, graphRepo)
 
 	// HTTP Server
 	r := gin.Default()

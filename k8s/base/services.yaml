@@ -65,5 +65,8 @@ spec:
   - port: 9095
     name: grpc
     targetPort: 9095
+  - port: 8087
+    name: http
+    targetPort: 8087
   selector:
     app: marketplace-service

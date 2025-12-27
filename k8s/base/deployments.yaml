@@ -137,3 +137,6 @@ spec:
             name: marketplace-service-secrets
         ports:
         - containerPort: 9095
+          name: grpc
+        - containerPort: 8087
+          name: http

@@ -1910,6 +1910,214 @@ func (x *NotificationSettings) GetNotifyOnEventInvite() bool {
 	return false
 }
 
+type GetFriendIDsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFriendIDsRequest) Reset() {
+	*x = GetFriendIDsRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFriendIDsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFriendIDsRequest) ProtoMessage() {}
+
+func (x *GetFriendIDsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFriendIDsRequest.ProtoReflect.Descriptor instead.
+func (*GetFriendIDsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetFriendIDsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetFriendIDsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FriendIds     []string               `protobuf:"bytes,1,rep,name=friend_ids,json=friendIds,proto3" json:"friend_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFriendIDsResponse) Reset() {
+	*x = GetFriendIDsResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFriendIDsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFriendIDsResponse) ProtoMessage() {}
+
+func (x *GetFriendIDsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFriendIDsResponse.ProtoReflect.Descriptor instead.
+func (*GetFriendIDsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetFriendIDsResponse) GetFriendIds() []string {
+	if x != nil {
+		return x.FriendIds
+	}
+	return nil
+}
+
+type CheckRelationshipRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`       // The user initiating the check (e.g., the viewer)
+	TargetId      string                 `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"` // The user being checked against (e.g., the story author)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckRelationshipRequest) Reset() {
+	*x = CheckRelationshipRequest{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckRelationshipRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckRelationshipRequest) ProtoMessage() {}
+
+func (x *CheckRelationshipRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckRelationshipRequest.ProtoReflect.Descriptor instead.
+func (*CheckRelationshipRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *CheckRelationshipRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CheckRelationshipRequest) GetTargetId() string {
+	if x != nil {
+		return x.TargetId
+	}
+	return ""
+}
+
+type CheckRelationshipResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	IsFriend          bool                   `protobuf:"varint,1,opt,name=is_friend,json=isFriend,proto3" json:"is_friend,omitempty"`
+	IsBlockedByUser   bool                   `protobuf:"varint,2,opt,name=is_blocked_by_user,json=isBlockedByUser,proto3" json:"is_blocked_by_user,omitempty"`       // User has blocked Target
+	IsBlockedByTarget bool                   `protobuf:"varint,3,opt,name=is_blocked_by_target,json=isBlockedByTarget,proto3" json:"is_blocked_by_target,omitempty"` // Target has blocked User
+	IsFollowing       bool                   `protobuf:"varint,4,opt,name=is_following,json=isFollowing,proto3" json:"is_following,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CheckRelationshipResponse) Reset() {
+	*x = CheckRelationshipResponse{}
+	mi := &file_proto_user_v1_user_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckRelationshipResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckRelationshipResponse) ProtoMessage() {}
+
+func (x *CheckRelationshipResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_v1_user_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckRelationshipResponse.ProtoReflect.Descriptor instead.
+func (*CheckRelationshipResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_v1_user_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *CheckRelationshipResponse) GetIsFriend() bool {
+	if x != nil {
+		return x.IsFriend
+	}
+	return false
+}
+
+func (x *CheckRelationshipResponse) GetIsBlockedByUser() bool {
+	if x != nil {
+		return x.IsBlockedByUser
+	}
+	return false
+}
+
+func (x *CheckRelationshipResponse) GetIsBlockedByTarget() bool {
+	if x != nil {
+		return x.IsBlockedByTarget
+	}
+	return false
+}
+
+func (x *CheckRelationshipResponse) GetIsFollowing() bool {
+	if x != nil {
+		return x.IsFollowing
+	}
+	return false
+}
+
 var File_proto_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_proto_user_v1_user_proto_rawDesc = "" +
@@ -2065,13 +2273,27 @@ const file_proto_user_v1_user_proto_rawDesc = "" +
 	"\rnotify_on_tag\x18\x06 \x01(\bR\vnotifyOnTag\x12*\n" +
 	"\x11notify_on_message\x18\a \x01(\bR\x0fnotifyOnMessage\x12,\n" +
 	"\x12notify_on_birthday\x18\b \x01(\bR\x10notifyOnBirthday\x123\n" +
-	"\x16notify_on_event_invite\x18\t \x01(\bR\x13notifyOnEventInvite2\xc4\b\n" +
+	"\x16notify_on_event_invite\x18\t \x01(\bR\x13notifyOnEventInvite\".\n" +
+	"\x13GetFriendIDsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"5\n" +
+	"\x14GetFriendIDsResponse\x12\x1d\n" +
+	"\n" +
+	"friend_ids\x18\x01 \x03(\tR\tfriendIds\"P\n" +
+	"\x18CheckRelationshipRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\"\xb9\x01\n" +
+	"\x19CheckRelationshipResponse\x12\x1b\n" +
+	"\tis_friend\x18\x01 \x01(\bR\bisFriend\x12+\n" +
+	"\x12is_blocked_by_user\x18\x02 \x01(\bR\x0fisBlockedByUser\x12/\n" +
+	"\x14is_blocked_by_target\x18\x03 \x01(\bR\x11isBlockedByTarget\x12!\n" +
+	"\fis_following\x18\x04 \x01(\bR\visFollowing2\xed\t\n" +
 	"\vUserService\x12<\n" +
 	"\aGetUser\x12\x17.user.v1.GetUserRequest\x1a\x18.user.v1.GetUserResponse\x12?\n" +
 	"\bGetUsers\x12\x18.user.v1.GetUsersRequest\x1a\x19.user.v1.GetUsersResponse\x12B\n" +
 	"\tListUsers\x12\x19.user.v1.ListUsersRequest\x1a\x1a.user.v1.ListUsersResponse\x12N\n" +
 	"\rGetUserStatus\x12\x1d.user.v1.GetUserStatusRequest\x1a\x1e.user.v1.GetUserStatusResponse\x12W\n" +
-	"\x10GetUsersPresence\x12 .user.v1.GetUsersPresenceRequest\x1a!.user.v1.GetUsersPresenceResponse\x12E\n" +
+	"\x10GetUsersPresence\x12 .user.v1.GetUsersPresenceRequest\x1a!.user.v1.GetUsersPresenceResponse\x12K\n" +
+	"\fGetFriendIDs\x12\x1c.user.v1.GetFriendIDsRequest\x1a\x1d.user.v1.GetFriendIDsResponse\x12E\n" +
 	"\n" +
 	"UpdateUser\x12\x1a.user.v1.UpdateUserRequest\x1a\x1b.user.v1.UpdateUserResponse\x12H\n" +
 	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponse\x12Q\n" +
@@ -2080,7 +2302,8 @@ const file_proto_user_v1_user_proto_rawDesc = "" +
 	"\x11DeactivateAccount\x12!.user.v1.DeactivateAccountRequest\x1a\".user.v1.DeactivateAccountResponse\x12T\n" +
 	"\x0fUpdatePublicKey\x12\x1f.user.v1.UpdatePublicKeyRequest\x1a .user.v1.UpdatePublicKeyResponse\x12f\n" +
 	"\x15UpdatePrivacySettings\x12%.user.v1.UpdatePrivacySettingsRequest\x1a&.user.v1.UpdatePrivacySettingsResponse\x12u\n" +
-	"\x1aUpdateNotificationSettings\x12*.user.v1.UpdateNotificationSettingsRequest\x1a+.user.v1.UpdateNotificationSettingsResponseB$Z\"messaging-app/proto/user/v1;userv1b\x06proto3"
+	"\x1aUpdateNotificationSettings\x12*.user.v1.UpdateNotificationSettingsRequest\x1a+.user.v1.UpdateNotificationSettingsResponse\x12Z\n" +
+	"\x11CheckRelationship\x12!.user.v1.CheckRelationshipRequest\x1a\".user.v1.CheckRelationshipResponseB$Z\"messaging-app/proto/user/v1;userv1b\x06proto3"
 
 var (
 	file_proto_user_v1_user_proto_rawDescOnce sync.Once
@@ -2094,7 +2317,7 @@ func file_proto_user_v1_user_proto_rawDescGZIP() []byte {
 	return file_proto_user_v1_user_proto_rawDescData
 }
 
-var file_proto_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_proto_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_proto_user_v1_user_proto_goTypes = []any{
 	(*GetUserRequest)(nil),                     // 0: user.v1.GetUserRequest
 	(*GetUserResponse)(nil),                    // 1: user.v1.GetUserResponse
@@ -2126,51 +2349,59 @@ var file_proto_user_v1_user_proto_goTypes = []any{
 	(*User)(nil),                               // 27: user.v1.User
 	(*PrivacySettings)(nil),                    // 28: user.v1.PrivacySettings
 	(*NotificationSettings)(nil),               // 29: user.v1.NotificationSettings
-	nil,                                        // 30: user.v1.GetUsersPresenceResponse.PresenceEntry
-	(*timestamppb.Timestamp)(nil),              // 31: google.protobuf.Timestamp
+	(*GetFriendIDsRequest)(nil),                // 30: user.v1.GetFriendIDsRequest
+	(*GetFriendIDsResponse)(nil),               // 31: user.v1.GetFriendIDsResponse
+	(*CheckRelationshipRequest)(nil),           // 32: user.v1.CheckRelationshipRequest
+	(*CheckRelationshipResponse)(nil),          // 33: user.v1.CheckRelationshipResponse
+	nil,                                        // 34: user.v1.GetUsersPresenceResponse.PresenceEntry
+	(*timestamppb.Timestamp)(nil),              // 35: google.protobuf.Timestamp
 }
 var file_proto_user_v1_user_proto_depIdxs = []int32{
 	27, // 0: user.v1.GetUserResponse.user:type_name -> user.v1.User
 	27, // 1: user.v1.GetUsersResponse.users:type_name -> user.v1.User
 	27, // 2: user.v1.ListUsersResponse.users:type_name -> user.v1.User
-	30, // 3: user.v1.GetUsersPresenceResponse.presence:type_name -> user.v1.GetUsersPresenceResponse.PresenceEntry
-	31, // 4: user.v1.UpdateUserRequest.date_of_birth:type_name -> google.protobuf.Timestamp
+	34, // 3: user.v1.GetUsersPresenceResponse.presence:type_name -> user.v1.GetUsersPresenceResponse.PresenceEntry
+	35, // 4: user.v1.UpdateUserRequest.date_of_birth:type_name -> google.protobuf.Timestamp
 	27, // 5: user.v1.UpdateUserResponse.user:type_name -> user.v1.User
 	28, // 6: user.v1.User.privacy_settings:type_name -> user.v1.PrivacySettings
-	31, // 7: user.v1.User.date_of_birth:type_name -> google.protobuf.Timestamp
-	31, // 8: user.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	31, // 9: user.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	35, // 7: user.v1.User.date_of_birth:type_name -> google.protobuf.Timestamp
+	35, // 8: user.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	35, // 9: user.v1.User.updated_at:type_name -> google.protobuf.Timestamp
 	29, // 10: user.v1.User.notification_settings:type_name -> user.v1.NotificationSettings
-	31, // 11: user.v1.PrivacySettings.last_updated:type_name -> google.protobuf.Timestamp
+	35, // 11: user.v1.PrivacySettings.last_updated:type_name -> google.protobuf.Timestamp
 	10, // 12: user.v1.GetUsersPresenceResponse.PresenceEntry.value:type_name -> user.v1.UserPresence
 	0,  // 13: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
 	2,  // 14: user.v1.UserService.GetUsers:input_type -> user.v1.GetUsersRequest
 	4,  // 15: user.v1.UserService.ListUsers:input_type -> user.v1.ListUsersRequest
 	6,  // 16: user.v1.UserService.GetUserStatus:input_type -> user.v1.GetUserStatusRequest
 	8,  // 17: user.v1.UserService.GetUsersPresence:input_type -> user.v1.GetUsersPresenceRequest
-	11, // 18: user.v1.UserService.UpdateUser:input_type -> user.v1.UpdateUserRequest
-	13, // 19: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
-	15, // 20: user.v1.UserService.UpdatePassword:input_type -> user.v1.UpdatePasswordRequest
-	17, // 21: user.v1.UserService.ToggleTwoFactor:input_type -> user.v1.ToggleTwoFactorRequest
-	19, // 22: user.v1.UserService.DeactivateAccount:input_type -> user.v1.DeactivateAccountRequest
-	21, // 23: user.v1.UserService.UpdatePublicKey:input_type -> user.v1.UpdatePublicKeyRequest
-	23, // 24: user.v1.UserService.UpdatePrivacySettings:input_type -> user.v1.UpdatePrivacySettingsRequest
-	25, // 25: user.v1.UserService.UpdateNotificationSettings:input_type -> user.v1.UpdateNotificationSettingsRequest
-	1,  // 26: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	3,  // 27: user.v1.UserService.GetUsers:output_type -> user.v1.GetUsersResponse
-	5,  // 28: user.v1.UserService.ListUsers:output_type -> user.v1.ListUsersResponse
-	7,  // 29: user.v1.UserService.GetUserStatus:output_type -> user.v1.GetUserStatusResponse
-	9,  // 30: user.v1.UserService.GetUsersPresence:output_type -> user.v1.GetUsersPresenceResponse
-	12, // 31: user.v1.UserService.UpdateUser:output_type -> user.v1.UpdateUserResponse
-	14, // 32: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
-	16, // 33: user.v1.UserService.UpdatePassword:output_type -> user.v1.UpdatePasswordResponse
-	18, // 34: user.v1.UserService.ToggleTwoFactor:output_type -> user.v1.ToggleTwoFactorResponse
-	20, // 35: user.v1.UserService.DeactivateAccount:output_type -> user.v1.DeactivateAccountResponse
-	22, // 36: user.v1.UserService.UpdatePublicKey:output_type -> user.v1.UpdatePublicKeyResponse
-	24, // 37: user.v1.UserService.UpdatePrivacySettings:output_type -> user.v1.UpdatePrivacySettingsResponse
-	26, // 38: user.v1.UserService.UpdateNotificationSettings:output_type -> user.v1.UpdateNotificationSettingsResponse
-	26, // [26:39] is the sub-list for method output_type
-	13, // [13:26] is the sub-list for method input_type
+	30, // 18: user.v1.UserService.GetFriendIDs:input_type -> user.v1.GetFriendIDsRequest
+	11, // 19: user.v1.UserService.UpdateUser:input_type -> user.v1.UpdateUserRequest
+	13, // 20: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	15, // 21: user.v1.UserService.UpdatePassword:input_type -> user.v1.UpdatePasswordRequest
+	17, // 22: user.v1.UserService.ToggleTwoFactor:input_type -> user.v1.ToggleTwoFactorRequest
+	19, // 23: user.v1.UserService.DeactivateAccount:input_type -> user.v1.DeactivateAccountRequest
+	21, // 24: user.v1.UserService.UpdatePublicKey:input_type -> user.v1.UpdatePublicKeyRequest
+	23, // 25: user.v1.UserService.UpdatePrivacySettings:input_type -> user.v1.UpdatePrivacySettingsRequest
+	25, // 26: user.v1.UserService.UpdateNotificationSettings:input_type -> user.v1.UpdateNotificationSettingsRequest
+	32, // 27: user.v1.UserService.CheckRelationship:input_type -> user.v1.CheckRelationshipRequest
+	1,  // 28: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	3,  // 29: user.v1.UserService.GetUsers:output_type -> user.v1.GetUsersResponse
+	5,  // 30: user.v1.UserService.ListUsers:output_type -> user.v1.ListUsersResponse
+	7,  // 31: user.v1.UserService.GetUserStatus:output_type -> user.v1.GetUserStatusResponse
+	9,  // 32: user.v1.UserService.GetUsersPresence:output_type -> user.v1.GetUsersPresenceResponse
+	31, // 33: user.v1.UserService.GetFriendIDs:output_type -> user.v1.GetFriendIDsResponse
+	12, // 34: user.v1.UserService.UpdateUser:output_type -> user.v1.UpdateUserResponse
+	14, // 35: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	16, // 36: user.v1.UserService.UpdatePassword:output_type -> user.v1.UpdatePasswordResponse
+	18, // 37: user.v1.UserService.ToggleTwoFactor:output_type -> user.v1.ToggleTwoFactorResponse
+	20, // 38: user.v1.UserService.DeactivateAccount:output_type -> user.v1.DeactivateAccountResponse
+	22, // 39: user.v1.UserService.UpdatePublicKey:output_type -> user.v1.UpdatePublicKeyResponse
+	24, // 40: user.v1.UserService.UpdatePrivacySettings:output_type -> user.v1.UpdatePrivacySettingsResponse
+	26, // 41: user.v1.UserService.UpdateNotificationSettings:output_type -> user.v1.UpdateNotificationSettingsResponse
+	33, // 42: user.v1.UserService.CheckRelationship:output_type -> user.v1.CheckRelationshipResponse
+	28, // [28:43] is the sub-list for method output_type
+	13, // [13:28] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -2189,7 +2420,7 @@ func file_proto_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_user_v1_user_proto_rawDesc), len(file_proto_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

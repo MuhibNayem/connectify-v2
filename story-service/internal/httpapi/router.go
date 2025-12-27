@@ -25,12 +25,13 @@ func BuildRouter(cfg *config.Config, handler *StoryHandler, redisClient *redis.C
 	}
 	router.Use(cors.New(corsCfg))
 
+	// Global rate limiter
 	router.Use(middleware.RateLimiter(
 		cfg.RateLimitEnabled,
 		cfg.RateLimitLimit,
 		cfg.RateLimitBurst,
 		"stories:global",
-		nil,
+		handler.rateLimitObserver,
 	))
 
 	authMiddleware := middleware.AuthMiddleware(

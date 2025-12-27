@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"user-service/internal/repository"
 	"user-service/internal/service"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
@@ -17,10 +18,14 @@ import (
 type UserHandler struct {
 	pb.UnimplementedUserServiceServer
 	userService *service.UserService
+	graphRepo   *repository.GraphRepository
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService *service.UserService, graphRepo *repository.GraphRepository) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+		graphRepo:   graphRepo,
+	}
 }
 
 // ==================== READ OPERATIONS ====================
@@ -120,6 +125,47 @@ func (h *UserHandler) GetUsersPresence(ctx context.Context, req *pb.GetUsersPres
 	}
 
 	return &pb.GetUsersPresenceResponse{Presence: result}, nil
+}
+
+func (h *UserHandler) GetFriendIDs(ctx context.Context, req *pb.GetFriendIDsRequest) (*pb.GetFriendIDsResponse, error) {
+	if h.graphRepo == nil {
+		return nil, status.Error(codes.Unavailable, "friend graph unavailable")
+	}
+
+	userID, err := primitive.ObjectIDFromHex(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
+	}
+
+	friendIDs, err := h.graphRepo.GetFriendIDs(ctx, userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.GetFriendIDsResponse{FriendIds: friendIDs}, nil
+}
+
+func (h *UserHandler) CheckRelationship(ctx context.Context, req *pb.CheckRelationshipRequest) (*pb.CheckRelationshipResponse, error) {
+	userID, err := primitive.ObjectIDFromHex(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
+	}
+	targetID, err := primitive.ObjectIDFromHex(req.TargetId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid target id")
+	}
+
+	isFriend, blockedByUser, blockedByTarget, err := h.userService.CheckRelationship(ctx, userID, targetID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.CheckRelationshipResponse{
+		IsFriend:          isFriend,
+		IsBlockedByUser:   blockedByUser,
+		IsBlockedByTarget: blockedByTarget,
+		IsFollowing:       false, // TODO: Implement following
+	}, nil
 }
 
 // ==================== WRITE OPERATIONS ====================

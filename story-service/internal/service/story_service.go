@@ -3,34 +3,70 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+	userpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/producer"
-	"github.com/MuhibNayem/connectify-v2/story-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/resilience"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/validation"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type StoryService struct {
-	storyRepo   *repository.StoryRepository
-	broadcaster producer.StoryBroadcaster
+type StoryRepository interface {
+	CreateStory(ctx context.Context, story *models.Story) (*models.Story, error)
+	GetStoryByID(ctx context.Context, id primitive.ObjectID) (*models.Story, error)
+	DeleteStory(ctx context.Context, id primitive.ObjectID, userID primitive.ObjectID) error
+	GetActiveStoryAuthors(ctx context.Context, viewerID primitive.ObjectID, userIDs []primitive.ObjectID, limit, offset int) ([]primitive.ObjectID, error)
+	GetStoriesForUsers(ctx context.Context, viewerID primitive.ObjectID, authorIDs []primitive.ObjectID) ([]models.Story, error)
+	GetUserStories(ctx context.Context, userID primitive.ObjectID) ([]models.Story, error)
+	AddViewer(ctx context.Context, storyID primitive.ObjectID, viewerID primitive.ObjectID) error
+	AddReaction(ctx context.Context, storyID primitive.ObjectID, reaction models.StoryReaction) error
+	GetStoryViewersWithReactions(ctx context.Context, storyID primitive.ObjectID) ([]models.StoryViewerResponse, error)
 }
 
-func NewStoryService(storyRepo *repository.StoryRepository, broadcaster producer.StoryBroadcaster) *StoryService {
+type StoryService struct {
+	storyRepo   StoryRepository
+	broadcaster producer.StoryBroadcaster
+	userClient  userpb.UserServiceClient
+	breaker     *resilience.CircuitBreaker
+	metrics     *metrics.BusinessMetrics
+	logger      *slog.Logger
+}
+
+func NewStoryService(
+	storyRepo StoryRepository,
+	broadcaster producer.StoryBroadcaster,
+	userClient userpb.UserServiceClient,
+	breaker *resilience.CircuitBreaker,
+	metrics *metrics.BusinessMetrics,
+	logger *slog.Logger,
+) *StoryService {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &StoryService{
 		storyRepo:   storyRepo,
 		broadcaster: broadcaster,
+		userClient:  userClient,
+		breaker:     breaker,
+		metrics:     metrics,
+		logger:      logger,
 	}
 }
 
-// CreateStory creates a new story and publishes a real-time event
 func (s *StoryService) CreateStory(ctx context.Context, userID primitive.ObjectID, author models.PostAuthor, req CreateStoryRequest) (*models.Story, error) {
+	if err := validation.ValidateCreateStoryRequest(req.MediaURL, req.MediaType, req.Privacy, req.AllowedViewers, req.BlockedViewers); err != nil {
+		return nil, err
+	}
+
 	privacy := req.Privacy
 	if privacy == "" {
 		privacy = models.PrivacySettingFriends
 	}
 
-	// Convert allowed/blocked viewers to ObjectIDs
 	allowedViewers := make([]primitive.ObjectID, 0)
 	for _, id := range req.AllowedViewers {
 		if oid, err := primitive.ObjectIDFromHex(id); err == nil {
@@ -48,8 +84,8 @@ func (s *StoryService) CreateStory(ctx context.Context, userID primitive.ObjectI
 	story := &models.Story{
 		UserID:         userID,
 		Author:         author,
-		MediaURL:       req.MediaURL,
-		MediaType:      req.MediaType,
+		MediaURL:       validation.SanitizeString(req.MediaURL),
+		MediaType:      validation.SanitizeString(req.MediaType),
 		Privacy:        privacy,
 		AllowedViewers: allowedViewers,
 		BlockedViewers: blockedViewers,
@@ -60,7 +96,10 @@ func (s *StoryService) CreateStory(ctx context.Context, userID primitive.ObjectI
 		return nil, err
 	}
 
-	// Publish real-time event
+	if s.metrics != nil {
+		s.metrics.IncrementStoriesCreated()
+	}
+
 	if s.broadcaster != nil {
 		s.broadcaster.PublishStoryCreated(ctx, producer.StoryCreatedEvent{
 			StoryID:   createdStory.ID.Hex(),
@@ -76,19 +115,112 @@ func (s *StoryService) CreateStory(ctx context.Context, userID primitive.ObjectI
 	return createdStory, nil
 }
 
-// GetStory retrieves a single story by ID
-func (s *StoryService) GetStory(ctx context.Context, storyID primitive.ObjectID) (*models.Story, error) {
-	return s.storyRepo.GetStoryByID(ctx, storyID)
+func (s *StoryService) GetStory(ctx context.Context, storyID, viewerID primitive.ObjectID) (*models.Story, error) {
+	story, err := s.storyRepo.GetStoryByID(ctx, storyID)
+	if err != nil {
+		return nil, errors.New("story not found")
+	}
+
+	if !s.canViewStory(ctx, story, viewerID) {
+		return nil, errors.New("story not found")
+	}
+
+	return story, nil
 }
 
-// DeleteStory deletes a story and publishes a real-time event
+func (s *StoryService) canViewStory(ctx context.Context, story *models.Story, viewerID primitive.ObjectID) bool {
+	// 1. Owner always has access
+	if story.UserID == viewerID {
+		return true
+	}
+
+	// 2. Fetch relationship status (scalable check via RPC)
+	rel, err := s.getRelationship(ctx, viewerID, story.UserID)
+	if err != nil {
+		s.logger.Warn("Failed to check relationship", "error", err)
+		// Fail safe (deny) if relationship check fails, unless it's Public (debatable, but safer)
+		// For Public, maybe we allow if error? No, safer to deny if we can't check blocks.
+		return false
+	}
+
+	// Global Block Check: If viewer is blocked by author, they can't see ANYTHING
+	if rel.IsBlockedByTarget {
+		return false
+	}
+
+	switch story.Privacy {
+	case models.PrivacySettingPublic:
+		return true
+
+	case models.PrivacySettingFriends:
+		return rel.IsFriend
+
+	case models.PrivacySettingCustom:
+		// Check if viewer is in the AllowedViewers list
+		for _, allowedID := range story.AllowedViewers {
+			if allowedID == viewerID {
+				return true
+			}
+		}
+		return false
+
+	case models.PrivacySettingFriendsExcept:
+		// Must be a friend AND not blocked
+		if !rel.IsFriend {
+			return false
+		}
+		for _, blockedID := range story.BlockedViewers {
+			if blockedID == viewerID {
+				return false
+			}
+		}
+		return true
+
+	case models.PrivacySettingOnlyMe:
+		return false
+
+	default:
+		return false
+	}
+}
+
+func (s *StoryService) getRelationship(ctx context.Context, userID, targetID primitive.ObjectID) (*userpb.CheckRelationshipResponse, error) {
+	if s.userClient == nil || s.breaker == nil {
+		return nil, errors.New("user service unavailable")
+	}
+
+	result, err := s.breaker.Execute(ctx, func() (interface{}, error) {
+		return s.userClient.CheckRelationship(ctx, &userpb.CheckRelationshipRequest{
+			UserId:   userID.Hex(),
+			TargetId: targetID.Hex(),
+		})
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result.(*userpb.CheckRelationshipResponse), nil
+}
+
+// Deprecated: Use getRelationship instead
+func (s *StoryService) isUserFriend(ctx context.Context, userID, friendID primitive.ObjectID) bool {
+	rel, err := s.getRelationship(ctx, userID, friendID)
+	if err != nil {
+		return false
+	}
+	return rel.IsFriend
+}
+
 func (s *StoryService) DeleteStory(ctx context.Context, storyID, userID primitive.ObjectID) error {
 	err := s.storyRepo.DeleteStory(ctx, storyID, userID)
 	if err != nil {
 		return err
 	}
 
-	// Publish real-time event
+	if s.metrics != nil {
+		s.metrics.IncrementStoriesDeleted()
+	}
+
 	if s.broadcaster != nil {
 		s.broadcaster.PublishStoryDeleted(ctx, producer.StoryDeletedEvent{
 			StoryID: storyID.Hex(),
@@ -99,14 +231,15 @@ func (s *StoryService) DeleteStory(ctx context.Context, storyID, userID primitiv
 	return nil
 }
 
-// GetStoriesFeed returns paginated stories feed with privacy filtering
 func (s *StoryService) GetStoriesFeed(ctx context.Context, viewerID primitive.ObjectID, friendIDs []primitive.ObjectID, limit, offset int) ([]models.Story, error) {
-	// Include self in userIDs
+	if s.metrics != nil {
+		s.metrics.IncrementFeedRequests()
+	}
+
 	userIDs := make([]primitive.ObjectID, len(friendIDs)+1)
 	userIDs[0] = viewerID
 	copy(userIDs[1:], friendIDs)
 
-	// Get paginated authors
 	authorIDs, err := s.storyRepo.GetActiveStoryAuthors(ctx, viewerID, userIDs, limit, offset)
 	if err != nil {
 		return nil, err
@@ -116,26 +249,29 @@ func (s *StoryService) GetStoriesFeed(ctx context.Context, viewerID primitive.Ob
 		return []models.Story{}, nil
 	}
 
-	// Fetch stories for these authors
 	return s.storyRepo.GetStoriesForUsers(ctx, viewerID, authorIDs)
 }
 
-// GetUserStories returns all active stories for a specific user
 func (s *StoryService) GetUserStories(ctx context.Context, userID primitive.ObjectID) ([]models.Story, error) {
 	return s.storyRepo.GetUserStories(ctx, userID)
 }
 
-// RecordView records a story view and publishes a real-time event
 func (s *StoryService) RecordView(ctx context.Context, storyID, viewerID primitive.ObjectID) error {
-	// Fetch story to check author
 	story, err := s.storyRepo.GetStoryByID(ctx, storyID)
 	if err != nil {
-		return err
+		return errors.New("story not found")
 	}
 
-	// Don't count self-views
+	if !s.canViewStory(ctx, story, viewerID) {
+		return errors.New("story not found")
+	}
+
 	if story.UserID == viewerID {
 		return nil
+	}
+
+	if s.metrics != nil {
+		s.metrics.IncrementStoriesViewed()
 	}
 
 	err = s.storyRepo.AddViewer(ctx, storyID, viewerID)
@@ -143,11 +279,10 @@ func (s *StoryService) RecordView(ctx context.Context, storyID, viewerID primiti
 		return err
 	}
 
-	// Publish real-time event
 	if s.broadcaster != nil {
 		s.broadcaster.PublishStoryViewed(ctx, producer.StoryViewedEvent{
 			StoryID:  storyID.Hex(),
-			OwnerID:  story.UserID.Hex(), // Story owner to be notified
+			OwnerID:  story.UserID.Hex(),
 			ViewerID: viewerID.Hex(),
 			ViewedAt: time.Now(),
 		})
@@ -156,8 +291,20 @@ func (s *StoryService) RecordView(ctx context.Context, storyID, viewerID primiti
 	return nil
 }
 
-// ReactToStory adds a reaction and publishes a real-time event
 func (s *StoryService) ReactToStory(ctx context.Context, storyID, userID primitive.ObjectID, reactionType string) error {
+	if err := validation.ValidateReactionType(reactionType); err != nil {
+		return err
+	}
+
+	story, err := s.storyRepo.GetStoryByID(ctx, storyID)
+	if err != nil {
+		return errors.New("story not found")
+	}
+
+	if !s.canViewStory(ctx, story, userID) {
+		return errors.New("story not found")
+	}
+
 	reaction := models.StoryReaction{
 		StoryID:   storyID,
 		UserID:    userID,
@@ -165,12 +312,15 @@ func (s *StoryService) ReactToStory(ctx context.Context, storyID, userID primiti
 		CreatedAt: time.Now(),
 	}
 
-	err := s.storyRepo.AddReaction(ctx, storyID, reaction)
+	err = s.storyRepo.AddReaction(ctx, storyID, reaction)
 	if err != nil {
 		return err
 	}
 
-	// Publish real-time event
+	if s.metrics != nil {
+		s.metrics.IncrementReactions()
+	}
+
 	if s.broadcaster != nil {
 		s.broadcaster.PublishStoryReaction(ctx, producer.StoryReactionEvent{
 			StoryID:      storyID.Hex(),
@@ -183,9 +333,7 @@ func (s *StoryService) ReactToStory(ctx context.Context, storyID, userID primiti
 	return nil
 }
 
-// GetStoryViewers returns viewers with their reactions (only for story owner)
 func (s *StoryService) GetStoryViewers(ctx context.Context, storyID, userID primitive.ObjectID) ([]models.StoryViewerResponse, error) {
-	// Verify ownership
 	story, err := s.storyRepo.GetStoryByID(ctx, storyID)
 	if err != nil {
 		return nil, err
@@ -194,10 +342,13 @@ func (s *StoryService) GetStoryViewers(ctx context.Context, storyID, userID prim
 		return nil, errors.New("unauthorized: only author can view viewers")
 	}
 
+	if s.metrics != nil {
+		s.metrics.IncrementViewersAccessed()
+	}
+
 	return s.storyRepo.GetStoryViewersWithReactions(ctx, storyID)
 }
 
-// Request types
 type CreateStoryRequest struct {
 	MediaURL       string
 	MediaType      string

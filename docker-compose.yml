@@ -547,10 +547,20 @@ services:
       dockerfile: marketplace-service/Dockerfile
     container_name: marketplace-service
     ports:
+      - "8087:8087"
       - "9098:9098"
       - "9198:9198"
     env_file:
       - ".env"
+    environment:
+      SERVER_PORT: 8087
+      GRPC_PORT: 9098
+      JWT_SECRET: ${JWT_SECRET}
+      REDIS_URL: redis1:6379,redis2:6379,redis3:6379
+      REDIS_PASS: ${REDIS_PASS}
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_LIMIT: 50
+      RATE_LIMIT_BURST: 100
     depends_on:
       mongodb3:
         condition: service_healthy

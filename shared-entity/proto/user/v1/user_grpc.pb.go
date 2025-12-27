@@ -24,6 +24,7 @@ const (
 	UserService_ListUsers_FullMethodName                  = "/user.v1.UserService/ListUsers"
 	UserService_GetUserStatus_FullMethodName              = "/user.v1.UserService/GetUserStatus"
 	UserService_GetUsersPresence_FullMethodName           = "/user.v1.UserService/GetUsersPresence"
+	UserService_GetFriendIDs_FullMethodName               = "/user.v1.UserService/GetFriendIDs"
 	UserService_UpdateUser_FullMethodName                 = "/user.v1.UserService/UpdateUser"
 	UserService_UpdateEmail_FullMethodName                = "/user.v1.UserService/UpdateEmail"
 	UserService_UpdatePassword_FullMethodName             = "/user.v1.UserService/UpdatePassword"
@@ -32,6 +33,7 @@ const (
 	UserService_UpdatePublicKey_FullMethodName            = "/user.v1.UserService/UpdatePublicKey"
 	UserService_UpdatePrivacySettings_FullMethodName      = "/user.v1.UserService/UpdatePrivacySettings"
 	UserService_UpdateNotificationSettings_FullMethodName = "/user.v1.UserService/UpdateNotificationSettings"
+	UserService_CheckRelationship_FullMethodName          = "/user.v1.UserService/CheckRelationship"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -44,6 +46,7 @@ type UserServiceClient interface {
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
 	GetUserStatus(ctx context.Context, in *GetUserStatusRequest, opts ...grpc.CallOption) (*GetUserStatusResponse, error)
 	GetUsersPresence(ctx context.Context, in *GetUsersPresenceRequest, opts ...grpc.CallOption) (*GetUsersPresenceResponse, error)
+	GetFriendIDs(ctx context.Context, in *GetFriendIDsRequest, opts ...grpc.CallOption) (*GetFriendIDsResponse, error)
 	// Write Operations
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error)
@@ -53,6 +56,8 @@ type UserServiceClient interface {
 	UpdatePublicKey(ctx context.Context, in *UpdatePublicKeyRequest, opts ...grpc.CallOption) (*UpdatePublicKeyResponse, error)
 	UpdatePrivacySettings(ctx context.Context, in *UpdatePrivacySettingsRequest, opts ...grpc.CallOption) (*UpdatePrivacySettingsResponse, error)
 	UpdateNotificationSettings(ctx context.Context, in *UpdateNotificationSettingsRequest, opts ...grpc.CallOption) (*UpdateNotificationSettingsResponse, error)
+	// Relationship Checks
+	CheckRelationship(ctx context.Context, in *CheckRelationshipRequest, opts ...grpc.CallOption) (*CheckRelationshipResponse, error)
 }
 
 type userServiceClient struct {
@@ -107,6 +112,16 @@ func (c *userServiceClient) GetUsersPresence(ctx context.Context, in *GetUsersPr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUsersPresenceResponse)
 	err := c.cc.Invoke(ctx, UserService_GetUsersPresence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetFriendIDs(ctx context.Context, in *GetFriendIDsRequest, opts ...grpc.CallOption) (*GetFriendIDsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFriendIDsResponse)
+	err := c.cc.Invoke(ctx, UserService_GetFriendIDs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -193,6 +208,16 @@ func (c *userServiceClient) UpdateNotificationSettings(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *userServiceClient) CheckRelationship(ctx context.Context, in *CheckRelationshipRequest, opts ...grpc.CallOption) (*CheckRelationshipResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckRelationshipResponse)
+	err := c.cc.Invoke(ctx, UserService_CheckRelationship_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -203,6 +228,7 @@ type UserServiceServer interface {
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
 	GetUserStatus(context.Context, *GetUserStatusRequest) (*GetUserStatusResponse, error)
 	GetUsersPresence(context.Context, *GetUsersPresenceRequest) (*GetUsersPresenceResponse, error)
+	GetFriendIDs(context.Context, *GetFriendIDsRequest) (*GetFriendIDsResponse, error)
 	// Write Operations
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error)
@@ -212,6 +238,8 @@ type UserServiceServer interface {
 	UpdatePublicKey(context.Context, *UpdatePublicKeyRequest) (*UpdatePublicKeyResponse, error)
 	UpdatePrivacySettings(context.Context, *UpdatePrivacySettingsRequest) (*UpdatePrivacySettingsResponse, error)
 	UpdateNotificationSettings(context.Context, *UpdateNotificationSettingsRequest) (*UpdateNotificationSettingsResponse, error)
+	// Relationship Checks
+	CheckRelationship(context.Context, *CheckRelationshipRequest) (*CheckRelationshipResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -237,6 +265,9 @@ func (UnimplementedUserServiceServer) GetUserStatus(context.Context, *GetUserSta
 func (UnimplementedUserServiceServer) GetUsersPresence(context.Context, *GetUsersPresenceRequest) (*GetUsersPresenceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUsersPresence not implemented")
 }
+func (UnimplementedUserServiceServer) GetFriendIDs(context.Context, *GetFriendIDsRequest) (*GetFriendIDsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFriendIDs not implemented")
+}
 func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUser not implemented")
 }
@@ -260,6 +291,9 @@ func (UnimplementedUserServiceServer) UpdatePrivacySettings(context.Context, *Up
 }
 func (UnimplementedUserServiceServer) UpdateNotificationSettings(context.Context, *UpdateNotificationSettingsRequest) (*UpdateNotificationSettingsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateNotificationSettings not implemented")
+}
+func (UnimplementedUserServiceServer) CheckRelationship(context.Context, *CheckRelationshipRequest) (*CheckRelationshipResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckRelationship not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -368,6 +402,24 @@ func _UserService_GetUsersPresence_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetUsersPresence(ctx, req.(*GetUsersPresenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetFriendIDs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFriendIDsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetFriendIDs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetFriendIDs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetFriendIDs(ctx, req.(*GetFriendIDsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -516,6 +568,24 @@ func _UserService_UpdateNotificationSettings_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_CheckRelationship_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckRelationshipRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CheckRelationship(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CheckRelationship_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CheckRelationship(ctx, req.(*CheckRelationshipRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -542,6 +612,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUsersPresence",
 			Handler:    _UserService_GetUsersPresence_Handler,
+		},
+		{
+			MethodName: "GetFriendIDs",
+			Handler:    _UserService_GetFriendIDs_Handler,
 		},
 		{
 			MethodName: "UpdateUser",
@@ -574,6 +648,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateNotificationSettings",
 			Handler:    _UserService_UpdateNotificationSettings_Handler,
+		},
+		{
+			MethodName: "CheckRelationship",
+			Handler:    _UserService_CheckRelationship_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

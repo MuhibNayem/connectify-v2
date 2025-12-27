@@ -10,16 +10,20 @@ import (
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
+	userpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 	"github.com/MuhibNayem/connectify-v2/story-service/config"
 	storygrpc "github.com/MuhibNayem/connectify-v2/story-service/internal/grpc"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/httpapi"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/producer"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/story-service/internal/resilience"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/service"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Application struct {
@@ -29,6 +33,8 @@ type Application struct {
 	producer    *producer.StoryProducer
 	httpServer  *http.Server
 	redisClient *redis.ClusterClient
+	userConn    *grpc.ClientConn
+	userClient  userpb.UserServiceClient
 
 	// Repositories
 	storyRepo *repository.StoryRepository
@@ -84,21 +90,45 @@ func (a *Application) Bootstrap() error {
 	// Initialize repositories
 	a.storyRepo = repository.NewStoryRepository(db)
 
-	// Initialize services
-	a.storyService = service.NewStoryService(a.storyRepo, a.producer)
-
+	// Remove old service initialization as it will be replaced later
+	
 	// Initialize gRPC server
 	a.grpcServer = grpc.NewServer(
 		observability.GetGRPCServerOption(),
 	)
-	a.grpcHandler = storygrpc.NewServer(a.storyService)
-	a.grpcHandler.Register(a.grpcServer)
 
 	if err := a.initRedis(); err != nil {
 		return fmt.Errorf("failed to initialize redis: %w", err)
 	}
 
-	httpHandler := httpapi.NewStoryHandler(a.storyService)
+	if err := a.initUserClient(); err != nil {
+		return fmt.Errorf("failed to connect to user service: %w", err)
+	}
+
+	// Initialize business metrics
+	businessMetrics := metrics.NewBusinessMetrics()
+
+	// Initialize circuit breaker
+	circuitBreaker := resilience.NewCircuitBreaker(
+		resilience.DefaultConfig("user-service"),
+		slog.Default(),
+	)
+
+	// Update service with new dependencies
+	a.storyService = service.NewStoryService(
+		a.storyRepo, 
+		a.producer, 
+		a.userClient, 
+		circuitBreaker, 
+		businessMetrics, 
+		slog.Default(),
+	)
+
+	// Update gRPC handler
+	a.grpcHandler = storygrpc.NewServer(a.storyService)
+	a.grpcHandler.Register(a.grpcServer)
+
+	httpHandler := httpapi.NewStoryHandler(a.storyService, a.userClient, businessMetrics)
 	router := httpapi.BuildRouter(a.cfg, httpHandler, a.redisClient)
 	a.httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%s", a.cfg.ServerPort),
@@ -193,6 +223,14 @@ func (a *Application) Shutdown() {
 		}
 	}
 
+	if a.userConn != nil {
+		if err := a.userConn.Close(); err != nil {
+			slog.Error("Error closing user-service client connection", "error", err)
+		} else {
+			slog.Info("User-service client connection closed")
+		}
+	}
+
 	slog.Info("Story service shutdown complete")
 }
 
@@ -222,4 +260,22 @@ func (a *Application) initRedis() error {
 			slog.Warn("Waiting for Redis cluster...")
 		}
 	}
+}
+
+func (a *Application) initUserClient() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx,
+		net.JoinHostPort(a.cfg.UserServiceHost, a.cfg.UserServicePort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return err
+	}
+
+	a.userConn = conn
+	a.userClient = userpb.NewUserServiceClient(conn)
+	slog.Info("Connected to user service", "host", a.cfg.UserServiceHost, "port", a.cfg.UserServicePort)
+	return nil
 }

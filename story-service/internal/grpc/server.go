@@ -8,6 +8,8 @@ import (
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -59,7 +61,12 @@ func (s *Server) GetStory(ctx context.Context, req *storypb.GetStoryRequest) (*s
 		return nil, err
 	}
 
-	story, err := s.storyService.GetStory(ctx, storyID)
+	viewerID, err := primitive.ObjectIDFromHex(req.ViewerId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid viewer id")
+	}
+
+	story, err := s.storyService.GetStory(ctx, storyID, viewerID)
 	if err != nil {
 		return nil, err
 	}

@@ -87,6 +87,7 @@ message CreateStoryRequest {
 
 message GetStoryRequest {
   string story_id = 1;
+  string viewer_id = 2; // Required for privacy checks
 }
 
 // ===============================

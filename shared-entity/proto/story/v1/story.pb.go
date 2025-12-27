@@ -398,6 +398,7 @@ func (x *CreateStoryRequest) GetBlockedViewers() []string {
 type GetStoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StoryId       string                 `protobuf:"bytes,1,opt,name=story_id,json=storyId,proto3" json:"story_id,omitempty"`
+	ViewerId      string                 `protobuf:"bytes,2,opt,name=viewer_id,json=viewerId,proto3" json:"viewer_id,omitempty"` // Required for privacy checks
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -435,6 +436,13 @@ func (*GetStoryRequest) Descriptor() ([]byte, []int) {
 func (x *GetStoryRequest) GetStoryId() string {
 	if x != nil {
 		return x.StoryId
+	}
+	return ""
+}
+
+func (x *GetStoryRequest) GetViewerId() string {
+	if x != nil {
+		return x.ViewerId
 	}
 	return ""
 }
@@ -970,9 +978,10 @@ const file_proto_story_v1_story_proto_rawDesc = "" +
 	"media_type\x18\x03 \x01(\tR\tmediaType\x12\x18\n" +
 	"\aprivacy\x18\x04 \x01(\tR\aprivacy\x12'\n" +
 	"\x0fallowed_viewers\x18\x05 \x03(\tR\x0eallowedViewers\x12'\n" +
-	"\x0fblocked_viewers\x18\x06 \x03(\tR\x0eblockedViewers\",\n" +
+	"\x0fblocked_viewers\x18\x06 \x03(\tR\x0eblockedViewers\"I\n" +
 	"\x0fGetStoryRequest\x12\x19\n" +
-	"\bstory_id\x18\x01 \x01(\tR\astoryId\"H\n" +
+	"\bstory_id\x18\x01 \x01(\tR\astoryId\x12\x1b\n" +
+	"\tviewer_id\x18\x02 \x01(\tR\bviewerId\"H\n" +
 	"\x12DeleteStoryRequest\x12\x19\n" +
 	"\bstory_id\x18\x01 \x01(\tR\astoryId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"}\n" +
@@ -1013,7 +1022,7 @@ const file_proto_story_v1_story_proto_rawDesc = "" +
 	"\n" +
 	"RecordView\x12\x1b.story.v1.RecordViewRequest\x1a\x16.google.protobuf.Empty\x12E\n" +
 	"\fReactToStory\x12\x1d.story.v1.ReactToStoryRequest\x1a\x16.google.protobuf.Empty\x12S\n" +
-	"\x0fGetStoryViewers\x12 .story.v1.GetStoryViewersRequest\x1a\x1e.story.v1.StoryViewersResponseBAZ?github.com/MuhibNayem/connectify-v2/shared-entity/proto/story/v1;storypbb\x06proto3"
+	"\x0fGetStoryViewers\x12 .story.v1.GetStoryViewersRequest\x1a\x1e.story.v1.StoryViewersResponseBAZ?gitlab.com/spydotech-group/shared-entity/proto/story/v1;storypbb\x06proto3"
 
 var (
 	file_proto_story_v1_story_proto_rawDescOnce sync.Once

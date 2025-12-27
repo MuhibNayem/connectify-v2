@@ -99,6 +99,58 @@ func (s *UserService) GetUsersByIDs(ctx context.Context, ids []primitive.ObjectI
 	return result, nil
 }
 
+// CheckRelationship determines the relationship status between two users (friend, blocked)
+func (s *UserService) CheckRelationship(ctx context.Context, userID, targetID primitive.ObjectID) (isFriend, blockedByUser, blockedByTarget bool, err error) {
+	if userID == targetID {
+		return true, false, false, nil
+	}
+
+	// Batch fetch both users
+	users, err := s.userRepo.FindUsersByIDs(ctx, []primitive.ObjectID{userID, targetID})
+	if err != nil {
+		return false, false, false, err
+	}
+
+	var user, target *models.User
+	for i := range users {
+		if users[i].ID == userID {
+			user = &users[i]
+		} else if users[i].ID == targetID {
+			target = &users[i]
+		}
+	}
+
+	if user == nil || target == nil {
+		return false, false, false, errors.New("user not found")
+	}
+
+	// Check Friendship
+	for _, friendID := range user.Friends {
+		if friendID == targetID {
+			isFriend = true
+			break
+		}
+	}
+
+	// Check Blocked By User
+	for _, blockedID := range user.Blocked {
+		if blockedID == targetID {
+			blockedByUser = true
+			break
+		}
+	}
+
+	// Check Blocked By Target
+	for _, blockedID := range target.Blocked {
+		if blockedID == userID {
+			blockedByTarget = true
+			break
+		}
+	}
+
+	return
+}
+
 func (s *UserService) ListUsers(ctx context.Context, page, limit int64, search string) ([]models.User, int64, error) {
 	filter := bson.M{}
 	if search != "" {
