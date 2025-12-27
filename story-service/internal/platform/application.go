@@ -91,7 +91,7 @@ func (a *Application) Bootstrap() error {
 	a.storyRepo = repository.NewStoryRepository(db)
 
 	// Remove old service initialization as it will be replaced later
-	
+
 	// Initialize gRPC server
 	a.grpcServer = grpc.NewServer(
 		observability.GetGRPCServerOption(),
@@ -116,12 +116,13 @@ func (a *Application) Bootstrap() error {
 
 	// Update service with new dependencies
 	a.storyService = service.NewStoryService(
-		a.storyRepo, 
-		a.producer, 
-		a.userClient, 
-		circuitBreaker, 
-		businessMetrics, 
+		a.storyRepo,
+		a.producer,
+		a.userClient,
+		circuitBreaker,
+		businessMetrics,
 		slog.Default(),
+		a.redisClient,
 	)
 
 	// Update gRPC handler

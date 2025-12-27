@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	userpb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
+	"github.com/MuhibNayem/connectify-v2/shared-entity/redis"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/metrics"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/producer"
 	"github.com/MuhibNayem/connectify-v2/story-service/internal/resilience"
@@ -34,6 +37,7 @@ type StoryService struct {
 	breaker     *resilience.CircuitBreaker
 	metrics     *metrics.BusinessMetrics
 	logger      *slog.Logger
+	redisClient *redis.ClusterClient
 }
 
 func NewStoryService(
@@ -43,6 +47,7 @@ func NewStoryService(
 	breaker *resilience.CircuitBreaker,
 	metrics *metrics.BusinessMetrics,
 	logger *slog.Logger,
+	redisClient *redis.ClusterClient,
 ) *StoryService {
 	if logger == nil {
 		logger = slog.Default()
@@ -54,6 +59,7 @@ func NewStoryService(
 		breaker:     breaker,
 		metrics:     metrics,
 		logger:      logger,
+		redisClient: redisClient,
 	}
 }
 
@@ -129,21 +135,16 @@ func (s *StoryService) GetStory(ctx context.Context, storyID, viewerID primitive
 }
 
 func (s *StoryService) canViewStory(ctx context.Context, story *models.Story, viewerID primitive.ObjectID) bool {
-	// 1. Owner always has access
 	if story.UserID == viewerID {
 		return true
 	}
 
-	// 2. Fetch relationship status (scalable check via RPC)
 	rel, err := s.getRelationship(ctx, viewerID, story.UserID)
 	if err != nil {
 		s.logger.Warn("Failed to check relationship", "error", err)
-		// Fail safe (deny) if relationship check fails, unless it's Public (debatable, but safer)
-		// For Public, maybe we allow if error? No, safer to deny if we can't check blocks.
 		return false
 	}
 
-	// Global Block Check: If viewer is blocked by author, they can't see ANYTHING
 	if rel.IsBlockedByTarget {
 		return false
 	}
@@ -189,6 +190,17 @@ func (s *StoryService) getRelationship(ctx context.Context, userID, targetID pri
 		return nil, errors.New("user service unavailable")
 	}
 
+	cacheKey := fmt.Sprintf("rel:%s:%s", userID.Hex(), targetID.Hex())
+
+	if s.redisClient != nil {
+		if cached, err := s.redisClient.Get(ctx, cacheKey); err == nil {
+			var rel userpb.CheckRelationshipResponse
+			if err := json.Unmarshal([]byte(cached), &rel); err == nil {
+				return &rel, nil
+			}
+		}
+	}
+
 	result, err := s.breaker.Execute(ctx, func() (interface{}, error) {
 		return s.userClient.CheckRelationship(ctx, &userpb.CheckRelationshipRequest{
 			UserId:   userID.Hex(),
@@ -199,7 +211,28 @@ func (s *StoryService) getRelationship(ctx context.Context, userID, targetID pri
 	if err != nil {
 		return nil, err
 	}
-	return result.(*userpb.CheckRelationshipResponse), nil
+	rel := result.(*userpb.CheckRelationshipResponse)
+
+	if s.redisClient != nil {
+		if data, err := json.Marshal(rel); err == nil {
+			if err := s.redisClient.Set(ctx, cacheKey, data, 5*time.Minute); err != nil {
+				s.logger.Warn("Failed to cache relationship", "key", cacheKey, "error", err)
+			}
+		}
+	}
+
+	return rel, nil
+}
+
+func (s *StoryService) InvalidateRelationshipCache(ctx context.Context, userID, targetID string) error {
+	if s.redisClient == nil {
+		return nil
+	}
+
+	cacheKey := fmt.Sprintf("rel:%s:%s", userID, targetID)
+	reverseKey := fmt.Sprintf("rel:%s:%s", targetID, userID)
+
+	return s.redisClient.Del(ctx, cacheKey, reverseKey)
 }
 
 // Deprecated: Use getRelationship instead

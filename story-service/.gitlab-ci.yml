@@ -1,0 +1,39 @@
+stages:
+  - test
+  - build
+  - release
+
+variables:
+  GO_VERSION: "1.25"
+  DOCKER_IMAGE: "$CI_REGISTRY_IMAGE/story-service"
+
+test:
+  image: golang:$GO_VERSION
+  stage: test
+  script:
+    - go mod download
+    - go vet ./...
+    - go test -v -race ./...
+  only:
+    - merge_requests
+    - main
+
+build:
+  image: itemsapi/docker-dind-aws-kubectl:latest
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA .
+    # - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA (Uncomment if registry configured)
+  only:
+    - main
+
+release:
+  image: node:18
+  stage: release
+  script:
+    - echo "Releasing new version..."
+    # Semantic release logic here
+  only:
+    - main

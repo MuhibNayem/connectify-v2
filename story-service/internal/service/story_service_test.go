@@ -102,6 +102,7 @@ func TestStoryService_CreateStory(t *testing.T) {
 		nil,
 		businessMetrics,
 		slog.Default(),
+		nil,
 	)
 
 	userID := primitive.NewObjectID()
@@ -138,7 +139,7 @@ func TestStoryService_CreateStory(t *testing.T) {
 
 func TestStoryService_GetStoryViewers_Unauthorized(t *testing.T) {
 	mockRepo := new(MockStoryRepository)
-	service := NewStoryService(mockRepo, nil, nil, nil, nil, slog.Default())
+	service := NewStoryService(mockRepo, nil, nil, nil, nil, slog.Default(), nil)
 
 	storyID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()
@@ -161,7 +162,7 @@ func TestStoryService_GetStoryViewers_Unauthorized(t *testing.T) {
 }
 
 func TestStoryService_CreateStory_ValidationError(t *testing.T) {
-	service := NewStoryService(nil, nil, nil, nil, nil, slog.Default())
+	service := NewStoryService(nil, nil, nil, nil, nil, slog.Default(), nil)
 
 	userID := primitive.NewObjectID()
 	author := models.PostAuthor{ID: userID.Hex()}
