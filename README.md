@@ -1,35 +1,33 @@
-<![CDATA[<div align="center">
-  <h1>🚀 Connectify V2</h1>
-  <p><strong>A Hyperscale Social Networking Platform</strong></p>
-  <p>
-    <img src="https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white" alt="Go" />
-    <img src="https://img.shields.io/badge/SvelteKit-2.0-FF3E00?logo=svelte&logoColor=white" alt="SvelteKit" />
-    <img src="https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
-    <img src="https://img.shields.io/badge/Neo4j-5.0-4581C3?logo=neo4j&logoColor=white" alt="Neo4j" />
-    <img src="https://img.shields.io/badge/Cassandra-4.1-1287B1?logo=apache-cassandra&logoColor=white" alt="Cassandra" />
-    <img src="https://img.shields.io/badge/Kafka-3.6-231F20?logo=apache-kafka&logoColor=white" alt="Kafka" />
-    <img src="https://img.shields.io/badge/Redis-7.2-DC382D?logo=redis&logoColor=white" alt="Redis" />
-    <img src="https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes" />
-  </p>
-</div>
+# 🚀 Connectify V2
+
+**A Hyperscale Social Networking Platform**
+
+![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
+![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-FF3E00?logo=svelte&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)
+![Neo4j](https://img.shields.io/badge/Neo4j-5.0-4581C3?logo=neo4j&logoColor=white)
+![Cassandra](https://img.shields.io/badge/Cassandra-4.1-1287B1?logo=apache-cassandra&logoColor=white)
+![Kafka](https://img.shields.io/badge/Kafka-3.6-231F20?logo=apache-kafka&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7.2-DC382D?logo=redis&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes&logoColor=white)
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Microservices Breakdown](#-microservices-breakdown)
-- [Database Design Philosophy](#-database-design-philosophy)
-- [Data Flow Patterns](#-data-flow-patterns)
-- [Getting Started](#-getting-started)
-- [License](#-license)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Tech Stack](#tech-stack)
+- [Microservices Breakdown](#microservices-breakdown)
+- [Database Design Philosophy](#database-design-philosophy)
+- [Data Flow Patterns](#data-flow-patterns)
+- [Getting Started](#getting-started)
+- [License](#license)
 
 ---
 
-## 🌟 Overview
+## Overview
 
 **Connectify V2** is a production-grade, distributed social networking platform engineered for hyperscale. It combines the best features of **Instagram** (Stories, Reels), **Facebook** (Events, Communities, Marketplace), and **WhatsApp** (End-to-End Encrypted Messaging) into a unified, modular architecture.
 
@@ -37,16 +35,16 @@ Built with **polyglot persistence**, **event-driven design**, and **FAANG-level 
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 👤 User Management
+### User Management
 - **Profile System** — Rich profiles with avatar, cover photo, bio, location
 - **Privacy Controls** — Granular visibility settings (Public, Friends, Only Me)
 - **Two-Factor Authentication** — Enhanced account security
 - **End-to-End Encryption (E2EE)** — Client-side public/private key management
 - **Presence System** — Real-time online/offline status with last seen
 
-### 💬 Messaging (WhatsApp-Grade)
+### Messaging (WhatsApp-Grade)
 - **Direct Messages** — One-on-one private conversations
 - **Group Chats** — Create and manage group conversations with roles
 - **Message Reactions** — Emoji reactions on messages
@@ -55,21 +53,21 @@ Built with **polyglot persistence**, **event-driven design**, and **FAANG-level 
 - **Media Attachments** — Images, videos, voice messages via MinIO
 - **Message Archiving** — Cassandra-backed infinite message history
 
-### 📸 Stories & Reels (Instagram-Grade)
+### Stories & Reels (Instagram-Grade)
 - **Ephemeral Stories** — 24-hour auto-expiring content
 - **Privacy Controls** — Public, Friends, Custom, Friends-Except, Block Lists
 - **View Tracking** — See who viewed your story
 - **Story Reactions** — React with emojis
 - **Reels** — Short-form video content
 
-### 📰 Feed & Posts
+### Feed & Posts
 - **Rich Posts** — Text, images, videos with hashtags
 - **Comments & Replies** — Nested discussion threads
 - **Reactions** — Emoji reactions on posts, comments, and replies
 - **Photo Albums** — Organize media into collections
 - **Hashtag Discovery** — Browse posts by hashtag
 
-### 📅 Events
+### Events
 - **Event Creation** — Host public or private events
 - **RSVP System** — Going, Interested, Not Going
 - **Co-Host Management** — Add/remove event co-hosts
@@ -77,7 +75,7 @@ Built with **polyglot persistence**, **event-driven design**, and **FAANG-level 
 - **Trending Events** — Discover popular events
 - **Event Categories** — Organized by type
 
-### 🛍️ Marketplace
+### Marketplace
 - **Product Listings** — Sell items with images, descriptions, pricing
 - **Category Browser** — Navigate products by category
 - **Search & Filter** — Advanced product search
@@ -85,56 +83,56 @@ Built with **polyglot persistence**, **event-driven design**, and **FAANG-level 
 - **View Tracking** — Track product popularity
 - **Favorites** — Save products for later
 
-### 👥 Communities
+### Communities
 - **Community Creation** — Build interest-based groups
 - **Post Moderation** — Admin approval workflows
 - **Member Management** — Roles and permissions
 
-### 🔍 Search & Discovery
+### Search & Discovery
 - **Universal Search** — Search across users, posts, products, events
 - **Friend Suggestions** — Neo4j-powered social recommendations
 
-### 🔔 Notifications
+### Notifications
 - **Real-time Notifications** — Push and in-app alerts
 - **Notification Preferences** — Granular control per category
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
-    subgraph "Client Layer"
-        Web[🌐 Web App<br/>SvelteKit + TailwindCSS]
-        Mobile[📱 Mobile App<br/>React Native]
+    subgraph Client
+        Web[Web App - SvelteKit]
+        Mobile[Mobile App - React Native]
     end
 
-    subgraph "Gateway Layer"
-        LB[🔄 Load Balancer]
-        Gateway[🚪 API Gateway]
+    subgraph Gateway
+        LB[Load Balancer]
+        API[API Gateway]
     end
 
     Web --> LB
     Mobile --> LB
-    LB --> Gateway
+    LB --> API
 
-    subgraph "Microservices Layer"
-        Gateway --> UserSvc[👤 User Service<br/>Auth, Profiles, Privacy]
-        Gateway --> MsgSvc[� Messaging App<br/>Chat, Groups, Reels]
-        Gateway --> StorySvc[� Story Service<br/>Ephemeral Content]
-        Gateway --> FeedSvc[� Feed Service<br/>Posts, Albums]
-        Gateway --> EventSvc[📅 Events Service<br/>RSVP, Recommendations]
-        Gateway --> MktSvc[�️ Marketplace<br/>Products, Search]
+    subgraph Services
+        API --> UserSvc[User Service]
+        API --> MsgSvc[Messaging App]
+        API --> StorySvc[Story Service]
+        API --> FeedSvc[Feed Service]
+        API --> EventSvc[Events Service]
+        API --> MktSvc[Marketplace]
     end
 
-    subgraph "Data Layer"
-        UserSvc --> MongoDB[(🍃 MongoDB)]
-        UserSvc --> Neo4j[(🕸️ Neo4j)]
-        UserSvc --> Redis[(🔴 Redis)]
+    subgraph DataStores
+        UserSvc --> MongoDB[(MongoDB)]
+        UserSvc --> Neo4j[(Neo4j)]
+        UserSvc --> Redis[(Redis)]
         
         MsgSvc --> MongoDB
-        MsgSvc --> Cassandra[(� Cassandra)]
-        MsgSvc --> MinIO[(📦 MinIO)]
+        MsgSvc --> Cassandra[(Cassandra)]
+        MsgSvc --> MinIO[(MinIO)]
         
         StorySvc --> MongoDB
         StorySvc --> Redis
@@ -148,30 +146,22 @@ graph TD
         MktSvc --> MongoDB
     end
 
-    subgraph "Event Bus"
-        UserSvc --> Kafka{📨 Kafka}
+    subgraph EventBus
+        UserSvc --> Kafka{Kafka}
         MsgSvc --> Kafka
         StorySvc --> Kafka
         FeedSvc --> Kafka
         EventSvc --> Kafka
         MktSvc --> Kafka
         
-        Kafka --> Workers[⚙️ Background Workers]
+        Kafka --> Workers[Background Workers]
         Workers --> Neo4j
     end
-
-    classDef svc fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef db fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    classDef bus fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    
-    class UserSvc,MsgSvc,StorySvc,FeedSvc,EventSvc,MktSvc svc
-    class MongoDB,Neo4j,Redis,Cassandra,MinIO db
-    class Kafka,Workers bus
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
@@ -189,7 +179,7 @@ graph TD
 
 ---
 
-## � Microservices Breakdown
+## Microservices Breakdown
 
 | Service | Port | Responsibilities |
 |---------|------|------------------|
@@ -203,7 +193,7 @@ graph TD
 
 ---
 
-## 🧠 Database Design Philosophy
+## Database Design Philosophy
 
 We employ **Polyglot Persistence** — using the right database for the right job:
 
@@ -223,30 +213,30 @@ We employ **Polyglot Persistence** — using the right database for the right jo
 
 ---
 
-## 🌊 Data Flow Patterns
+## Data Flow Patterns
 
 ### Synchronous Read
 ```
-Client → API → Redis Cache (HIT?) → MongoDB → Response
+Client -> API -> Redis Cache (HIT?) -> MongoDB -> Response
 ```
 
 ### Async Write (Event-Driven)
 ```
-Client → API → MongoDB (Write) → Kafka (Publish)
-                                    ↓
-                    Background Worker → Neo4j (Graph Sync)
+Client -> API -> MongoDB (Write) -> Kafka (Publish)
+                                       |
+                    Background Worker -> Neo4j (Graph Sync)
 ```
 
 ### Messaging Flow
 ```
-Client → Messaging App → MinIO (Upload Media)
-                       → Cassandra (Store Message)
-                       → WebSocket/Push (Notify Recipient)
+Client -> Messaging App -> MinIO (Upload Media)
+                        -> Cassandra (Store Message)
+                        -> WebSocket/Push (Notify Recipient)
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Docker & Docker Compose
@@ -285,14 +275,12 @@ cd marketplace-service && make run
 
 ---
 
-## 📄 License
+## License
 
 This project is proprietary software. All rights reserved.
 
 ---
 
-<div align="center">
-  <p><strong>Built for Scale. Designed for Millions.</strong></p>
-  <p>⭐ Star this repo if you find it inspiring!</p>
-</div>
-]]>
+**Built for Scale. Designed for Millions.**
+
+If you find this project inspiring, please star the repo!
