@@ -18,6 +18,7 @@ import (
 	"user-service/internal/repository"
 	"user-service/internal/service"
 
+	"github.com/MuhibNayem/connectify-v2/shared-entity/middleware"
 	"github.com/MuhibNayem/connectify-v2/shared-entity/observability"
 	pb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/user/v1"
 	"github.com/gin-gonic/gin"
@@ -94,13 +95,22 @@ func run() error {
 	// 5. Services
 	authService := service.NewAuthService(userRepo, graphRepo, redisClient, cfg)
 	userService := service.NewUserService(userRepo, producer, redisClient, cfg, slog.Default(), businessMetrics)
+	rateLimitObserver := businessMetrics.RecordRateLimitHit
 
 	// 5. Handlers
 	authHandler := httphandler.NewAuthHandler(authService, cfg)
+	userHandler := httphandler.NewUserHandler(userService)
 	userGrpcHandler := grpchandler.NewUserHandler(userService)
 
 	// HTTP Server
 	r := gin.Default()
+	r.Use(middleware.RateLimiter(
+		cfg.RateLimitEnabled,
+		cfg.RateLimitLimit,
+		cfg.RateLimitBurst,
+		"user:global",
+		rateLimitObserver,
+	))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "user-service"})
 	})
@@ -108,9 +118,25 @@ func run() error {
 	{
 		auth := api.Group("/auth")
 		{
-			auth.POST("/register", authHandler.Register)
-			auth.POST("/login", authHandler.Login)
-			auth.POST("/refresh", authHandler.RefreshToken)
+			auth.POST("/register",
+				middleware.StrictRateLimiter(0.1, 3, "auth:register", rateLimitObserver), // ≈6 requests/min
+				authHandler.Register,
+			)
+			auth.POST("/login",
+				middleware.StrictRateLimiter(1, 8, "auth:login", rateLimitObserver), // limit brute force attempts
+				authHandler.Login,
+			)
+			auth.POST("/refresh",
+				middleware.StrictRateLimiter(0.5, 5, "auth:refresh", rateLimitObserver),
+				authHandler.RefreshToken,
+			)
+		}
+
+		// User routes (public profile endpoints)
+		users := api.Group("/users")
+		{
+			users.GET("/:id", userHandler.GetUserByID)
+			users.GET("/:id/status", userHandler.GetUserStatus)
 		}
 	}
 

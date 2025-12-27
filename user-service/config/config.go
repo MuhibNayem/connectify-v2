@@ -12,7 +12,10 @@ import (
 
 type Config struct {
 	// Server
-	ServerPort string
+	ServerPort       string
+	RateLimitEnabled bool
+	RateLimitLimit   float64
+	RateLimitBurst   int
 
 	// Database
 	MongoURI      string
@@ -52,11 +55,17 @@ func LoadConfig() *Config {
 
 	accessTTL, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_TTL", "15"))
 	refreshTTL, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_TTL", "10080")) // 7 days in minutes
+	rateLimitEnabled, _ := strconv.ParseBool(getEnv("RATE_LIMIT_ENABLED", "true"))
+	rateLimitLimit, _ := strconv.ParseFloat(getEnv("RATE_LIMIT_LIMIT", "50"), 64)
+	rateLimitBurst, _ := strconv.Atoi(getEnv("RATE_LIMIT_BURST", "100"))
 
 	cookieSecure, _ := strconv.ParseBool(getEnv("COOKIE_SECURE", "false"))
 
 	return &Config{
-		ServerPort: getEnv("SERVER_PORT", "8083"), // Default user-service port
+		ServerPort:       getEnv("SERVER_PORT", "8083"), // Default user-service port
+		RateLimitEnabled: rateLimitEnabled,
+		RateLimitLimit:   rateLimitLimit,
+		RateLimitBurst:   rateLimitBurst,
 
 		MongoURI:      getEnv("MONGO_URI", "mongodb://localhost:27017"),
 		DBName:        getEnv("DB_NAME", "connectify-v2"),

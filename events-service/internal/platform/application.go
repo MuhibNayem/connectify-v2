@@ -38,8 +38,9 @@ type Application struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg     *config.Config
-	metrics *config.Metrics
+	cfg             *config.Config
+	metrics         *config.Metrics
+	businessMetrics *metrics.BusinessMetrics
 
 	mongoClient *mongo.Client
 	db          *mongo.Database
@@ -211,6 +212,7 @@ func (a *Application) bootstrap() error {
 	eventCache := cache.NewEventCache(a.redisClient)
 	breaker := service.NewCircuitBreakerWrapper(serviceLogger)
 	businessMetrics := metrics.NewBusinessMetrics()
+	a.businessMetrics = businessMetrics
 
 	a.eventService = service.NewEventService(
 		eventRepo,

@@ -13,6 +13,7 @@ type BusinessMetrics struct {
 	InvitationsSent    prometheus.Counter
 	RecommendationReqs prometheus.Counter
 	PostsCreated       prometheus.Counter
+	RateLimitHits      *prometheus.CounterVec
 }
 
 // NewBusinessMetrics creates and registers business metrics.
@@ -42,6 +43,10 @@ func NewBusinessMetrics() *BusinessMetrics {
 			Name: "event_posts_created_total",
 			Help: "Total number of event discussion posts created",
 		}),
+		RateLimitHits: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "event_service_rate_limit_hits_total",
+			Help: "Number of rate-limited requests grouped by action",
+		}, []string{"action"}),
 	}
 }
 
@@ -88,4 +93,12 @@ func (m *BusinessMetrics) IncrementPosts() {
 	if m != nil {
 		m.PostsCreated.Inc()
 	}
+}
+
+// RecordRateLimitHit increments the rate limit metric for a given action.
+func (m *BusinessMetrics) RecordRateLimitHit(action string) {
+	if m == nil || action == "" {
+		return
+	}
+	m.RateLimitHits.WithLabelValues(action).Inc()
 }

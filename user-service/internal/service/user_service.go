@@ -194,8 +194,41 @@ func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, upd
 
 	// Publish event for cache invalidation
 	s.publishUserUpdatedEvent(ctx, id.Hex(), updatedUser)
+	if s.metrics != nil {
+		s.metrics.IncrementProfileUpdates()
+	}
 
 	return updatedUser, nil
+}
+
+// UpdateProfileFields updates user profile fields
+func (s *UserService) UpdateProfileFields(ctx context.Context, userID primitive.ObjectID, fullName, bio, avatar, coverPhoto, location, website string) (*models.User, error) {
+	update := bson.M{}
+
+	if fullName != "" {
+		update["full_name"] = fullName
+	}
+	if bio != "" {
+		update["bio"] = bio
+	}
+	if avatar != "" {
+		update["avatar"] = avatar
+	}
+	if coverPhoto != "" {
+		update["cover_photo"] = coverPhoto
+	}
+	if location != "" {
+		update["location"] = location
+	}
+	if website != "" {
+		update["website"] = website
+	}
+
+	if len(update) == 0 {
+		return s.userRepo.FindUserByID(ctx, userID)
+	}
+
+	return s.UpdateUser(ctx, userID, update)
 }
 
 func (s *UserService) UpdateEmail(ctx context.Context, userID primitive.ObjectID, newEmail string) error {

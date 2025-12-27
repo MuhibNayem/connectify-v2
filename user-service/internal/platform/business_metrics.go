@@ -14,6 +14,7 @@ type BusinessMetrics struct {
 	EmailChanges         prometheus.Counter
 	TwoFactorToggles     *prometheus.CounterVec
 	AccountDeactivations prometheus.Counter
+	RateLimitHits        *prometheus.CounterVec
 }
 
 // NewBusinessMetrics creates and registers business metrics
@@ -47,6 +48,10 @@ func NewBusinessMetrics() *BusinessMetrics {
 			Name: "user_account_deactivations_total",
 			Help: "Total number of account deactivations",
 		}),
+		RateLimitHits: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "user_service_rate_limit_hits_total",
+			Help: "Number of rate-limited requests grouped by action",
+		}, []string{"action"}),
 	}
 }
 
@@ -83,4 +88,12 @@ func (m *BusinessMetrics) IncrementTwoFactor(action string) {
 // IncrementDeactivations increments account deactivations counter
 func (m *BusinessMetrics) IncrementDeactivations() {
 	m.AccountDeactivations.Inc()
+}
+
+// RecordRateLimitHit records a rate limit hit for observability.
+func (m *BusinessMetrics) RecordRateLimitHit(action string) {
+	if action == "" || m == nil {
+		return
+	}
+	m.RateLimitHits.WithLabelValues(action).Inc()
 }
