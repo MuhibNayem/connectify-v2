@@ -15,7 +15,7 @@ import (
 
 type FriendshipService struct {
 	friendshipRepo *repository.FriendshipRepository
-	graphRepo      *repository.GraphRepository
+	graphClient    repository.GraphClient
 	userRepo       *repository.UserRepository
 	producer       *events.EventProducer
 	cfg            *config.Config
@@ -23,14 +23,14 @@ type FriendshipService struct {
 
 func NewFriendshipService(
 	friendRepo *repository.FriendshipRepository,
-	graphRepo *repository.GraphRepository,
+	graphClient repository.GraphClient,
 	userRepo *repository.UserRepository,
 	producer *events.EventProducer,
 	cfg *config.Config,
 ) *FriendshipService {
 	return &FriendshipService{
 		friendshipRepo: friendRepo,
-		graphRepo:      graphRepo,
+		graphClient:    graphClient,
 		userRepo:       userRepo,
 		producer:       producer,
 		cfg:            cfg,
@@ -45,7 +45,7 @@ func (s *FriendshipService) SendRequest(ctx context.Context, requesterID, receiv
 	}
 
 	// 2. Sync to Neo4j
-	go s.graphRepo.SendRequest(context.Background(), requesterID, receiverID)
+	go s.graphClient.SendRequest(context.Background(), requesterID, receiverID)
 
 	// 3. Emit Event
 	s.publishEvent("FriendRequestSent", requesterID, receiverID)
@@ -66,7 +66,7 @@ func (s *FriendshipService) AcceptRequest(ctx context.Context, friendshipID, rec
 	}
 
 	// 3. Sync to Neo4j (Critical)
-	go s.graphRepo.AcceptRequest(context.Background(), req.RequesterID, req.ReceiverID)
+	go s.graphClient.AcceptRequest(context.Background(), req.RequesterID, req.ReceiverID)
 
 	// 4. Update Legacy Mongo Friends Array (Optional, but good for read compatibility)
 	go s.userRepo.AddFriend(context.Background(), req.RequesterID, req.ReceiverID)
@@ -87,7 +87,7 @@ func (s *FriendshipService) RejectRequest(ctx context.Context, friendshipID, rec
 		return err
 	}
 
-	go s.graphRepo.RejectRequest(context.Background(), req.RequesterID, req.ReceiverID)
+	go s.graphClient.RejectRequest(context.Background(), req.RequesterID, req.ReceiverID)
 
 	return nil
 }

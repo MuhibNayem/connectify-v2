@@ -77,14 +77,29 @@ func run() error {
 		Password: cfg.RedisPass,
 	})
 
-	neoDriver, err := neo4j.NewDriverWithContext(cfg.Neo4jURI, neo4j.BasicAuth(cfg.Neo4jUser, cfg.Neo4jPassword, ""))
-	if err != nil {
-		return err
-	}
-
 	// 2. Repositories
 	userRepo := repository.NewUserRepository(db)
-	graphRepo := repository.NewGraphRepository(neoDriver)
+
+	// Graph Client Initialization
+	var graphClient repository.GraphClient
+	if cfg.GraphDB == "dgraph" {
+		slog.Info("Using Dgraph as graph database", "addr", cfg.DgraphAddr)
+		dgRepo, err := repository.NewDgraphRepository(cfg.DgraphAddr)
+		if err != nil {
+			slog.Error("Failed to initialize Dgraph client", "error", err)
+		} else {
+			graphClient = dgRepo
+		}
+	} else {
+		slog.Info("Using Neo4j as graph database", "uri", cfg.Neo4jURI)
+		neoDriver, err := neo4j.NewDriverWithContext(cfg.Neo4jURI, neo4j.BasicAuth(cfg.Neo4jUser, cfg.Neo4jPassword, ""))
+		if err != nil {
+			slog.Error("Failed to connect to Neo4j", "error", err)
+		} else {
+			defer neoDriver.Close(context.Background())
+			graphClient = repository.NewGraphRepository(neoDriver)
+		}
+	}
 
 	// 3. Producers
 	producer := events.NewEventProducer(cfg.KafkaBrokers, cfg.UserUpdatedTopic, slog.Default())
@@ -93,14 +108,14 @@ func run() error {
 	businessMetrics := platform.NewBusinessMetrics()
 
 	// 5. Services
-	authService := service.NewAuthService(userRepo, graphRepo, redisClient, cfg)
+	authService := service.NewAuthService(userRepo, graphClient, redisClient, cfg)
 	userService := service.NewUserService(userRepo, producer, redisClient, cfg, slog.Default(), businessMetrics)
 	rateLimitObserver := businessMetrics.RecordRateLimitHit
 
 	// 5. Handlers
 	authHandler := httphandler.NewAuthHandler(authService, cfg)
 	userHandler := httphandler.NewUserHandler(userService)
-	userGrpcHandler := grpchandler.NewUserHandler(userService, graphRepo)
+	userGrpcHandler := grpchandler.NewUserHandler(userService, graphClient)
 
 	// HTTP Server
 	r := gin.Default()
@@ -135,11 +150,11 @@ func run() error {
 		// User routes - public profile endpoints
 		users := api.Group("/users")
 		{
-			users.GET("/:id", 
+			users.GET("/:id",
 				middleware.StrictRateLimiter(10, 30, "users:profile", rateLimitObserver), // 600/min for profile views
 				userHandler.GetUserByID,
 			)
-			users.GET("/:id/status", 
+			users.GET("/:id/status",
 				middleware.StrictRateLimiter(5, 15, "users:status", rateLimitObserver), // 300/min for status checks
 				userHandler.GetUserStatus,
 			)
@@ -153,35 +168,35 @@ func run() error {
 			middleware.WithFailClosedResponse(http.StatusServiceUnavailable, "authentication temporarily unavailable, please retry"),
 		))
 		{
-			me.GET("", 
+			me.GET("",
 				middleware.StrictRateLimiter(2, 10, "me:profile", rateLimitObserver), // 120/min for own profile
 				userHandler.GetProfile,
 			)
-			me.PATCH("", 
+			me.PATCH("",
 				middleware.StrictRateLimiter(0.2, 3, "me:update", rateLimitObserver), // 12/min for profile updates
 				userHandler.UpdateProfile,
 			)
-			me.PATCH("/email", 
+			me.PATCH("/email",
 				middleware.StrictRateLimiter(0.05, 1, "me:email", rateLimitObserver), // 3/min for email changes
 				userHandler.UpdateEmail,
 			)
-			me.PATCH("/password", 
+			me.PATCH("/password",
 				middleware.StrictRateLimiter(0.1, 2, "me:password", rateLimitObserver), // 6/min for password changes
 				userHandler.UpdatePassword,
 			)
-			me.PATCH("/privacy", 
+			me.PATCH("/privacy",
 				middleware.StrictRateLimiter(0.5, 5, "me:privacy", rateLimitObserver), // 30/min for privacy settings
 				userHandler.UpdatePrivacySettings,
 			)
-			me.PATCH("/notifications", 
+			me.PATCH("/notifications",
 				middleware.StrictRateLimiter(0.5, 5, "me:notifications", rateLimitObserver), // 30/min for notification settings
 				userHandler.UpdateNotificationSettings,
 			)
-			me.POST("/2fa", 
+			me.POST("/2fa",
 				middleware.StrictRateLimiter(0.1, 2, "me:2fa", rateLimitObserver), // 6/min for 2FA changes
 				userHandler.ToggleTwoFactor,
 			)
-			me.DELETE("", 
+			me.DELETE("",
 				middleware.StrictRateLimiter(0.01, 1, "me:deactivate", rateLimitObserver), // 1/min for account deactivation
 				userHandler.DeactivateAccount,
 			)
@@ -241,9 +256,6 @@ func run() error {
 	}
 	if err := redisClient.Close(); err != nil {
 		slog.Error("Redis close error", "error", err)
-	}
-	if err := neoDriver.Close(shutdownCtx); err != nil {
-		slog.Error("Neo4j close error", "error", err)
 	}
 	if err := producer.Close(); err != nil {
 		slog.Error("Kafka producer close error", "error", err)

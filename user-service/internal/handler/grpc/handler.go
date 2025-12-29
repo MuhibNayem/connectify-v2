@@ -18,13 +18,13 @@ import (
 type UserHandler struct {
 	pb.UnimplementedUserServiceServer
 	userService *service.UserService
-	graphRepo   *repository.GraphRepository
+	graphClient repository.GraphClient
 }
 
-func NewUserHandler(userService *service.UserService, graphRepo *repository.GraphRepository) *UserHandler {
+func NewUserHandler(userService *service.UserService, graphClient repository.GraphClient) *UserHandler {
 	return &UserHandler{
 		userService: userService,
-		graphRepo:   graphRepo,
+		graphClient: graphClient,
 	}
 }
 
@@ -178,7 +178,7 @@ func (h *UserHandler) RemoveFriend(ctx context.Context, req *pb.RemoveFriendRequ
 }
 
 func (h *UserHandler) GetFriendIDs(ctx context.Context, req *pb.GetFriendIDsRequest) (*pb.GetFriendIDsResponse, error) {
-	if h.graphRepo == nil {
+	if h.graphClient == nil {
 		return nil, status.Error(codes.Unavailable, "friend graph unavailable")
 	}
 
@@ -187,7 +187,7 @@ func (h *UserHandler) GetFriendIDs(ctx context.Context, req *pb.GetFriendIDsRequ
 		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
-	friendIDs, err := h.graphRepo.GetFriendIDs(ctx, userID)
+	friendIDs, err := h.graphClient.GetFriendIDs(ctx, userID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

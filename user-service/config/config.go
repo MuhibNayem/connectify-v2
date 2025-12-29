@@ -18,8 +18,13 @@ type Config struct {
 	RateLimitBurst   int
 
 	// Database
-	MongoURI      string
-	DBName        string
+	MongoURI string
+	DBName   string
+
+	// Graph Database Selection
+	GraphDB    string // "neo4j" or "dgraph"
+	DgraphAddr string
+
 	Neo4jURI      string
 	Neo4jUser     string
 	Neo4jPassword string

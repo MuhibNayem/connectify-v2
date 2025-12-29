@@ -8,29 +8,29 @@ import (
 	"user-service/config"
 	"user-service/internal/repository"
 
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
 	userRepo    *repository.UserRepository
-	graphRepo   *repository.GraphRepository
+	graphClient repository.GraphClient
 	redisClient *redis.Client
 	cfg         *config.Config
 }
 
 func NewAuthService(
 	userRepo *repository.UserRepository,
-	graphRepo *repository.GraphRepository,
+	graphClient repository.GraphClient,
 	redisClient *redis.Client,
 	cfg *config.Config,
 ) *AuthService {
 	return &AuthService{
 		userRepo:    userRepo,
-		graphRepo:   graphRepo,
+		graphClient: graphClient,
 		redisClient: redisClient,
 		cfg:         cfg,
 	}
@@ -139,7 +139,7 @@ func (s *AuthService) Logout(ctx context.Context, userID, accessToken string) er
 }
 
 func (s *AuthService) enqueueGraphSync(userID primitive.ObjectID) {
-	if s.graphRepo == nil {
+	if s.graphClient == nil {
 		return
 	}
 	go func() {
@@ -149,7 +149,7 @@ func (s *AuthService) enqueueGraphSync(userID primitive.ObjectID) {
 				time.Sleep(waitDuration)
 			}
 			syncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			err := s.graphRepo.SyncUser(syncCtx, userID)
+			err := s.graphClient.SyncUser(syncCtx, userID)
 			cancel()
 			if err == nil {
 				return
