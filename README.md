@@ -6,6 +6,7 @@
 ![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-FF3E00?logo=svelte&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-5.0-4581C3?logo=neo4j&logoColor=white)
+![Dgraph](https://img.shields.io/badge/Dgraph-24.0-E53E3E?logo=dgraph&logoColor=white)
 ![Cassandra](https://img.shields.io/badge/Cassandra-4.1-1287B1?logo=apache-cassandra&logoColor=white)
 ![Kafka](https://img.shields.io/badge/Kafka-3.6-231F20?logo=apache-kafka&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7.2-DC382D?logo=redis&logoColor=white)
@@ -90,7 +91,7 @@ Built with **polyglot persistence**, **event-driven design**, and **FAANG-level 
 
 ### Search & Discovery
 - **Universal Search** — Search across users, posts, products, events
-- **Friend Suggestions** — Neo4j-powered social recommendations
+- **Friend Suggestions** — Neo4j/Dgraph-powered social recommendations
 
 ### Notifications
 - **Real-time Notifications** — Push and in-app alerts
@@ -171,7 +172,7 @@ graph TD
 | **Backend** | Go 1.25, gRPC, REST | High-performance microservices |
 | **API Comm** | Protocol Buffers | Type-safe inter-service communication |
 | **Document Store** | MongoDB 7 | User profiles, posts, events, products |
-| **Graph Database** | Neo4j 5 | Social relationships, recommendations |
+| **Graph Database** | Neo4j 5 / Dgraph 24 | Social relationships, recommendations |
 | **Time-Series Store** | Apache Cassandra | Chat message logs |
 | **Object Storage** | MinIO | Media files (images, videos, attachments) |
 | **Cache** | Redis Cluster | Session, relationship cache, rate limiting |
@@ -204,7 +205,7 @@ We employ **Polyglot Persistence** — using the right database for the right jo
 | Database | Use Case | Why? |
 |----------|----------|------|
 | **MongoDB** | User profiles, Posts, Events, Products | Flexible schema, fast aggregations |
-| **Neo4j** | Friendships, Follows, Recommendations | O(1) relationship traversal |
+| **Neo4j / Dgraph** | Friendships, Follows, Recommendations | O(1) relationship traversal |
 | **Cassandra** | Chat messages | High write throughput, linear scalability |
 | **MinIO** | Media files | S3-compatible, decoupled blob storage |
 | **Redis** | Session, Cache, Presence | Sub-ms latency, pub/sub |
@@ -255,7 +256,7 @@ git clone https://github.com/MuhibNayem/connectify-v2.git
 cd connectify-v2
 
 # Start infrastructure
-docker-compose up -d mongo redis kafka neo4j cassandra minio
+docker-compose up -d mongo redis kafka neo4j dgraph cassandra minio
 
 # Configure environment
 cp .env.sample .env

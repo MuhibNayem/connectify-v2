@@ -24,7 +24,7 @@ graph TD
 
     subgraph "Infrastructure"
         Mongo[(MongoDB)]
-        Neo4j[(Neo4j Graph)]
+        DgraphNeo4j[(Dgraph / Neo4j)]
         Redis[(Redis Cache)]
         Kafka{{Kafka Events}}
     end
@@ -41,7 +41,7 @@ graph TD
     Service --> R_Kafka
 
     R_User -->|Profile Data| Mongo
-    R_Graph -->|Social Relations| Neo4j
+    R_Graph -->|Social Relations| DgraphNeo4j
     R_Redis -->|Session/Cache| Redis
     R_Kafka -->|UserUpdated| Kafka
 ```
@@ -52,7 +52,7 @@ graph TD
 *   **Profile Management**: CRUD operations for user profiles using MongoDB as the source of truth.
 *   **Social Graph**:
     *   Manages Friends, Follows, and Blocks.
-    *   Syncs relationships to **Neo4j** for high-performance graph traversal (O(1) lookups).
+    *   Syncs relationships to **Dgraph** or **Neo4j** for high-performance graph traversal (O(1) lookups).
 *   **Event-Driven**: Emits `UserUpdated` events to Kafka to allow other services (like the Monolith cache) to stay consistent.
 *   **Dual-Protocol**:
     *   **HTTP**: For frontend clients (Registration, Profile Edits).
@@ -65,7 +65,7 @@ graph TD
 *   **RPC**: gRPC + Protobuf
 *   **Databases**:
     *   **MongoDB**: User Profiles
-    *   **Neo4j**: Social Graph
+    *   **Dgraph / Neo4j**: Social Graph (Configurable)
     *   **Redis**: Caching & Sessions
 *   **Messaging**: Kafka
 
@@ -95,6 +95,8 @@ The service is configured via environment variables.
 | `PORT` | HTTP Server Port | `8083` |
 | `MONGO_URI` | MongoDB Connection String | - |
 | `NEO4J_URI` | Neo4j Connection String | - |
+| `GRAPH_DB` | Graph Backend (`neo4j` or `dgraph`) | `dgraph` |
+| `DGRAPH_ADDR` | Dgraph Alpha Address | `localhost:9080` |
 | `REDIS_URL` | Redis Connection String | - |
 | `KAFKA_BROKERS` | Comma-separated broker list | - |
 | `USER_UPDATED_TOPIC` | Topic for profile events | `user.updated` |

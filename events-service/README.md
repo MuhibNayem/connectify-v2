@@ -32,7 +32,7 @@ The **Events Service** is a production-ready, scalable microservice that powers 
 
 - **🧠 Intelligent Recommendations**: ML-powered event suggestions based on social connections and user interests
 - **⚡ Real-time Updates**: WebSocket-driven live RSVP notifications and attendee updates
-- **🌐 Graph-Powered Social Discovery**: Neo4j integration for sophisticated friend-based recommendations
+- **🌐 Graph-Powered Social Discovery**: Neo4j / Dgraph integration for sophisticated friend-based recommendations
 - **📊 High Performance**: Redis caching with sub-millisecond response times
 - **🔄 Event-Driven**: Kafka-based asynchronous messaging for scalability
 - **🛡️ Production-Ready**: Comprehensive observability with OpenTelemetry and Prometheus metrics
@@ -226,7 +226,9 @@ graph TB
     style RECSVC fill:#FF9800
     style MONGO fill:#47A248
     style REDIS fill:#DC382D
-    style NEO4J fill:#008CC1
+    style MONGO fill:#47A248
+    style REDIS fill:#DC382D
+    style NEO4J fill:#E53E3E (Neo4j / Dgraph)
     style KAFKA fill:#231F20
 ```
 
@@ -372,7 +374,7 @@ sequenceDiagram
 | **Web Framework** | Gin | HTTP REST endpoints |
 | **Primary Database** | MongoDB | Event, invitation, and post storage |
 | **Cache** | Redis Cluster | High-speed caching and session management |
-| **Graph Database** | Neo4j | Social graph and recommendations |
+| **Graph Database** | Neo4j / Dgraph | Social graph and recommendations |
 | **Message Broker** | Apache Kafka | Event-driven async messaging |
 | **Observability** | OpenTelemetry + Jaeger | Distributed tracing |
 | **Metrics** | Prometheus | Performance monitoring |
@@ -445,6 +447,8 @@ DB_NAME=connectify_events
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=connectify
+GRAPH_DB=dgraph (or neo4j)
+DGRAPH_ADDR=localhost:9080
 
 # Redis Configuration
 REDIS_URL=localhost:6379,localhost:6380,localhost:6381
@@ -751,6 +755,34 @@ WHERE event.start_date > datetime()
 RETURN event, collect(friend) as friends_going, count(friend) as friend_count
 ORDER BY friend_count DESC
 LIMIT 10
+```
+
+### Dgraph Schema (Alternative)
+
+```graphql
+type User {
+    userID
+    friends
+    going
+    interested_in
+}
+type Event {
+    eventID
+    has_category
+    start_date
+}
+type Category {
+    name
+}
+
+userID: string @index(exact) @upsert .
+eventID: string @index(exact) @upsert .
+name: string @index(exact) @upsert .
+friends: [uid] @reverse .
+going: [uid] @reverse .
+interested_in: [uid] @reverse .
+has_category: [uid] @reverse .
+start_date: datetime @index(hour) .
 ```
 
 ### Redis Cache Keys

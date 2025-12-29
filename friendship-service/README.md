@@ -16,7 +16,7 @@ A production-ready, microservices-architected friendship management system built
 │  │  Pattern    │  │ Pattern │  │ Job           │  │ Breaker       │ │
 │  └─────────────┘  └─────────┘  └───────────────┘  └───────────────┘ │
 ├──────────────────────────────────────────────────────────────────────┤
-│  MongoDB (Primary)  │  Neo4j (Graph)  │  Redis (Cache)  │  Kafka    │
+│  MongoDB (Primary)  │  Neo4j/Dgraph (Graph)  │  Redis (Cache)  │  Kafka    │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,6 +73,8 @@ MONGODB_DATABASE=friendship
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=password
+GRAPH_DB=dgraph # or neo4j
+DGRAPH_ADDR=localhost:9080
 REDIS_URLS=localhost:6379
 KAFKA_BROKERS=localhost:9092
 JWT_SECRET=your-secret-key
@@ -187,7 +189,7 @@ friendship-service/
 - **Language**: Go 1.21
 - **HTTP Framework**: Gin
 - **gRPC**: google.golang.org/grpc
-- **Databases**: MongoDB, Neo4j
+- **Databases**: MongoDB, Neo4j, Dgraph
 - **Cache**: Redis Cluster
 - **Messaging**: Apache Kafka
 - **Metrics**: Prometheus
