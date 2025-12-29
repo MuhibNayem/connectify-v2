@@ -31,8 +31,9 @@ type FriendshipRepository struct {
 }
 
 func NewFriendshipRepository(db *mongo.Database) *FriendshipRepository {
-	// Ensure indexes exist
+	// Ensure optimized indexes exist for MAANG-scale performance
 	indexes := []mongo.IndexModel{
+		// Primary unique index for bidirectional lookup
 		{
 			Keys: bson.D{
 				{Key: "requester_id", Value: 1},
@@ -40,12 +41,33 @@ func NewFriendshipRepository(db *mongo.Database) *FriendshipRepository {
 			},
 			Options: options.Index().SetUnique(true),
 		},
+		// Optimized: Status-based queries for requester
+		{
+			Keys: bson.D{
+				{Key: "requester_id", Value: 1},
+				{Key: "status", Value: 1},
+				{Key: "created_at", Value: -1},
+			},
+		},
+		// Optimized: Status-based queries for receiver
+		{
+			Keys: bson.D{
+				{Key: "receiver_id", Value: 1},
+				{Key: "status", Value: 1},
+				{Key: "created_at", Value: -1},
+			},
+		},
+		// Optimized: Partial index for pending requests only (smaller, faster)
+		{
+			Keys: bson.D{
+				{Key: "receiver_id", Value: 1},
+				{Key: "created_at", Value: -1},
+			},
+			Options: options.Index().SetPartialFilterExpression(bson.M{"status": "pending"}),
+		},
+		// Text search index
 		{
 			Keys: bson.D{{Key: "$**", Value: "text"}},
-		},
-		{
-			Keys:    bson.D{{Key: "created_at", Value: 1}},
-			Options: options.Index().SetExpireAfterSeconds(30 * 24 * 60 * 60),
 		},
 	}
 

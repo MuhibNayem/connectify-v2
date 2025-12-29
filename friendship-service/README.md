@@ -102,27 +102,60 @@ See `proto/friendship/v1/friendship.proto` for service definition.
 
 ## 🧪 Testing
 
+### Run Tests
 ```bash
-# Run all tests
+# Run all unit tests (fast)
+go test ./... -short
+
+# Run all tests including integration
 go test ./... -v
 
 # Run with coverage
 go test ./... -cover
 
-# Run unit tests only
-go test ./... -short
+# Run load tests
+go test ./tests/loadtest/... -v
 
-# Run integration tests
+# Run benchmarks
+go test ./tests/loadtest/... -bench=.
+```
+
+### Test Structure
+
+| Directory | Type | Description |
+|-----------|------|-------------|
+| `internal/*/` | Unit | Package-level unit tests |
+| `tests/integration/` | Integration | MongoDB + HTTP API tests |
+| `tests/loadtest/` | Load/Perf | Benchmarks and concurrency |
+
+### Test Coverage
+
+| Package | Tests | Coverage | Type |
+|---------|-------|----------|------|
+| saga | 8 | **97.2%** | Unit |
+| validation | 12 | **100%** | Unit |
+| outbox | 5 | 1.1% | Unit |
+| metrics | 6 | 8.3% | Unit |
+| cache | 5 | - | Unit |
+| httpapi | 10 | - | Unit |
+| service | 5 | - | Unit |
+| integration/mongodb | 10 | - | Integration |
+| integration/api | 20 | - | Integration |
+| loadtest | 6 | - | Load |
+
+### Integration Tests (requires Docker)
+```bash
+# MongoDB integration tests use testcontainers
+# Automatically starts MongoDB container for testing
 go test ./tests/integration/... -v
 ```
 
-### Test Coverage
-| Package | Coverage |
-|---------|----------|
-| saga | 97.2% |
-| validation | 100.0% |
-| metrics | 8.3% |
-| outbox | 1.1% |
+### Load Test Features
+- 100 concurrent users simulation
+- 10,000 operations/second throughput test
+- Circuit breaker under load testing
+- Optimistic locking concurrency test
+- Read/Write ratio analysis
 
 ## 📁 Project Structure
 
