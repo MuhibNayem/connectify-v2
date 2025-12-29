@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: proto/story/v1/story.proto
+// source: story/v1/story.proto
 
 package storypb
 
@@ -35,7 +35,7 @@ type Author struct {
 
 func (x *Author) Reset() {
 	*x = Author{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[0]
+	mi := &file_story_v1_story_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *Author) String() string {
 func (*Author) ProtoMessage() {}
 
 func (x *Author) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[0]
+	mi := &file_story_v1_story_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *Author) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Author.ProtoReflect.Descriptor instead.
 func (*Author) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{0}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Author) GetId() string {
@@ -111,7 +111,7 @@ type Story struct {
 
 func (x *Story) Reset() {
 	*x = Story{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[1]
+	mi := &file_story_v1_story_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +123,7 @@ func (x *Story) String() string {
 func (*Story) ProtoMessage() {}
 
 func (x *Story) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[1]
+	mi := &file_story_v1_story_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +136,7 @@ func (x *Story) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Story.ProtoReflect.Descriptor instead.
 func (*Story) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{1}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Story) GetId() string {
@@ -232,7 +232,7 @@ type StoryResponse struct {
 
 func (x *StoryResponse) Reset() {
 	*x = StoryResponse{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[2]
+	mi := &file_story_v1_story_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -244,7 +244,7 @@ func (x *StoryResponse) String() string {
 func (*StoryResponse) ProtoMessage() {}
 
 func (x *StoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[2]
+	mi := &file_story_v1_story_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +257,7 @@ func (x *StoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoryResponse.ProtoReflect.Descriptor instead.
 func (*StoryResponse) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{2}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *StoryResponse) GetStory() *Story {
@@ -276,7 +276,7 @@ type StoriesResponse struct {
 
 func (x *StoriesResponse) Reset() {
 	*x = StoriesResponse{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[3]
+	mi := &file_story_v1_story_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -288,7 +288,7 @@ func (x *StoriesResponse) String() string {
 func (*StoriesResponse) ProtoMessage() {}
 
 func (x *StoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[3]
+	mi := &file_story_v1_story_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,7 +301,7 @@ func (x *StoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoriesResponse.ProtoReflect.Descriptor instead.
 func (*StoriesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{3}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StoriesResponse) GetStories() []*Story {
@@ -325,7 +325,7 @@ type CreateStoryRequest struct {
 
 func (x *CreateStoryRequest) Reset() {
 	*x = CreateStoryRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[4]
+	mi := &file_story_v1_story_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +337,7 @@ func (x *CreateStoryRequest) String() string {
 func (*CreateStoryRequest) ProtoMessage() {}
 
 func (x *CreateStoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[4]
+	mi := &file_story_v1_story_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,7 +350,7 @@ func (x *CreateStoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateStoryRequest.ProtoReflect.Descriptor instead.
 func (*CreateStoryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{4}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateStoryRequest) GetUserId() string {
@@ -405,7 +405,7 @@ type GetStoryRequest struct {
 
 func (x *GetStoryRequest) Reset() {
 	*x = GetStoryRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[5]
+	mi := &file_story_v1_story_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -417,7 +417,7 @@ func (x *GetStoryRequest) String() string {
 func (*GetStoryRequest) ProtoMessage() {}
 
 func (x *GetStoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[5]
+	mi := &file_story_v1_story_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -430,7 +430,7 @@ func (x *GetStoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStoryRequest.ProtoReflect.Descriptor instead.
 func (*GetStoryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{5}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetStoryRequest) GetStoryId() string {
@@ -457,7 +457,7 @@ type DeleteStoryRequest struct {
 
 func (x *DeleteStoryRequest) Reset() {
 	*x = DeleteStoryRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[6]
+	mi := &file_story_v1_story_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -469,7 +469,7 @@ func (x *DeleteStoryRequest) String() string {
 func (*DeleteStoryRequest) ProtoMessage() {}
 
 func (x *DeleteStoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[6]
+	mi := &file_story_v1_story_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -482,7 +482,7 @@ func (x *DeleteStoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteStoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteStoryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{6}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteStoryRequest) GetStoryId() string {
@@ -511,7 +511,7 @@ type GetStoriesFeedRequest struct {
 
 func (x *GetStoriesFeedRequest) Reset() {
 	*x = GetStoriesFeedRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[7]
+	mi := &file_story_v1_story_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -523,7 +523,7 @@ func (x *GetStoriesFeedRequest) String() string {
 func (*GetStoriesFeedRequest) ProtoMessage() {}
 
 func (x *GetStoriesFeedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[7]
+	mi := &file_story_v1_story_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,7 +536,7 @@ func (x *GetStoriesFeedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStoriesFeedRequest.ProtoReflect.Descriptor instead.
 func (*GetStoriesFeedRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{7}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetStoriesFeedRequest) GetUserId() string {
@@ -577,7 +577,7 @@ type StoriesFeedResponse struct {
 
 func (x *StoriesFeedResponse) Reset() {
 	*x = StoriesFeedResponse{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[8]
+	mi := &file_story_v1_story_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -589,7 +589,7 @@ func (x *StoriesFeedResponse) String() string {
 func (*StoriesFeedResponse) ProtoMessage() {}
 
 func (x *StoriesFeedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[8]
+	mi := &file_story_v1_story_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -602,7 +602,7 @@ func (x *StoriesFeedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoriesFeedResponse.ProtoReflect.Descriptor instead.
 func (*StoriesFeedResponse) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{8}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StoriesFeedResponse) GetStories() []*Story {
@@ -629,7 +629,7 @@ type GetUserStoriesRequest struct {
 
 func (x *GetUserStoriesRequest) Reset() {
 	*x = GetUserStoriesRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[9]
+	mi := &file_story_v1_story_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -641,7 +641,7 @@ func (x *GetUserStoriesRequest) String() string {
 func (*GetUserStoriesRequest) ProtoMessage() {}
 
 func (x *GetUserStoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[9]
+	mi := &file_story_v1_story_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -654,7 +654,7 @@ func (x *GetUserStoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserStoriesRequest.ProtoReflect.Descriptor instead.
 func (*GetUserStoriesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{9}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetUserStoriesRequest) GetUserId() string {
@@ -681,7 +681,7 @@ type RecordViewRequest struct {
 
 func (x *RecordViewRequest) Reset() {
 	*x = RecordViewRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[10]
+	mi := &file_story_v1_story_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -693,7 +693,7 @@ func (x *RecordViewRequest) String() string {
 func (*RecordViewRequest) ProtoMessage() {}
 
 func (x *RecordViewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[10]
+	mi := &file_story_v1_story_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -706,7 +706,7 @@ func (x *RecordViewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordViewRequest.ProtoReflect.Descriptor instead.
 func (*RecordViewRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{10}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RecordViewRequest) GetStoryId() string {
@@ -734,7 +734,7 @@ type ReactToStoryRequest struct {
 
 func (x *ReactToStoryRequest) Reset() {
 	*x = ReactToStoryRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[11]
+	mi := &file_story_v1_story_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +746,7 @@ func (x *ReactToStoryRequest) String() string {
 func (*ReactToStoryRequest) ProtoMessage() {}
 
 func (x *ReactToStoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[11]
+	mi := &file_story_v1_story_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +759,7 @@ func (x *ReactToStoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactToStoryRequest.ProtoReflect.Descriptor instead.
 func (*ReactToStoryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{11}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ReactToStoryRequest) GetStoryId() string {
@@ -793,7 +793,7 @@ type GetStoryViewersRequest struct {
 
 func (x *GetStoryViewersRequest) Reset() {
 	*x = GetStoryViewersRequest{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[12]
+	mi := &file_story_v1_story_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -805,7 +805,7 @@ func (x *GetStoryViewersRequest) String() string {
 func (*GetStoryViewersRequest) ProtoMessage() {}
 
 func (x *GetStoryViewersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[12]
+	mi := &file_story_v1_story_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -818,7 +818,7 @@ func (x *GetStoryViewersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStoryViewersRequest.ProtoReflect.Descriptor instead.
 func (*GetStoryViewersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{12}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetStoryViewersRequest) GetStoryId() string {
@@ -846,7 +846,7 @@ type StoryViewer struct {
 
 func (x *StoryViewer) Reset() {
 	*x = StoryViewer{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[13]
+	mi := &file_story_v1_story_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -858,7 +858,7 @@ func (x *StoryViewer) String() string {
 func (*StoryViewer) ProtoMessage() {}
 
 func (x *StoryViewer) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[13]
+	mi := &file_story_v1_story_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -871,7 +871,7 @@ func (x *StoryViewer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoryViewer.ProtoReflect.Descriptor instead.
 func (*StoryViewer) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{13}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *StoryViewer) GetUser() *Author {
@@ -904,7 +904,7 @@ type StoryViewersResponse struct {
 
 func (x *StoryViewersResponse) Reset() {
 	*x = StoryViewersResponse{}
-	mi := &file_proto_story_v1_story_proto_msgTypes[14]
+	mi := &file_story_v1_story_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -916,7 +916,7 @@ func (x *StoryViewersResponse) String() string {
 func (*StoryViewersResponse) ProtoMessage() {}
 
 func (x *StoryViewersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_story_v1_story_proto_msgTypes[14]
+	mi := &file_story_v1_story_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -929,7 +929,7 @@ func (x *StoryViewersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoryViewersResponse.ProtoReflect.Descriptor instead.
 func (*StoryViewersResponse) Descriptor() ([]byte, []int) {
-	return file_proto_story_v1_story_proto_rawDescGZIP(), []int{14}
+	return file_story_v1_story_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StoryViewersResponse) GetViewers() []*StoryViewer {
@@ -939,11 +939,11 @@ func (x *StoryViewersResponse) GetViewers() []*StoryViewer {
 	return nil
 }
 
-var File_proto_story_v1_story_proto protoreflect.FileDescriptor
+var File_story_v1_story_proto protoreflect.FileDescriptor
 
-const file_proto_story_v1_story_proto_rawDesc = "" +
+const file_story_v1_story_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproto/story/v1/story.proto\x12\bstory.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"i\n" +
+	"\x14story/v1/story.proto\x12\bstory.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"i\n" +
 	"\x06Author\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1b\n" +
@@ -1025,19 +1025,19 @@ const file_proto_story_v1_story_proto_rawDesc = "" +
 	"\x0fGetStoryViewers\x12 .story.v1.GetStoryViewersRequest\x1a\x1e.story.v1.StoryViewersResponseBAZ?gitlab.com/spydotech-group/shared-entity/proto/story/v1;storypbb\x06proto3"
 
 var (
-	file_proto_story_v1_story_proto_rawDescOnce sync.Once
-	file_proto_story_v1_story_proto_rawDescData []byte
+	file_story_v1_story_proto_rawDescOnce sync.Once
+	file_story_v1_story_proto_rawDescData []byte
 )
 
-func file_proto_story_v1_story_proto_rawDescGZIP() []byte {
-	file_proto_story_v1_story_proto_rawDescOnce.Do(func() {
-		file_proto_story_v1_story_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_story_v1_story_proto_rawDesc), len(file_proto_story_v1_story_proto_rawDesc)))
+func file_story_v1_story_proto_rawDescGZIP() []byte {
+	file_story_v1_story_proto_rawDescOnce.Do(func() {
+		file_story_v1_story_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_story_v1_story_proto_rawDesc), len(file_story_v1_story_proto_rawDesc)))
 	})
-	return file_proto_story_v1_story_proto_rawDescData
+	return file_story_v1_story_proto_rawDescData
 }
 
-var file_proto_story_v1_story_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_proto_story_v1_story_proto_goTypes = []any{
+var file_story_v1_story_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_story_v1_story_proto_goTypes = []any{
 	(*Author)(nil),                 // 0: story.v1.Author
 	(*Story)(nil),                  // 1: story.v1.Story
 	(*StoryResponse)(nil),          // 2: story.v1.StoryResponse
@@ -1056,7 +1056,7 @@ var file_proto_story_v1_story_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),  // 15: google.protobuf.Timestamp
 	(*emptypb.Empty)(nil),          // 16: google.protobuf.Empty
 }
-var file_proto_story_v1_story_proto_depIdxs = []int32{
+var file_story_v1_story_proto_depIdxs = []int32{
 	0,  // 0: story.v1.Story.author:type_name -> story.v1.Author
 	15, // 1: story.v1.Story.created_at:type_name -> google.protobuf.Timestamp
 	15, // 2: story.v1.Story.expires_at:type_name -> google.protobuf.Timestamp
@@ -1089,26 +1089,26 @@ var file_proto_story_v1_story_proto_depIdxs = []int32{
 	0,  // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_proto_story_v1_story_proto_init() }
-func file_proto_story_v1_story_proto_init() {
-	if File_proto_story_v1_story_proto != nil {
+func init() { file_story_v1_story_proto_init() }
+func file_story_v1_story_proto_init() {
+	if File_story_v1_story_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_story_v1_story_proto_rawDesc), len(file_proto_story_v1_story_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_story_v1_story_proto_rawDesc), len(file_story_v1_story_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_story_v1_story_proto_goTypes,
-		DependencyIndexes: file_proto_story_v1_story_proto_depIdxs,
-		MessageInfos:      file_proto_story_v1_story_proto_msgTypes,
+		GoTypes:           file_story_v1_story_proto_goTypes,
+		DependencyIndexes: file_story_v1_story_proto_depIdxs,
+		MessageInfos:      file_story_v1_story_proto_msgTypes,
 	}.Build()
-	File_proto_story_v1_story_proto = out.File
-	file_proto_story_v1_story_proto_goTypes = nil
-	file_proto_story_v1_story_proto_depIdxs = nil
+	File_story_v1_story_proto = out.File
+	file_story_v1_story_proto_goTypes = nil
+	file_story_v1_story_proto_depIdxs = nil
 }

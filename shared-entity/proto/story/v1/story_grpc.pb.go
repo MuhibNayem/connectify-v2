@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: proto/story/v1/story.proto
+// source: story/v1/story.proto
 
 package storypb
 
@@ -404,5 +404,5 @@ var StoryService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/story/v1/story.proto",
+	Metadata: "story/v1/story.proto",
 }

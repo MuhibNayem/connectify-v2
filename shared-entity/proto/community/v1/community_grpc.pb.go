@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: proto/community/v1/community.proto
+// source: community/v1/community.proto
 
 package communitypb
 
@@ -535,5 +535,5 @@ var CommunityService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/community/v1/community.proto",
+	Metadata: "community/v1/community.proto",
 }

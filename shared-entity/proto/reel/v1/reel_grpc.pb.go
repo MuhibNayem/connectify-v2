@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: proto/reel/v1/reel.proto
+// source: reel/v1/reel.proto
 
 package reelpb
 
@@ -497,5 +497,5 @@ var ReelService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/reel/v1/reel.proto",
+	Metadata: "reel/v1/reel.proto",
 }

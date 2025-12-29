@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: proto/reel/v1/reel.proto
+// source: reel/v1/reel.proto
 
 package reelpb
 
@@ -31,7 +31,7 @@ type GetReelRequest struct {
 
 func (x *GetReelRequest) Reset() {
 	*x = GetReelRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[0]
+	mi := &file_reel_v1_reel_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *GetReelRequest) String() string {
 func (*GetReelRequest) ProtoMessage() {}
 
 func (x *GetReelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[0]
+	mi := &file_reel_v1_reel_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *GetReelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReelRequest.ProtoReflect.Descriptor instead.
 func (*GetReelRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{0}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetReelRequest) GetReelId() string {
@@ -75,7 +75,7 @@ type GetReelResponse struct {
 
 func (x *GetReelResponse) Reset() {
 	*x = GetReelResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[1]
+	mi := &file_reel_v1_reel_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +87,7 @@ func (x *GetReelResponse) String() string {
 func (*GetReelResponse) ProtoMessage() {}
 
 func (x *GetReelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[1]
+	mi := &file_reel_v1_reel_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +100,7 @@ func (x *GetReelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReelResponse.ProtoReflect.Descriptor instead.
 func (*GetReelResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{1}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetReelResponse) GetReel() *Reel {
@@ -119,7 +119,7 @@ type GetUserReelsRequest struct {
 
 func (x *GetUserReelsRequest) Reset() {
 	*x = GetUserReelsRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[2]
+	mi := &file_reel_v1_reel_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +131,7 @@ func (x *GetUserReelsRequest) String() string {
 func (*GetUserReelsRequest) ProtoMessage() {}
 
 func (x *GetUserReelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[2]
+	mi := &file_reel_v1_reel_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +144,7 @@ func (x *GetUserReelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserReelsRequest.ProtoReflect.Descriptor instead.
 func (*GetUserReelsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{2}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetUserReelsRequest) GetUserId() string {
@@ -163,7 +163,7 @@ type GetUserReelsResponse struct {
 
 func (x *GetUserReelsResponse) Reset() {
 	*x = GetUserReelsResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[3]
+	mi := &file_reel_v1_reel_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *GetUserReelsResponse) String() string {
 func (*GetUserReelsResponse) ProtoMessage() {}
 
 func (x *GetUserReelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[3]
+	mi := &file_reel_v1_reel_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *GetUserReelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserReelsResponse.ProtoReflect.Descriptor instead.
 func (*GetUserReelsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{3}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetUserReelsResponse) GetReels() []*Reel {
@@ -209,7 +209,7 @@ type GetReelsFeedRequest struct {
 
 func (x *GetReelsFeedRequest) Reset() {
 	*x = GetReelsFeedRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[4]
+	mi := &file_reel_v1_reel_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -221,7 +221,7 @@ func (x *GetReelsFeedRequest) String() string {
 func (*GetReelsFeedRequest) ProtoMessage() {}
 
 func (x *GetReelsFeedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[4]
+	mi := &file_reel_v1_reel_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -234,7 +234,7 @@ func (x *GetReelsFeedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReelsFeedRequest.ProtoReflect.Descriptor instead.
 func (*GetReelsFeedRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{4}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetReelsFeedRequest) GetViewerId() string {
@@ -267,7 +267,7 @@ type GetReelsFeedResponse struct {
 
 func (x *GetReelsFeedResponse) Reset() {
 	*x = GetReelsFeedResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[5]
+	mi := &file_reel_v1_reel_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -279,7 +279,7 @@ func (x *GetReelsFeedResponse) String() string {
 func (*GetReelsFeedResponse) ProtoMessage() {}
 
 func (x *GetReelsFeedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[5]
+	mi := &file_reel_v1_reel_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +292,7 @@ func (x *GetReelsFeedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReelsFeedResponse.ProtoReflect.Descriptor instead.
 func (*GetReelsFeedResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{5}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetReelsFeedResponse) GetReels() []*Reel {
@@ -318,7 +318,7 @@ type CreateReelRequest struct {
 
 func (x *CreateReelRequest) Reset() {
 	*x = CreateReelRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[6]
+	mi := &file_reel_v1_reel_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -330,7 +330,7 @@ func (x *CreateReelRequest) String() string {
 func (*CreateReelRequest) ProtoMessage() {}
 
 func (x *CreateReelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[6]
+	mi := &file_reel_v1_reel_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -343,7 +343,7 @@ func (x *CreateReelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateReelRequest.ProtoReflect.Descriptor instead.
 func (*CreateReelRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{6}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreateReelRequest) GetUserId() string {
@@ -411,7 +411,7 @@ type CreateReelResponse struct {
 
 func (x *CreateReelResponse) Reset() {
 	*x = CreateReelResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[7]
+	mi := &file_reel_v1_reel_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +423,7 @@ func (x *CreateReelResponse) String() string {
 func (*CreateReelResponse) ProtoMessage() {}
 
 func (x *CreateReelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[7]
+	mi := &file_reel_v1_reel_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +436,7 @@ func (x *CreateReelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateReelResponse.ProtoReflect.Descriptor instead.
 func (*CreateReelResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{7}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateReelResponse) GetReel() *Reel {
@@ -456,7 +456,7 @@ type DeleteReelRequest struct {
 
 func (x *DeleteReelRequest) Reset() {
 	*x = DeleteReelRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[8]
+	mi := &file_reel_v1_reel_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -468,7 +468,7 @@ func (x *DeleteReelRequest) String() string {
 func (*DeleteReelRequest) ProtoMessage() {}
 
 func (x *DeleteReelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[8]
+	mi := &file_reel_v1_reel_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +481,7 @@ func (x *DeleteReelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReelRequest.ProtoReflect.Descriptor instead.
 func (*DeleteReelRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{8}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteReelRequest) GetReelId() string {
@@ -507,7 +507,7 @@ type DeleteReelResponse struct {
 
 func (x *DeleteReelResponse) Reset() {
 	*x = DeleteReelResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[9]
+	mi := &file_reel_v1_reel_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +519,7 @@ func (x *DeleteReelResponse) String() string {
 func (*DeleteReelResponse) ProtoMessage() {}
 
 func (x *DeleteReelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[9]
+	mi := &file_reel_v1_reel_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +532,7 @@ func (x *DeleteReelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReelResponse.ProtoReflect.Descriptor instead.
 func (*DeleteReelResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{9}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteReelResponse) GetSuccess() bool {
@@ -554,7 +554,7 @@ type AddCommentRequest struct {
 
 func (x *AddCommentRequest) Reset() {
 	*x = AddCommentRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[10]
+	mi := &file_reel_v1_reel_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -566,7 +566,7 @@ func (x *AddCommentRequest) String() string {
 func (*AddCommentRequest) ProtoMessage() {}
 
 func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[10]
+	mi := &file_reel_v1_reel_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -579,7 +579,7 @@ func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentRequest.ProtoReflect.Descriptor instead.
 func (*AddCommentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{10}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AddCommentRequest) GetReelId() string {
@@ -619,7 +619,7 @@ type AddCommentResponse struct {
 
 func (x *AddCommentResponse) Reset() {
 	*x = AddCommentResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[11]
+	mi := &file_reel_v1_reel_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -631,7 +631,7 @@ func (x *AddCommentResponse) String() string {
 func (*AddCommentResponse) ProtoMessage() {}
 
 func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[11]
+	mi := &file_reel_v1_reel_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -644,7 +644,7 @@ func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentResponse.ProtoReflect.Descriptor instead.
 func (*AddCommentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{11}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AddCommentResponse) GetComment() *Comment {
@@ -666,7 +666,7 @@ type AddReplyRequest struct {
 
 func (x *AddReplyRequest) Reset() {
 	*x = AddReplyRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[12]
+	mi := &file_reel_v1_reel_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -678,7 +678,7 @@ func (x *AddReplyRequest) String() string {
 func (*AddReplyRequest) ProtoMessage() {}
 
 func (x *AddReplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[12]
+	mi := &file_reel_v1_reel_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -691,7 +691,7 @@ func (x *AddReplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddReplyRequest.ProtoReflect.Descriptor instead.
 func (*AddReplyRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{12}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AddReplyRequest) GetReelId() string {
@@ -731,7 +731,7 @@ type AddReplyResponse struct {
 
 func (x *AddReplyResponse) Reset() {
 	*x = AddReplyResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[13]
+	mi := &file_reel_v1_reel_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -743,7 +743,7 @@ func (x *AddReplyResponse) String() string {
 func (*AddReplyResponse) ProtoMessage() {}
 
 func (x *AddReplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[13]
+	mi := &file_reel_v1_reel_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -756,7 +756,7 @@ func (x *AddReplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddReplyResponse.ProtoReflect.Descriptor instead.
 func (*AddReplyResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{13}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AddReplyResponse) GetReply() *Reply {
@@ -778,7 +778,7 @@ type ReactToCommentRequest struct {
 
 func (x *ReactToCommentRequest) Reset() {
 	*x = ReactToCommentRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[14]
+	mi := &file_reel_v1_reel_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -790,7 +790,7 @@ func (x *ReactToCommentRequest) String() string {
 func (*ReactToCommentRequest) ProtoMessage() {}
 
 func (x *ReactToCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[14]
+	mi := &file_reel_v1_reel_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -803,7 +803,7 @@ func (x *ReactToCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactToCommentRequest.ProtoReflect.Descriptor instead.
 func (*ReactToCommentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{14}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ReactToCommentRequest) GetReelId() string {
@@ -843,7 +843,7 @@ type ReactToCommentResponse struct {
 
 func (x *ReactToCommentResponse) Reset() {
 	*x = ReactToCommentResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[15]
+	mi := &file_reel_v1_reel_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -855,7 +855,7 @@ func (x *ReactToCommentResponse) String() string {
 func (*ReactToCommentResponse) ProtoMessage() {}
 
 func (x *ReactToCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[15]
+	mi := &file_reel_v1_reel_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -868,7 +868,7 @@ func (x *ReactToCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactToCommentResponse.ProtoReflect.Descriptor instead.
 func (*ReactToCommentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{15}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ReactToCommentResponse) GetSuccess() bool {
@@ -889,7 +889,7 @@ type ReactToReelRequest struct {
 
 func (x *ReactToReelRequest) Reset() {
 	*x = ReactToReelRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[16]
+	mi := &file_reel_v1_reel_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -901,7 +901,7 @@ func (x *ReactToReelRequest) String() string {
 func (*ReactToReelRequest) ProtoMessage() {}
 
 func (x *ReactToReelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[16]
+	mi := &file_reel_v1_reel_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -914,7 +914,7 @@ func (x *ReactToReelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactToReelRequest.ProtoReflect.Descriptor instead.
 func (*ReactToReelRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{16}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ReactToReelRequest) GetReelId() string {
@@ -947,7 +947,7 @@ type ReactToReelResponse struct {
 
 func (x *ReactToReelResponse) Reset() {
 	*x = ReactToReelResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[17]
+	mi := &file_reel_v1_reel_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +959,7 @@ func (x *ReactToReelResponse) String() string {
 func (*ReactToReelResponse) ProtoMessage() {}
 
 func (x *ReactToReelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[17]
+	mi := &file_reel_v1_reel_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +972,7 @@ func (x *ReactToReelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactToReelResponse.ProtoReflect.Descriptor instead.
 func (*ReactToReelResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{17}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ReactToReelResponse) GetSuccess() bool {
@@ -993,7 +993,7 @@ type GetCommentsRequest struct {
 
 func (x *GetCommentsRequest) Reset() {
 	*x = GetCommentsRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[18]
+	mi := &file_reel_v1_reel_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +1005,7 @@ func (x *GetCommentsRequest) String() string {
 func (*GetCommentsRequest) ProtoMessage() {}
 
 func (x *GetCommentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[18]
+	mi := &file_reel_v1_reel_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,7 +1018,7 @@ func (x *GetCommentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentsRequest.ProtoReflect.Descriptor instead.
 func (*GetCommentsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{18}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetCommentsRequest) GetReelId() string {
@@ -1051,7 +1051,7 @@ type GetCommentsResponse struct {
 
 func (x *GetCommentsResponse) Reset() {
 	*x = GetCommentsResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[19]
+	mi := &file_reel_v1_reel_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1063,7 +1063,7 @@ func (x *GetCommentsResponse) String() string {
 func (*GetCommentsResponse) ProtoMessage() {}
 
 func (x *GetCommentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[19]
+	mi := &file_reel_v1_reel_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1076,7 +1076,7 @@ func (x *GetCommentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentsResponse.ProtoReflect.Descriptor instead.
 func (*GetCommentsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{19}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetCommentsResponse) GetComments() []*Comment {
@@ -1096,7 +1096,7 @@ type IncrementViewRequest struct {
 
 func (x *IncrementViewRequest) Reset() {
 	*x = IncrementViewRequest{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[20]
+	mi := &file_reel_v1_reel_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1108,7 +1108,7 @@ func (x *IncrementViewRequest) String() string {
 func (*IncrementViewRequest) ProtoMessage() {}
 
 func (x *IncrementViewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[20]
+	mi := &file_reel_v1_reel_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1121,7 +1121,7 @@ func (x *IncrementViewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncrementViewRequest.ProtoReflect.Descriptor instead.
 func (*IncrementViewRequest) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{20}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *IncrementViewRequest) GetReelId() string {
@@ -1147,7 +1147,7 @@ type IncrementViewResponse struct {
 
 func (x *IncrementViewResponse) Reset() {
 	*x = IncrementViewResponse{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[21]
+	mi := &file_reel_v1_reel_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1159,7 +1159,7 @@ func (x *IncrementViewResponse) String() string {
 func (*IncrementViewResponse) ProtoMessage() {}
 
 func (x *IncrementViewResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[21]
+	mi := &file_reel_v1_reel_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1172,7 +1172,7 @@ func (x *IncrementViewResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncrementViewResponse.ProtoReflect.Descriptor instead.
 func (*IncrementViewResponse) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{21}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *IncrementViewResponse) GetSuccess() bool {
@@ -1203,7 +1203,7 @@ type Reel struct {
 
 func (x *Reel) Reset() {
 	*x = Reel{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[22]
+	mi := &file_reel_v1_reel_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1215,7 @@ func (x *Reel) String() string {
 func (*Reel) ProtoMessage() {}
 
 func (x *Reel) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[22]
+	mi := &file_reel_v1_reel_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1228,7 +1228,7 @@ func (x *Reel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reel.ProtoReflect.Descriptor instead.
 func (*Reel) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{22}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Reel) GetId() string {
@@ -1340,7 +1340,7 @@ type Comment struct {
 
 func (x *Comment) Reset() {
 	*x = Comment{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[23]
+	mi := &file_reel_v1_reel_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1352,7 +1352,7 @@ func (x *Comment) String() string {
 func (*Comment) ProtoMessage() {}
 
 func (x *Comment) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[23]
+	mi := &file_reel_v1_reel_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1365,7 +1365,7 @@ func (x *Comment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Comment.ProtoReflect.Descriptor instead.
 func (*Comment) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{23}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *Comment) GetId() string {
@@ -1455,7 +1455,7 @@ type Reply struct {
 
 func (x *Reply) Reset() {
 	*x = Reply{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[24]
+	mi := &file_reel_v1_reel_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1467,7 +1467,7 @@ func (x *Reply) String() string {
 func (*Reply) ProtoMessage() {}
 
 func (x *Reply) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[24]
+	mi := &file_reel_v1_reel_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1480,7 +1480,7 @@ func (x *Reply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reply.ProtoReflect.Descriptor instead.
 func (*Reply) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{24}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Reply) GetId() string {
@@ -1558,7 +1558,7 @@ type Author struct {
 
 func (x *Author) Reset() {
 	*x = Author{}
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[25]
+	mi := &file_reel_v1_reel_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1570,7 +1570,7 @@ func (x *Author) String() string {
 func (*Author) ProtoMessage() {}
 
 func (x *Author) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_reel_v1_reel_proto_msgTypes[25]
+	mi := &file_reel_v1_reel_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1583,7 +1583,7 @@ func (x *Author) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Author.ProtoReflect.Descriptor instead.
 func (*Author) Descriptor() ([]byte, []int) {
-	return file_proto_reel_v1_reel_proto_rawDescGZIP(), []int{25}
+	return file_reel_v1_reel_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Author) GetId() string {
@@ -1614,11 +1614,11 @@ func (x *Author) GetFullName() string {
 	return ""
 }
 
-var File_proto_reel_v1_reel_proto protoreflect.FileDescriptor
+var File_reel_v1_reel_proto protoreflect.FileDescriptor
 
-const file_proto_reel_v1_reel_proto_rawDesc = "" +
+const file_reel_v1_reel_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/reel/v1/reel.proto\x12\areel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\")\n" +
+	"\x12reel/v1/reel.proto\x12\areel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\")\n" +
 	"\x0eGetReelRequest\x12\x17\n" +
 	"\areel_id\x18\x01 \x01(\tR\x06reelId\"4\n" +
 	"\x0fGetReelResponse\x12!\n" +
@@ -1758,19 +1758,19 @@ const file_proto_reel_v1_reel_proto_rawDesc = "" +
 	"\vGetComments\x12\x1b.reel.v1.GetCommentsRequest\x1a\x1c.reel.v1.GetCommentsResponseBHZFgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/reel/v1;reelpbb\x06proto3"
 
 var (
-	file_proto_reel_v1_reel_proto_rawDescOnce sync.Once
-	file_proto_reel_v1_reel_proto_rawDescData []byte
+	file_reel_v1_reel_proto_rawDescOnce sync.Once
+	file_reel_v1_reel_proto_rawDescData []byte
 )
 
-func file_proto_reel_v1_reel_proto_rawDescGZIP() []byte {
-	file_proto_reel_v1_reel_proto_rawDescOnce.Do(func() {
-		file_proto_reel_v1_reel_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_reel_v1_reel_proto_rawDesc), len(file_proto_reel_v1_reel_proto_rawDesc)))
+func file_reel_v1_reel_proto_rawDescGZIP() []byte {
+	file_reel_v1_reel_proto_rawDescOnce.Do(func() {
+		file_reel_v1_reel_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_reel_v1_reel_proto_rawDesc), len(file_reel_v1_reel_proto_rawDesc)))
 	})
-	return file_proto_reel_v1_reel_proto_rawDescData
+	return file_reel_v1_reel_proto_rawDescData
 }
 
-var file_proto_reel_v1_reel_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
-var file_proto_reel_v1_reel_proto_goTypes = []any{
+var file_reel_v1_reel_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_reel_v1_reel_proto_goTypes = []any{
 	(*GetReelRequest)(nil),         // 0: reel.v1.GetReelRequest
 	(*GetReelResponse)(nil),        // 1: reel.v1.GetReelResponse
 	(*GetUserReelsRequest)(nil),    // 2: reel.v1.GetUserReelsRequest
@@ -1799,7 +1799,7 @@ var file_proto_reel_v1_reel_proto_goTypes = []any{
 	(*Author)(nil),                 // 25: reel.v1.Author
 	(*timestamppb.Timestamp)(nil),  // 26: google.protobuf.Timestamp
 }
-var file_proto_reel_v1_reel_proto_depIdxs = []int32{
+var file_reel_v1_reel_proto_depIdxs = []int32{
 	22, // 0: reel.v1.GetReelResponse.reel:type_name -> reel.v1.Reel
 	22, // 1: reel.v1.GetUserReelsResponse.reels:type_name -> reel.v1.Reel
 	22, // 2: reel.v1.GetReelsFeedResponse.reels:type_name -> reel.v1.Reel
@@ -1846,26 +1846,26 @@ var file_proto_reel_v1_reel_proto_depIdxs = []int32{
 	0,  // [0:17] is the sub-list for field type_name
 }
 
-func init() { file_proto_reel_v1_reel_proto_init() }
-func file_proto_reel_v1_reel_proto_init() {
-	if File_proto_reel_v1_reel_proto != nil {
+func init() { file_reel_v1_reel_proto_init() }
+func file_reel_v1_reel_proto_init() {
+	if File_reel_v1_reel_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_reel_v1_reel_proto_rawDesc), len(file_proto_reel_v1_reel_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reel_v1_reel_proto_rawDesc), len(file_reel_v1_reel_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_reel_v1_reel_proto_goTypes,
-		DependencyIndexes: file_proto_reel_v1_reel_proto_depIdxs,
-		MessageInfos:      file_proto_reel_v1_reel_proto_msgTypes,
+		GoTypes:           file_reel_v1_reel_proto_goTypes,
+		DependencyIndexes: file_reel_v1_reel_proto_depIdxs,
+		MessageInfos:      file_reel_v1_reel_proto_msgTypes,
 	}.Build()
-	File_proto_reel_v1_reel_proto = out.File
-	file_proto_reel_v1_reel_proto_goTypes = nil
-	file_proto_reel_v1_reel_proto_depIdxs = nil
+	File_reel_v1_reel_proto = out.File
+	file_reel_v1_reel_proto_goTypes = nil
+	file_reel_v1_reel_proto_depIdxs = nil
 }

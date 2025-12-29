@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: proto/marketplace/v1/marketplace.proto
+// source: marketplace/v1/marketplace.proto
 
 package marketplacepb
 
@@ -37,7 +37,7 @@ type Location struct {
 
 func (x *Location) Reset() {
 	*x = Location{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[0]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *Location) String() string {
 func (*Location) ProtoMessage() {}
 
 func (x *Location) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[0]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *Location) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Location.ProtoReflect.Descriptor instead.
 func (*Location) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{0}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Location) GetCity() string {
@@ -112,7 +112,7 @@ type UserShort struct {
 
 func (x *UserShort) Reset() {
 	*x = UserShort{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[1]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -124,7 +124,7 @@ func (x *UserShort) String() string {
 func (*UserShort) ProtoMessage() {}
 
 func (x *UserShort) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[1]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -137,7 +137,7 @@ func (x *UserShort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserShort.ProtoReflect.Descriptor instead.
 func (*UserShort) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{1}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UserShort) GetId() string {
@@ -181,7 +181,7 @@ type Category struct {
 
 func (x *Category) Reset() {
 	*x = Category{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[2]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -193,7 +193,7 @@ func (x *Category) String() string {
 func (*Category) ProtoMessage() {}
 
 func (x *Category) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[2]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -206,7 +206,7 @@ func (x *Category) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Category.ProtoReflect.Descriptor instead.
 func (*Category) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{2}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Category) GetId() string {
@@ -267,7 +267,7 @@ type Product struct {
 
 func (x *Product) Reset() {
 	*x = Product{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[3]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -279,7 +279,7 @@ func (x *Product) String() string {
 func (*Product) ProtoMessage() {}
 
 func (x *Product) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[3]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +292,7 @@ func (x *Product) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Product.ProtoReflect.Descriptor instead.
 func (*Product) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{3}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Product) GetId() string {
@@ -410,7 +410,7 @@ type CreateProductRequest struct {
 
 func (x *CreateProductRequest) Reset() {
 	*x = CreateProductRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[4]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +422,7 @@ func (x *CreateProductRequest) String() string {
 func (*CreateProductRequest) ProtoMessage() {}
 
 func (x *CreateProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[4]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +435,7 @@ func (x *CreateProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProductRequest.ProtoReflect.Descriptor instead.
 func (*CreateProductRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{4}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateProductRequest) GetUserId() string {
@@ -511,7 +511,7 @@ type GetProductRequest struct {
 
 func (x *GetProductRequest) Reset() {
 	*x = GetProductRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[5]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -523,7 +523,7 @@ func (x *GetProductRequest) String() string {
 func (*GetProductRequest) ProtoMessage() {}
 
 func (x *GetProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[5]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -536,7 +536,7 @@ func (x *GetProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProductRequest.ProtoReflect.Descriptor instead.
 func (*GetProductRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{5}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetProductRequest) GetProductId() string {
@@ -562,7 +562,7 @@ type ProductResponse struct {
 
 func (x *ProductResponse) Reset() {
 	*x = ProductResponse{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[6]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -574,7 +574,7 @@ func (x *ProductResponse) String() string {
 func (*ProductResponse) ProtoMessage() {}
 
 func (x *ProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[6]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -587,7 +587,7 @@ func (x *ProductResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProductResponse.ProtoReflect.Descriptor instead.
 func (*ProductResponse) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{6}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ProductResponse) GetProduct() *Product {
@@ -612,7 +612,7 @@ type UpdateProductRequest struct {
 
 func (x *UpdateProductRequest) Reset() {
 	*x = UpdateProductRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[7]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -624,7 +624,7 @@ func (x *UpdateProductRequest) String() string {
 func (*UpdateProductRequest) ProtoMessage() {}
 
 func (x *UpdateProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[7]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -637,7 +637,7 @@ func (x *UpdateProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProductRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProductRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{7}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateProductRequest) GetProductId() string {
@@ -699,7 +699,7 @@ type DeleteProductRequest struct {
 
 func (x *DeleteProductRequest) Reset() {
 	*x = DeleteProductRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[8]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +711,7 @@ func (x *DeleteProductRequest) String() string {
 func (*DeleteProductRequest) ProtoMessage() {}
 
 func (x *DeleteProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[8]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -724,7 +724,7 @@ func (x *DeleteProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProductRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProductRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{8}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteProductRequest) GetProductId() string {
@@ -751,7 +751,7 @@ type MarkProductSoldRequest struct {
 
 func (x *MarkProductSoldRequest) Reset() {
 	*x = MarkProductSoldRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[9]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -763,7 +763,7 @@ func (x *MarkProductSoldRequest) String() string {
 func (*MarkProductSoldRequest) ProtoMessage() {}
 
 func (x *MarkProductSoldRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[9]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -776,7 +776,7 @@ func (x *MarkProductSoldRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkProductSoldRequest.ProtoReflect.Descriptor instead.
 func (*MarkProductSoldRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{9}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *MarkProductSoldRequest) GetProductId() string {
@@ -810,7 +810,7 @@ type SearchProductsRequest struct {
 
 func (x *SearchProductsRequest) Reset() {
 	*x = SearchProductsRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[10]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -822,7 +822,7 @@ func (x *SearchProductsRequest) String() string {
 func (*SearchProductsRequest) ProtoMessage() {}
 
 func (x *SearchProductsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[10]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -835,7 +835,7 @@ func (x *SearchProductsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchProductsRequest.ProtoReflect.Descriptor instead.
 func (*SearchProductsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{10}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SearchProductsRequest) GetCategoryId() string {
@@ -913,7 +913,7 @@ type SearchProductsResponse struct {
 
 func (x *SearchProductsResponse) Reset() {
 	*x = SearchProductsResponse{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[11]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -925,7 +925,7 @@ func (x *SearchProductsResponse) String() string {
 func (*SearchProductsResponse) ProtoMessage() {}
 
 func (x *SearchProductsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[11]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -938,7 +938,7 @@ func (x *SearchProductsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchProductsResponse.ProtoReflect.Descriptor instead.
 func (*SearchProductsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{11}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SearchProductsResponse) GetProducts() []*Product {
@@ -978,7 +978,7 @@ type GetCategoriesResponse struct {
 
 func (x *GetCategoriesResponse) Reset() {
 	*x = GetCategoriesResponse{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[12]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -990,7 +990,7 @@ func (x *GetCategoriesResponse) String() string {
 func (*GetCategoriesResponse) ProtoMessage() {}
 
 func (x *GetCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[12]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1003,7 +1003,7 @@ func (x *GetCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*GetCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{12}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetCategoriesResponse) GetCategories() []*Category {
@@ -1023,7 +1023,7 @@ type ToggleSaveProductRequest struct {
 
 func (x *ToggleSaveProductRequest) Reset() {
 	*x = ToggleSaveProductRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[13]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1035,7 +1035,7 @@ func (x *ToggleSaveProductRequest) String() string {
 func (*ToggleSaveProductRequest) ProtoMessage() {}
 
 func (x *ToggleSaveProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[13]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1048,7 +1048,7 @@ func (x *ToggleSaveProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleSaveProductRequest.ProtoReflect.Descriptor instead.
 func (*ToggleSaveProductRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{13}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ToggleSaveProductRequest) GetProductId() string {
@@ -1074,7 +1074,7 @@ type ToggleSaveProductResponse struct {
 
 func (x *ToggleSaveProductResponse) Reset() {
 	*x = ToggleSaveProductResponse{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[14]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1086,7 +1086,7 @@ func (x *ToggleSaveProductResponse) String() string {
 func (*ToggleSaveProductResponse) ProtoMessage() {}
 
 func (x *ToggleSaveProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[14]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1099,7 +1099,7 @@ func (x *ToggleSaveProductResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleSaveProductResponse.ProtoReflect.Descriptor instead.
 func (*ToggleSaveProductResponse) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{14}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ToggleSaveProductResponse) GetIsSaved() bool {
@@ -1120,7 +1120,7 @@ type GetSavedProductsRequest struct {
 
 func (x *GetSavedProductsRequest) Reset() {
 	*x = GetSavedProductsRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[15]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1132,7 +1132,7 @@ func (x *GetSavedProductsRequest) String() string {
 func (*GetSavedProductsRequest) ProtoMessage() {}
 
 func (x *GetSavedProductsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[15]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1145,7 +1145,7 @@ func (x *GetSavedProductsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSavedProductsRequest.ProtoReflect.Descriptor instead.
 func (*GetSavedProductsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{15}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetSavedProductsRequest) GetUserId() string {
@@ -1187,7 +1187,7 @@ type ConversationSummary struct {
 
 func (x *ConversationSummary) Reset() {
 	*x = ConversationSummary{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[16]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1199,7 +1199,7 @@ func (x *ConversationSummary) String() string {
 func (*ConversationSummary) ProtoMessage() {}
 
 func (x *ConversationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[16]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1212,7 +1212,7 @@ func (x *ConversationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationSummary.ProtoReflect.Descriptor instead.
 func (*ConversationSummary) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{16}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ConversationSummary) GetId() string {
@@ -1294,7 +1294,7 @@ type GetConversationsRequest struct {
 
 func (x *GetConversationsRequest) Reset() {
 	*x = GetConversationsRequest{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[17]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1306,7 +1306,7 @@ func (x *GetConversationsRequest) String() string {
 func (*GetConversationsRequest) ProtoMessage() {}
 
 func (x *GetConversationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[17]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1319,7 +1319,7 @@ func (x *GetConversationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConversationsRequest.ProtoReflect.Descriptor instead.
 func (*GetConversationsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{17}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetConversationsRequest) GetUserId() string {
@@ -1338,7 +1338,7 @@ type GetConversationsResponse struct {
 
 func (x *GetConversationsResponse) Reset() {
 	*x = GetConversationsResponse{}
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[18]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1350,7 +1350,7 @@ func (x *GetConversationsResponse) String() string {
 func (*GetConversationsResponse) ProtoMessage() {}
 
 func (x *GetConversationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_marketplace_v1_marketplace_proto_msgTypes[18]
+	mi := &file_marketplace_v1_marketplace_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1363,7 +1363,7 @@ func (x *GetConversationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConversationsResponse.ProtoReflect.Descriptor instead.
 func (*GetConversationsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{18}
+	return file_marketplace_v1_marketplace_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetConversationsResponse) GetConversations() []*ConversationSummary {
@@ -1373,11 +1373,11 @@ func (x *GetConversationsResponse) GetConversations() []*ConversationSummary {
 	return nil
 }
 
-var File_proto_marketplace_v1_marketplace_proto protoreflect.FileDescriptor
+var File_marketplace_v1_marketplace_proto protoreflect.FileDescriptor
 
-const file_proto_marketplace_v1_marketplace_proto_rawDesc = "" +
+const file_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\n" +
-	"&proto/marketplace/v1/marketplace.proto\x12\x0emarketplace.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x88\x01\n" +
+	" marketplace/v1/marketplace.proto\x12\x0emarketplace.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x88\x01\n" +
 	"\bLocation\x12\x12\n" +
 	"\x04city\x18\x01 \x01(\tR\x04city\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x18\n" +
@@ -1503,22 +1503,22 @@ const file_proto_marketplace_v1_marketplace_proto_rawDesc = "" +
 	"\rGetCategories\x12\x16.google.protobuf.Empty\x1a%.marketplace.v1.GetCategoriesResponse\x12h\n" +
 	"\x11ToggleSaveProduct\x12(.marketplace.v1.ToggleSaveProductRequest\x1a).marketplace.v1.ToggleSaveProductResponse\x12c\n" +
 	"\x10GetSavedProducts\x12'.marketplace.v1.GetSavedProductsRequest\x1a&.marketplace.v1.SearchProductsResponse\x12p\n" +
-	"\x1bGetMarketplaceConversations\x12'.marketplace.v1.GetConversationsRequest\x1a(.marketplace.v1.GetConversationsResponseBMZKgithub.com/MuhibNayem/connectify-v2/shared-entity/proto/marketplace/v1;marketplacepbb\x06proto3"
+	"\x1bGetMarketplaceConversations\x12'.marketplace.v1.GetConversationsRequest\x1a(.marketplace.v1.GetConversationsResponseBMZKgitlab.com/spydotech-group/shared-entity/proto/marketplace/v1;marketplacepbb\x06proto3"
 
 var (
-	file_proto_marketplace_v1_marketplace_proto_rawDescOnce sync.Once
-	file_proto_marketplace_v1_marketplace_proto_rawDescData []byte
+	file_marketplace_v1_marketplace_proto_rawDescOnce sync.Once
+	file_marketplace_v1_marketplace_proto_rawDescData []byte
 )
 
-func file_proto_marketplace_v1_marketplace_proto_rawDescGZIP() []byte {
-	file_proto_marketplace_v1_marketplace_proto_rawDescOnce.Do(func() {
-		file_proto_marketplace_v1_marketplace_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_marketplace_v1_marketplace_proto_rawDesc), len(file_proto_marketplace_v1_marketplace_proto_rawDesc)))
+func file_marketplace_v1_marketplace_proto_rawDescGZIP() []byte {
+	file_marketplace_v1_marketplace_proto_rawDescOnce.Do(func() {
+		file_marketplace_v1_marketplace_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_marketplace_v1_marketplace_proto_rawDesc), len(file_marketplace_v1_marketplace_proto_rawDesc)))
 	})
-	return file_proto_marketplace_v1_marketplace_proto_rawDescData
+	return file_marketplace_v1_marketplace_proto_rawDescData
 }
 
-var file_proto_marketplace_v1_marketplace_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
-var file_proto_marketplace_v1_marketplace_proto_goTypes = []any{
+var file_marketplace_v1_marketplace_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_marketplace_v1_marketplace_proto_goTypes = []any{
 	(*Location)(nil),                  // 0: marketplace.v1.Location
 	(*UserShort)(nil),                 // 1: marketplace.v1.UserShort
 	(*Category)(nil),                  // 2: marketplace.v1.Category
@@ -1541,7 +1541,7 @@ var file_proto_marketplace_v1_marketplace_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),     // 19: google.protobuf.Timestamp
 	(*emptypb.Empty)(nil),             // 20: google.protobuf.Empty
 }
-var file_proto_marketplace_v1_marketplace_proto_depIdxs = []int32{
+var file_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	0,  // 0: marketplace.v1.Product.location:type_name -> marketplace.v1.Location
 	1,  // 1: marketplace.v1.Product.seller:type_name -> marketplace.v1.UserShort
 	2,  // 2: marketplace.v1.Product.category:type_name -> marketplace.v1.Category
@@ -1580,26 +1580,26 @@ var file_proto_marketplace_v1_marketplace_proto_depIdxs = []int32{
 	0,  // [0:11] is the sub-list for field type_name
 }
 
-func init() { file_proto_marketplace_v1_marketplace_proto_init() }
-func file_proto_marketplace_v1_marketplace_proto_init() {
-	if File_proto_marketplace_v1_marketplace_proto != nil {
+func init() { file_marketplace_v1_marketplace_proto_init() }
+func file_marketplace_v1_marketplace_proto_init() {
+	if File_marketplace_v1_marketplace_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_marketplace_v1_marketplace_proto_rawDesc), len(file_proto_marketplace_v1_marketplace_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_marketplace_v1_marketplace_proto_rawDesc), len(file_marketplace_v1_marketplace_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_marketplace_v1_marketplace_proto_goTypes,
-		DependencyIndexes: file_proto_marketplace_v1_marketplace_proto_depIdxs,
-		MessageInfos:      file_proto_marketplace_v1_marketplace_proto_msgTypes,
+		GoTypes:           file_marketplace_v1_marketplace_proto_goTypes,
+		DependencyIndexes: file_marketplace_v1_marketplace_proto_depIdxs,
+		MessageInfos:      file_marketplace_v1_marketplace_proto_msgTypes,
 	}.Build()
-	File_proto_marketplace_v1_marketplace_proto = out.File
-	file_proto_marketplace_v1_marketplace_proto_goTypes = nil
-	file_proto_marketplace_v1_marketplace_proto_depIdxs = nil
+	File_marketplace_v1_marketplace_proto = out.File
+	file_marketplace_v1_marketplace_proto_goTypes = nil
+	file_marketplace_v1_marketplace_proto_depIdxs = nil
 }

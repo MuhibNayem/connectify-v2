@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.2
-// source: proto/feed/v1/feed.proto
+// source: feed/v1/feed.proto
 
 package feedpb
 
@@ -1156,5 +1156,5 @@ var FeedService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/feed/v1/feed.proto",
+	Metadata: "feed/v1/feed.proto",
 }
