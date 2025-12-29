@@ -16,6 +16,11 @@ type BusinessMetrics struct {
 
 	OperationDuration *prometheus.HistogramVec
 	OperationErrors   *prometheus.CounterVec
+
+	// Consistency metrics
+	InconsistenciesDetected *prometheus.CounterVec
+	OutboxEventsProcessed   prometheus.Counter
+	OutboxEventsFailed      prometheus.Counter
 }
 
 // NewBusinessMetrics creates and registers business metrics
@@ -54,6 +59,18 @@ func NewBusinessMetrics() *BusinessMetrics {
 			Name: "friendship_operation_errors_total",
 			Help: "Total number of errors by operation",
 		}, []string{"operation"}),
+		InconsistenciesDetected: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "friendship_inconsistencies_detected_total",
+			Help: "Total number of data inconsistencies detected and repaired",
+		}, []string{"type"}),
+		OutboxEventsProcessed: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "friendship_outbox_events_processed_total",
+			Help: "Total number of outbox events successfully processed",
+		}),
+		OutboxEventsFailed: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "friendship_outbox_events_failed_total",
+			Help: "Total number of outbox events that failed processing",
+		}),
 	}
 }
 
@@ -95,4 +112,19 @@ func (m *BusinessMetrics) RecordOperationError(operation string) {
 // ObserveOperationDuration records the duration of an operation
 func (m *BusinessMetrics) ObserveOperationDuration(operation string, durationSeconds float64) {
 	m.OperationDuration.WithLabelValues(operation).Observe(durationSeconds)
+}
+
+// RecordInconsistency records a detected data inconsistency
+func (m *BusinessMetrics) RecordInconsistency(inconsistencyType string) {
+	m.InconsistenciesDetected.WithLabelValues(inconsistencyType).Inc()
+}
+
+// RecordOutboxProcessed records a successfully processed outbox event
+func (m *BusinessMetrics) RecordOutboxProcessed() {
+	m.OutboxEventsProcessed.Inc()
+}
+
+// RecordOutboxFailed records a failed outbox event
+func (m *BusinessMetrics) RecordOutboxFailed() {
+	m.OutboxEventsFailed.Inc()
 }

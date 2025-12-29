@@ -454,3 +454,76 @@ func (r *FriendshipRepository) SearchFriends(ctx context.Context, userID primiti
 	}
 	return friends, nil
 }
+
+// ===== Transaction-compatible methods =====
+
+var ErrConcurrentModification = errors.New("concurrent modification detected")
+
+// CreateRequestTx creates a friend request within a transaction
+func (r *FriendshipRepository) CreateRequestTx(ctx mongo.SessionContext, requesterID, receiverID primitive.ObjectID) (*models.Friendship, error) {
+	return r.CreateRequest(ctx, requesterID, receiverID)
+}
+
+// UpdateStatusWithVersion uses optimistic locking for concurrent update protection
+func (r *FriendshipRepository) UpdateStatusWithVersion(ctx context.Context, friendshipID primitive.ObjectID, expectedVersion int64, status models.FriendshipStatus) error {
+	result, err := r.db.Collection("friendships").UpdateOne(
+		ctx,
+		bson.M{
+			"_id":     friendshipID,
+			"version": expectedVersion,
+		},
+		bson.M{
+			"$set": bson.M{
+				"status":     status,
+				"updated_at": time.Now(),
+			},
+			"$inc": bson.M{
+				"version": 1,
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return ErrConcurrentModification
+	}
+	return nil
+}
+
+// GetAllAccepted retrieves all accepted friendships for reconciliation
+func (r *FriendshipRepository) GetAllAccepted(ctx context.Context, limit int64) ([]models.Friendship, error) {
+	filter := bson.M{"status": models.FriendshipStatusAccepted}
+
+	opts := options.Find().SetLimit(limit)
+
+	cursor, err := r.db.Collection("friendships").Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var friendships []models.Friendship
+	if err := cursor.All(ctx, &friendships); err != nil {
+		return nil, err
+	}
+	return friendships, nil
+}
+
+// GetByID retrieves a friendship by ID
+func (r *FriendshipRepository) GetByID(ctx context.Context, friendshipID primitive.ObjectID) (*models.Friendship, error) {
+	var friendship models.Friendship
+	err := r.db.Collection("friendships").FindOne(ctx, bson.M{"_id": friendshipID}).Decode(&friendship)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrFriendshipNotFound
+		}
+		return nil, err
+	}
+	return &friendship, nil
+}
+
+// GetDatabase returns the database for transaction support
+func (r *FriendshipRepository) GetDatabase() *mongo.Database {
+	return r.db
+}

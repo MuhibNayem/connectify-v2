@@ -139,3 +139,33 @@ func (r *GraphRepository) CheckFriendshipStatus(ctx context.Context, me, other p
 	// If nodes missing, result is empty.
 	return rec.Values[0].(bool), rec.Values[1].(bool), rec.Values[2].(bool), rec.Values[3].(bool), rec.Values[4].(bool), nil
 }
+
+// AreFriends checks if two users are friends (simple boolean check)
+func (r *GraphRepository) AreFriends(ctx context.Context, user1, user2 primitive.ObjectID) (bool, error) {
+	query := `
+		MATCH (u1:User {id: $user1})-[:FRIEND]-(u2:User {id: $user2})
+		RETURN count(*) > 0 as areFriends
+	`
+	params := map[string]any{
+		"user1": user1.Hex(),
+		"user2": user2.Hex(),
+	}
+	result, err := neo4j.ExecuteQuery(ctx, r.driver, query, params, neo4j.EagerResultTransformer, neo4j.ExecuteQueryWithDatabase("neo4j"))
+	if err != nil {
+		return false, err
+	}
+	if len(result.Records) == 0 {
+		return false, nil
+	}
+	return result.Records[0].Values[0].(bool), nil
+}
+
+// Block is an alias for BlockUser (used by outbox processor)
+func (r *GraphRepository) Block(ctx context.Context, blocker, blocked primitive.ObjectID) error {
+	return r.BlockUser(ctx, blocker, blocked)
+}
+
+// Unblock is an alias for UnblockUser (used by outbox processor)
+func (r *GraphRepository) Unblock(ctx context.Context, blocker, blocked primitive.ObjectID) error {
+	return r.UnblockUser(ctx, blocker, blocked)
+}

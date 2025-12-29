@@ -19,6 +19,8 @@ import (
 	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/httpapi"
 	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/kafka"
 	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/metrics"
+	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/outbox"
+	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/reconciliation"
 	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/repository"
 	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/service"
 	"github.com/MuhibNayem/connectify-v2/friendship-service/internal/validation"
@@ -46,6 +48,13 @@ type Application struct {
 	neo4jClient *graph.Neo4jClient
 
 	kafkaProducer *kafka.MessageProducer
+
+	// Consistency components
+	outboxRepo      *outbox.Repository
+	outboxProcessor *outbox.Processor
+	cachePubSub     *cache.PubSub
+	reconcileJob    *reconciliation.Job
+	graphRepo       *repository.GraphRepository
 
 	friendshipService *service.FriendshipService
 	grpcServer        *grpc.Server
@@ -108,6 +117,21 @@ func (a *Application) Run() error {
 			errCh <- fmt.Errorf("gRPC server failed: %w", err)
 		}
 	}()
+
+	// Start outbox processor (background worker for eventual consistency)
+	if a.outboxProcessor != nil {
+		go a.outboxProcessor.Start(a.ctx)
+	}
+
+	// Start cache invalidation pub/sub
+	if a.cachePubSub != nil {
+		a.cachePubSub.Subscribe(a.ctx)
+	}
+
+	// Start reconciliation job
+	if a.reconcileJob != nil {
+		go a.reconcileJob.Start(a.ctx)
+	}
 
 	select {
 	case <-quit:
@@ -213,9 +237,8 @@ func (a *Application) bootstrap() error {
 
 	// Initialize repositories
 	friendshipRepo := repository.NewFriendshipRepository(a.db)
-	var graphRepo *repository.GraphRepository
 	if a.neo4jClient != nil {
-		graphRepo = repository.NewGraphRepository(a.neo4jClient.Driver)
+		a.graphRepo = repository.NewGraphRepository(a.neo4jClient.Driver)
 	}
 
 	// Initialize user client
@@ -228,13 +251,34 @@ func (a *Application) bootstrap() error {
 	var friendshipCache *cache.FriendshipCache
 	if a.redisClient != nil {
 		friendshipCache = cache.NewFriendshipCache(a.redisClient, a.cfg.CacheTTL)
+
+		// Initialize cache pub/sub for distributed invalidation
+		a.cachePubSub = cache.NewPubSub(a.redisClient, friendshipCache, logger)
 	}
+
+	// Initialize outbox for eventual consistency
+	a.outboxRepo = outbox.NewRepository(a.db)
+	a.outboxProcessor = outbox.NewProcessor(
+		a.outboxRepo,
+		a.graphRepo,
+		a.kafkaProducer,
+		logger,
+	)
+
+	// Initialize reconciliation job
+	a.reconcileJob = reconciliation.NewJob(
+		friendshipRepo,
+		a.graphRepo,
+		friendshipCache,
+		a.businessMetrics,
+		logger,
+	)
 
 	// Initialize service
 	a.friendshipService = service.NewFriendshipService(
 		friendshipRepo,
 		userClient,
-		graphRepo,
+		a.graphRepo,
 		a.kafkaProducer,
 		friendshipCache,
 		circuitBreaker,
