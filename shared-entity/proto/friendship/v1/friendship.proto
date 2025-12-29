@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package friendship.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/MuhibNayem/connectify-v2/shared-entity/proto/friendship/v1;friendshippb";
+
+service FriendshipService {
+  rpc SendRequest(SendRequestRequest) returns (SendRequestResponse);
+  rpc RespondToRequest(RespondToRequestRequest) returns (RespondToRequestResponse);
+  rpc ListFriendships(ListFriendshipsRequest) returns (ListFriendshipsResponse);
+  rpc CheckFriendship(CheckFriendshipRequest) returns (CheckFriendshipResponse);
+  rpc Unfriend(UnfriendRequest) returns (UnfriendResponse);
+  rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+  rpc GetBlockedUsers(GetBlockedUsersRequest) returns (GetBlockedUsersResponse);
+  rpc GetDetailedFriendshipStatus(GetDetailedFriendshipStatusRequest) returns (GetDetailedFriendshipStatusResponse);
+  rpc SearchFriends(SearchFriendsRequest) returns (SearchFriendsResponse);
+}
+
+message FriendshipUser {
+  string id = 1;
+  string username = 2;
+  string full_name = 3;
+  string avatar = 4;
+}
+
+message Friendship {
+  string id = 1;
+  string requester_id = 2;
+  string receiver_id = 3;
+  string status = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message PopulatedFriendship {
+  string id = 1;
+  string requester_id = 2;
+  string receiver_id = 3;
+  FriendshipUser requester_info = 4;
+  FriendshipUser receiver_info = 5;
+  string status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message SendRequestRequest {
+  string requester_id = 1;
+  string receiver_id = 2;
+}
+
+message SendRequestResponse {
+  Friendship friendship = 1;
+}
+
+message RespondToRequestRequest {
+  string friendship_id = 1;
+  string receiver_id = 2;
+  bool accept = 3;
+}
+
+message RespondToRequestResponse {
+  bool success = 1;
+}
+
+message ListFriendshipsRequest {
+  string user_id = 1;
+  string status = 2;
+  int64 page = 3;
+  int64 limit = 4;
+}
+
+message ListFriendshipsResponse {
+  repeated PopulatedFriendship friendships = 1;
+  int64 total = 2;
+}
+
+message CheckFriendshipRequest {
+  string user_id1 = 1;
+  string user_id2 = 2;
+}
+
+message CheckFriendshipResponse {
+  bool are_friends = 1;
+}
+
+message UnfriendRequest {
+  string user_id = 1;
+  string friend_id = 2;
+}
+
+message UnfriendResponse {
+  bool success = 1;
+}
+
+message BlockUserRequest {
+  string blocker_id = 1;
+  string blocked_id = 2;
+}
+
+message BlockUserResponse {
+  bool success = 1;
+}
+
+message UnblockUserRequest {
+  string blocker_id = 1;
+  string blocked_id = 2;
+}
+
+message UnblockUserResponse {
+  bool success = 1;
+}
+
+message GetBlockedUsersRequest {
+  string user_id = 1;
+}
+
+message GetBlockedUsersResponse {
+  repeated FriendshipUser blocked_users = 1;
+}
+
+message GetDetailedFriendshipStatusRequest {
+  string viewer_id = 1;
+  string other_user_id = 2;
+}
+
+message GetDetailedFriendshipStatusResponse {
+  bool are_friends = 1;
+  bool request_sent = 2;
+  bool request_received = 3;
+  bool is_blocked_by_viewer = 4;
+  bool has_blocked_viewer = 5;
+}
+
+message SearchFriendsRequest {
+  string user_id = 1;
+  string query = 2;
+  int64 limit = 3;
+}
+
+message SearchFriendsResponse {
+  repeated FriendshipUser results = 1;
+}

@@ -11,6 +11,7 @@ import (
 	cassdb "messaging-app/internal/db"
 	"messaging-app/internal/eventsclient"
 	"messaging-app/internal/feedclient"
+	"messaging-app/internal/friendshipclient"
 	"messaging-app/internal/graph"
 	"messaging-app/internal/marketplaceclient"
 	notifications "messaging-app/internal/notifications"
@@ -179,11 +180,11 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	}, nil
 }
 
-func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client, communityClient *communityclient.Client, storageClient *storageclient.Client) routerConfig {
+func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client, communityClient *communityclient.Client, storageClient *storageclient.Client, friendshipClient *friendshipclient.Client) routerConfig {
 	return routerConfig{
 		authController:         controllers.NewAuthController(services.Auth, cfg),
 		userController:         controllers.NewUserController(services.User, storageClient),
-		friendshipController:   controllers.NewFriendshipController(services.Friendship),
+		friendshipController:   controllers.NewFriendshipController(friendshipClient),
 		groupController:        controllers.NewGroupController(services.Group, services.User, storageClient),
 		messageController:      controllers.NewMessageController(services.Message, storageClient, services.Group),
 		feedController:         controllers.NewFeedController(services.Feed, services.User, services.Privacy, services.Storage, feedClient),

@@ -28,6 +28,10 @@ service UserService {
   
   // Relationship Checks
   rpc CheckRelationship (CheckRelationshipRequest) returns (CheckRelationshipResponse);
+  
+  // Friend Management (Added for Friendship Service)
+  rpc AddFriend (AddFriendRequest) returns (AddFriendResponse);
+  rpc RemoveFriend (RemoveFriendRequest) returns (RemoveFriendResponse);
 }
 
 // ==================== READ OPERATIONS ====================
@@ -253,4 +257,22 @@ message CheckRelationshipResponse {
   bool is_blocked_by_user = 2;   // User has blocked Target
   bool is_blocked_by_target = 3; // Target has blocked User
   bool is_following = 4;
+}
+
+message AddFriendRequest {
+  string user_id = 1;
+  string friend_id = 2;
+}
+
+message AddFriendResponse {
+  bool success = 1;
+}
+
+message RemoveFriendRequest {
+  string user_id = 1;
+  string friend_id = 2;
+}
+
+message RemoveFriendResponse {
+  bool success = 1;
 }

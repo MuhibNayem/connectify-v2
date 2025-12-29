@@ -143,6 +143,40 @@ func (h *UserHandler) GetUsersPresence(ctx context.Context, req *pb.GetUsersPres
 	return &pb.GetUsersPresenceResponse{Presence: result}, nil
 }
 
+func (h *UserHandler) AddFriend(ctx context.Context, req *pb.AddFriendRequest) (*pb.AddFriendResponse, error) {
+	userId, err := primitive.ObjectIDFromHex(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
+	}
+	friendId, err := primitive.ObjectIDFromHex(req.FriendId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid friend id")
+	}
+
+	if err := h.userService.AddFriend(ctx, userId, friendId); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.AddFriendResponse{Success: true}, nil
+}
+
+func (h *UserHandler) RemoveFriend(ctx context.Context, req *pb.RemoveFriendRequest) (*pb.RemoveFriendResponse, error) {
+	userId, err := primitive.ObjectIDFromHex(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user id")
+	}
+	friendId, err := primitive.ObjectIDFromHex(req.FriendId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid friend id")
+	}
+
+	if err := h.userService.RemoveFriend(ctx, userId, friendId); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.RemoveFriendResponse{Success: true}, nil
+}
+
 func (h *UserHandler) GetFriendIDs(ctx context.Context, req *pb.GetFriendIDsRequest) (*pb.GetFriendIDsResponse, error) {
 	if h.graphRepo == nil {
 		return nil, status.Error(codes.Unavailable, "friend graph unavailable")

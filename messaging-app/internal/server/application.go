@@ -17,6 +17,7 @@ import (
 	cassdb "messaging-app/internal/db"
 	"messaging-app/internal/eventsclient"
 	"messaging-app/internal/feedclient"
+	"messaging-app/internal/friendshipclient"
 	"messaging-app/internal/graph"
 	"messaging-app/internal/kafka"
 	"messaging-app/internal/marketplaceclient"
@@ -59,6 +60,7 @@ type Application struct {
 	marketplaceClient       *marketplaceclient.Client
 	feedClient              *feedclient.Client
 	communityClient         *communityclient.Client
+	friendshipClient        *friendshipclient.Client
 	storyClient             *storyclient.Client
 	reelClient              *reelclient.Client
 	storageClient           *storageclient.Client
@@ -198,6 +200,9 @@ func (a *Application) Close() {
 	if a.communityClient != nil {
 		_ = a.communityClient.Close()
 	}
+	if a.friendshipClient != nil {
+		a.friendshipClient.Close()
+	}
 }
 
 func (a *Application) bootstrap() error {
@@ -305,7 +310,14 @@ func (a *Application) initDomain() error {
 	}
 	a.communityClient = communityClient
 
-	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient, a.reelClient, a.communityClient, a.storageClient)
+	// Initialize friendship gRPC client
+	friendshipClient, err := friendshipclient.NewClient(net.JoinHostPort(a.cfg.FriendshipGRPCHost, a.cfg.FriendshipGRPCPort))
+	if err != nil {
+		return fmt.Errorf("failed to connect to friendship service: %w", err)
+	}
+	a.friendshipClient = friendshipClient
+
+	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient, a.reelClient, a.communityClient, a.storageClient, a.friendshipClient)
 
 	a.kafkaConsumer = kafka.NewMessageConsumer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, "message-group", a.hub)
 	a.notificationConsumer = kafka.NewNotificationConsumer(a.cfg.KafkaBrokers, "notifications_events", "notification-group", a.hub, repos.Notification, a.dlqProducer)

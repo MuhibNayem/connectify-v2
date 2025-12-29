@@ -35,6 +35,8 @@ const (
 	UserService_UpdatePrivacySettings_FullMethodName      = "/user.v1.UserService/UpdatePrivacySettings"
 	UserService_UpdateNotificationSettings_FullMethodName = "/user.v1.UserService/UpdateNotificationSettings"
 	UserService_CheckRelationship_FullMethodName          = "/user.v1.UserService/CheckRelationship"
+	UserService_AddFriend_FullMethodName                  = "/user.v1.UserService/AddFriend"
+	UserService_RemoveFriend_FullMethodName               = "/user.v1.UserService/RemoveFriend"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -60,6 +62,9 @@ type UserServiceClient interface {
 	UpdateNotificationSettings(ctx context.Context, in *UpdateNotificationSettingsRequest, opts ...grpc.CallOption) (*UpdateNotificationSettingsResponse, error)
 	// Relationship Checks
 	CheckRelationship(ctx context.Context, in *CheckRelationshipRequest, opts ...grpc.CallOption) (*CheckRelationshipResponse, error)
+	// Friend Management (Added for Friendship Service)
+	AddFriend(ctx context.Context, in *AddFriendRequest, opts ...grpc.CallOption) (*AddFriendResponse, error)
+	RemoveFriend(ctx context.Context, in *RemoveFriendRequest, opts ...grpc.CallOption) (*RemoveFriendResponse, error)
 }
 
 type userServiceClient struct {
@@ -230,6 +235,26 @@ func (c *userServiceClient) CheckRelationship(ctx context.Context, in *CheckRela
 	return out, nil
 }
 
+func (c *userServiceClient) AddFriend(ctx context.Context, in *AddFriendRequest, opts ...grpc.CallOption) (*AddFriendResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddFriendResponse)
+	err := c.cc.Invoke(ctx, UserService_AddFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) RemoveFriend(ctx context.Context, in *RemoveFriendRequest, opts ...grpc.CallOption) (*RemoveFriendResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveFriendResponse)
+	err := c.cc.Invoke(ctx, UserService_RemoveFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -253,6 +278,9 @@ type UserServiceServer interface {
 	UpdateNotificationSettings(context.Context, *UpdateNotificationSettingsRequest) (*UpdateNotificationSettingsResponse, error)
 	// Relationship Checks
 	CheckRelationship(context.Context, *CheckRelationshipRequest) (*CheckRelationshipResponse, error)
+	// Friend Management (Added for Friendship Service)
+	AddFriend(context.Context, *AddFriendRequest) (*AddFriendResponse, error)
+	RemoveFriend(context.Context, *RemoveFriendRequest) (*RemoveFriendResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -310,6 +338,12 @@ func (UnimplementedUserServiceServer) UpdateNotificationSettings(context.Context
 }
 func (UnimplementedUserServiceServer) CheckRelationship(context.Context, *CheckRelationshipRequest) (*CheckRelationshipResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckRelationship not implemented")
+}
+func (UnimplementedUserServiceServer) AddFriend(context.Context, *AddFriendRequest) (*AddFriendResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddFriend not implemented")
+}
+func (UnimplementedUserServiceServer) RemoveFriend(context.Context, *RemoveFriendRequest) (*RemoveFriendResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveFriend not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -620,6 +654,42 @@ func _UserService_CheckRelationship_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_AddFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddFriendRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AddFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AddFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AddFriend(ctx, req.(*AddFriendRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_RemoveFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveFriendRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).RemoveFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_RemoveFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).RemoveFriend(ctx, req.(*RemoveFriendRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -690,6 +760,14 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckRelationship",
 			Handler:    _UserService_CheckRelationship_Handler,
+		},
+		{
+			MethodName: "AddFriend",
+			Handler:    _UserService_AddFriend_Handler,
+		},
+		{
+			MethodName: "RemoveFriend",
+			Handler:    _UserService_RemoveFriend_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

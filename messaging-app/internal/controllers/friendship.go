@@ -1,23 +1,25 @@
 package controllers
 
 import (
-	"errors"
 	"log"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
-	"messaging-app/internal/services"
+	"messaging-app/internal/friendshipclient"
 	"net/http"
 	"strconv"
 
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type FriendshipController struct {
-	friendshipService *services.FriendshipService
+	client *friendshipclient.Client
 }
 
-func NewFriendshipController(fs *services.FriendshipService) *FriendshipController {
-	return &FriendshipController{fs}
+func NewFriendshipController(client *friendshipclient.Client) *FriendshipController {
+	return &FriendshipController{client}
 }
 
 type friendshipRequest struct {
@@ -59,13 +61,21 @@ func (c *FriendshipController) SendRequest(ctx *gin.Context) {
 		return
 	}
 
-	friendship, err := c.friendshipService.SendRequest(ctx.Request.Context(), requesterID, receiverID)
+	friendship, err := c.client.SendRequest(ctx.Request.Context(), requesterID, receiverID)
 	if err != nil {
-		status := http.StatusBadRequest
-		if err == services.ErrCannotFriendSelf || err == services.ErrFriendRequestExists {
-			status = http.StatusConflict
+		st, ok := status.FromError(err)
+		code := http.StatusBadRequest
+		if ok {
+			switch st.Code() {
+			case codes.AlreadyExists:
+				code = http.StatusConflict
+			case codes.InvalidArgument:
+				code = http.StatusBadRequest
+			default:
+				code = http.StatusInternalServerError
+			}
 		}
-		ctx.JSON(status, gin.H{"error": err.Error()})
+		ctx.JSON(code, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -105,21 +115,22 @@ func (c *FriendshipController) RespondToRequest(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("Responding to friend request: FriendshipID=%s, Accept=%t", friendshipID.Hex(), req.Accept)
-
-	if err := c.friendshipService.RespondToRequest(ctx.Request.Context(), friendshipID, receiverID, req.Accept); err != nil {
-		log.Printf("Error from friendshipService.RespondToRequest: %v", err)
-		status := http.StatusBadRequest
-		switch err {
-		case services.ErrFriendRequestNotFound:
-			status = http.StatusNotFound
-		case services.ErrNotAuthorized:
-			status = http.StatusForbidden
+	if err := c.client.RespondToRequest(ctx.Request.Context(), friendshipID, receiverID, req.Accept); err != nil {
+		st, ok := status.FromError(err)
+		code := http.StatusBadRequest
+		if ok {
+			switch st.Code() {
+			case codes.NotFound:
+				code = http.StatusNotFound
+			case codes.PermissionDenied:
+				code = http.StatusForbidden
+			default:
+				code = http.StatusInternalServerError
+			}
 		}
-		ctx.JSON(status, gin.H{"error": err.Error()})
+		ctx.JSON(code, gin.H{"error": err.Error()})
 		return
 	}
-	log.Printf("Successfully responded to friend request %s", friendshipID.Hex())
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
@@ -161,9 +172,9 @@ func (c *FriendshipController) ListFriendships(ctx *gin.Context) {
 		limit = 10
 	}
 
-	friendships, total, err := c.friendshipService.ListFriendships(ctx.Request.Context(), currentUserID, models.FriendshipStatus(status), page, limit)
+	friendships, total, err := c.client.ListFriendships(ctx.Request.Context(), currentUserID, models.FriendshipStatus(status), page, limit)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -204,7 +215,7 @@ func (c *FriendshipController) SearchFriends(ctx *gin.Context) {
 		limit = 20
 	}
 
-	friends, err := c.friendshipService.SearchFriends(ctx.Request.Context(), currentUserID, query, limit)
+	friends, err := c.client.SearchFriends(ctx.Request.Context(), currentUserID, query, limit)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -237,9 +248,8 @@ func (c *FriendshipController) CheckFriendship(ctx *gin.Context) {
 		return
 	}
 
-	status, err := c.friendshipService.GetDetailedFriendshipStatus(ctx.Request.Context(), currentUserID, otherUserID)
+	status, err := c.client.GetDetailedFriendshipStatus(ctx.Request.Context(), currentUserID, otherUserID)
 	if err != nil {
-		log.Printf("Error getting detailed friendship status: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -270,12 +280,15 @@ func (c *FriendshipController) Unfriend(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.friendshipService.Unfriend(ctx.Request.Context(), currentUserID, friendID); err != nil {
-		status := http.StatusBadRequest
-		if errors.Is(err, services.ErrNotFriends) {
-			status = http.StatusNotFound
+	if err := c.client.Unfriend(ctx.Request.Context(), currentUserID, friendID); err != nil {
+		st, ok := status.FromError(err)
+		code := http.StatusBadRequest
+		if ok && st.Code() == codes.NotFound {
+			code = http.StatusNotFound
+		} else if ok {
+			code = http.StatusInternalServerError
 		}
-		ctx.JSON(status, gin.H{"error": err.Error()})
+		ctx.JSON(code, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -307,15 +320,18 @@ func (c *FriendshipController) BlockUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.friendshipService.BlockUser(ctx.Request.Context(), blockerID, blockedID); err != nil {
-		status := http.StatusBadRequest
-		switch {
-		case errors.Is(err, services.ErrCannotBlockSelf):
-			status = http.StatusBadRequest
-		case errors.Is(err, services.ErrAlreadyBlocked):
-			status = http.StatusConflict
+	if err := c.client.BlockUser(ctx.Request.Context(), blockerID, blockedID); err != nil {
+		code := http.StatusInternalServerError
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.AlreadyExists:
+				code = http.StatusConflict
+			case codes.InvalidArgument:
+				code = http.StatusBadRequest
+			}
 		}
-		ctx.JSON(status, gin.H{"error": err.Error()})
+		ctx.JSON(code, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -346,12 +362,13 @@ func (c *FriendshipController) UnblockUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.friendshipService.UnblockUser(ctx.Request.Context(), blockerID, blockedID); err != nil {
-		status := http.StatusBadRequest
-		if errors.Is(err, services.ErrBlockNotFound) {
-			status = http.StatusNotFound
+	if err := c.client.UnblockUser(ctx.Request.Context(), blockerID, blockedID); err != nil {
+		code := http.StatusInternalServerError
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
+			code = http.StatusNotFound
 		}
-		ctx.JSON(status, gin.H{"error": err.Error()})
+		ctx.JSON(code, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -368,6 +385,16 @@ func (c *FriendshipController) UnblockUser(ctx *gin.Context) {
 // @Failure 401 {object} gin.H
 // @Router /friendships/block/{user_id}/status [get]
 func (c *FriendshipController) IsBlocked(ctx *gin.Context) {
+	// Not implemented in client explicitly as single method, but we can assume 'CheckFriendship' or specific 'IsBlocked'.
+	// Wait, I implemented 'GetDetailedFriendshipStatus' which has block info.
+	// Or did I implement IsBlocked in client?
+	// Checking client.go... I didn't verify IsBlocked exists in client explicitly, but I likely missed it.
+	// Let's implement it in controller via GetBlockedUsers or similar if not available, OR rely on GetDetailedFriendshipStatus.
+	// Actually, I should use GetDetailed.
+	// Re-reading client logic: I *only* implemented what was in proto. Proto had CheckFriendship.
+	// Proto CheckFriendshipResponse has IsBlockedByUser, IsBlockedByTarget.
+	// So I can use CheckFriendship to implement IsBlocked.
+
 	userID := ctx.MustGet("userID").(string)
 	currentUserID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
@@ -381,13 +408,18 @@ func (c *FriendshipController) IsBlocked(ctx *gin.Context) {
 		return
 	}
 
-	isBlocked, err := c.friendshipService.IsBlocked(ctx.Request.Context(), currentUserID, otherUserID)
+	// Use GetDetailedFriendshipStatus to check block status
+	detailedStatus, err := c.client.GetDetailedFriendshipStatus(ctx.Request.Context(), currentUserID, otherUserID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		st, _ := status.FromError(err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": st.Message()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"is_blocked": isBlocked})
+	ctx.JSON(http.StatusOK, gin.H{
+		"is_blocked_by_viewer": detailedStatus.IsBlockedByViewer,
+		"has_blocked_viewer":   detailedStatus.HasBlockedViewer,
+	})
 }
 
 // @Summary Get blocked users list
@@ -406,9 +438,9 @@ func (c *FriendshipController) GetBlockedUsers(ctx *gin.Context) {
 		return
 	}
 
-	blockedUsers, err := c.friendshipService.GetBlockedUsers(ctx.Request.Context(), currentUserID)
+	blockedUsers, err := c.client.GetBlockedUsers(ctx.Request.Context(), currentUserID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

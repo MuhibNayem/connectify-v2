@@ -314,6 +314,45 @@ func (s *UserService) GetUsersPresence(ctx context.Context, userIDs []string) (m
 	return presenceMap, nil
 }
 
+// ==================== FRIEND MANAGEMENT ====================
+
+func (s *UserService) AddFriend(ctx context.Context, userID, friendID primitive.ObjectID) error {
+	// First check if user exists
+	_, err := s.userRepo.FindUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	// Check if friend exists (optional, could rely on repo failure, but safer to check)
+	_, err = s.userRepo.FindUserByID(ctx, friendID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.userRepo.AddFriend(ctx, userID, friendID); err != nil {
+		return err
+	}
+
+	// Invalidate Cache
+	if err := s.redisClient.Del(ctx, fmt.Sprintf("user:profile:%s", userID.Hex())).Err(); err != nil {
+		s.logger.Error("Failed to invalidate user cache", "user_id", userID.Hex(), "error", err)
+	}
+
+	return nil
+}
+
+func (s *UserService) RemoveFriend(ctx context.Context, userID, friendID primitive.ObjectID) error {
+	if err := s.userRepo.RemoveFriend(ctx, userID, friendID); err != nil {
+		return err
+	}
+
+	// Invalidate Cache
+	if err := s.redisClient.Del(ctx, fmt.Sprintf("user:profile:%s", userID.Hex())).Err(); err != nil {
+		s.logger.Error("Failed to invalidate user cache", "user_id", userID.Hex(), "error", err)
+	}
+
+	return nil
+}
+
 // ==================== WRITE OPERATIONS ====================
 
 func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, update bson.M) (*models.User, error) {

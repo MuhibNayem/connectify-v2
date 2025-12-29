@@ -54,6 +54,8 @@ type Config struct {
 	StorageGRPCPort     string
 	CommunityGRPCHost   string
 	CommunityGRPCPort   string
+	FriendshipGRPCHost  string
+	FriendshipGRPCPort  string
 
 	CORSAllowedOrigins []string
 	RefreshCookieName  string
@@ -110,6 +112,8 @@ func LoadConfig() *Config {
 	storageGRPCPort := getEnv("STORAGE_GRPC_PORT", "9087")
 	communityGRPCHost := getEnv("COMMUNITY_GRPC_HOST", "localhost")
 	communityGRPCPort := getEnv("COMMUNITY_GRPC_PORT", "9101")
+	friendshipGRPCHost := getEnv("FRIENDSHIP_GRPC_HOST", "localhost")
+	friendshipGRPCPort := getEnv("FRIENDSHIP_GRPC_PORT", "9103")
 	feedServiceHost := getEnv("FEED_SERVICE_HOST", "localhost")
 	feedServicePort := getEnv("FEED_SERVICE_PORT", "9098")
 	userServiceHost := getEnv("USER_SERVICE_HOST", "localhost")
@@ -159,6 +163,8 @@ func LoadConfig() *Config {
 		StorageGRPCPort:     storageGRPCPort,
 		CommunityGRPCHost:   communityGRPCHost,
 		CommunityGRPCPort:   communityGRPCPort,
+		FriendshipGRPCHost:  friendshipGRPCHost,
+		FriendshipGRPCPort:  friendshipGRPCPort,
 		CORSAllowedOrigins:  corsOrigins,
 		RefreshCookieName:   getEnv("REFRESH_COOKIE_NAME", "connectify_refresh"),
 		CookieDomain:        getEnv("COOKIE_DOMAIN", ""),
