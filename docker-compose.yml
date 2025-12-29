@@ -158,7 +158,7 @@ services:
       memlock: -1
     ports:
       - "6379:6379"
-    command: --requirepass=redispass --keys_output_limit=12288
+    command: --requirepass=redispass --keys_output_limit=12288 --cluster_mode=emulated --lock_on_hashtags
     volumes:
       - dragonfly_data:/data
     networks:
@@ -365,21 +365,11 @@ services:
     container_name: messaging-app
     user: "1000"
     ports:
-      - "8080:8080" # HTTP API
-      - "8081:8081" # WebSocket
-      - "9091:9091" # Metrics
+      - "${SERVER_PORT}:8080" # HTTP API
+      - "${WS_PORT}:8081" # WebSocket
+      - "${PROMETHEUS_PORT}:9091" # Metrics
     env_file:
       - ".env"
-    environment:
-      EVENTS_GRPC_HOST: events-service
-      STORY_GRPC_HOST: story-service
-      STORY_GRPC_PORT: "9097"
-      REEL_GRPC_HOST: reel-service
-      STORAGE_GRPC_HOST: storage-service
-      COMMUNITY_GRPC_HOST: community-service
-      FRIENDSHIP_GRPC_HOST: friendship-service
-      FRIENDSHIP_GRPC_PORT: "9103"
-      CASSANDRA_HOSTS: scylladb
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -408,7 +398,7 @@ services:
       community-service:
         condition: service_started
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -423,11 +413,8 @@ services:
     container_name: events-service
     env_file:
       - ".env"
-    environment:
-      REALTIME_GRPC_HOST: app
-      CASSANDRA_HOSTS: scylladb
     ports:
-      - "9094:9094"
+      - "${EVENTS_GRPC_PORT}:${EVENTS_GRPC_PORT}"
       - "9100:9100"
     depends_on:
       mongodb3:
@@ -450,22 +437,13 @@ services:
       context: .
       dockerfile: friendship-service/Dockerfile
     container_name: friendship-service
+    env_file:
+      - ".env"
     environment:
-      - MONGO_URI=mongodb://mongodb3:27017
-      - DB_NAME=messaging_app
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=connectify
-      - GRAPH_DB=dgraph
-      - DGRAPH_ADDR=dgraph-alpha:9080
-      - REDIS_URL=dragonfly:6379
-      - KAFKA_BROKERS=kafka1:9092
-      - FRIENDSHIP_GRPC_PORT=9103
-      - USER_SERVICE_URL=user-service:8083 # user-service internal port defined in dockerfile might vary, checking
-      - PROMETHEUS_PORT=9104
+      - USER_SERVICE_URL=${FRIENDSHIP_USER_SERVICE_URL}
     ports:
-      - "8103:8103"
-      - "9103:9103"
+      - "${FRIENDSHIP_HTTP_PORT}:${FRIENDSHIP_HTTP_PORT}"
+      - "${FRIENDSHIP_GRPC_PORT}:${FRIENDSHIP_GRPC_PORT}"
       - "9104:9104"
     depends_on:
       - mongodb3
@@ -487,11 +465,6 @@ services:
       - "8082:8080"
     env_file:
       - ".env"
-    environment:
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: connectify
-      CASSANDRA_HOSTS: scylladb
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -506,8 +479,9 @@ services:
     build:
       context: .
       dockerfile: user-service/Dockerfile
+    container_name: user-service
     ports:
-      - "8083:8083"
+      - "${USER_SERVICE_PORT}:8080" # Map Host derived port -> Container 8080
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -531,20 +505,10 @@ services:
     container_name: marketplace-service
     ports:
       - "8088:8088"
-      - "9095:9095"
+      - "${MARKETPLACE_GRPC_PORT}:${MARKETPLACE_GRPC_PORT}"
       - "9198:9198"
     env_file:
       - ".env"
-    environment:
-      SERVER_PORT: 8088
-      GRPC_PORT: 9095
-      JWT_SECRET: ${JWT_SECRET}
-      REDIS_URL: dragonfly:6379
-      REDIS_PASS: ${REDIS_PASS}
-      RATE_LIMIT_ENABLED: "true"
-      RATE_LIMIT_LIMIT: 50
-      RATE_LIMIT_BURST: 100
-      CASSANDRA_HOSTS: scylladb
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -557,12 +521,9 @@ services:
       dockerfile: story-service/Dockerfile
     container_name: story-service
     ports:
-      - "9097:9097"
+      - "${STORY_GRPC_PORT}:${STORY_GRPC_PORT}"
     env_file:
       - ".env"
-    environment:
-      GRPC_PORT: 9097
-      KAFKA_TOPIC: story-events
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -578,15 +539,9 @@ services:
     container_name: reel-service
     ports:
       - "8086:8086"
-      - "9096:9096"
+      - "${REEL_GRPC_PORT}:${REEL_GRPC_PORT}"
     env_file:
       - ".env"
-    environment:
-      HTTP_PORT: 8086
-      GRPC_PORT: 9096
-      KAFKA_TOPIC: reel-events
-      REEL_GRPC_HOST: reel-service
-      REEL_GRPC_PORT: 9096
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -601,11 +556,9 @@ services:
       dockerfile: community-service/Dockerfile
     container_name: community-service
     ports:
-      - "9101:9101"
+      - "${COMMUNITY_GRPC_PORT}:${COMMUNITY_GRPC_PORT}"
     env_file:
       - ".env"
-    environment:
-      COMMUNITY_GRPC_PORT: 9101
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -619,14 +572,9 @@ services:
     container_name: storage-service
     ports:
       - "8087:8087"
-      - "9087:9087"
+      - "${STORAGE_GRPC_PORT}:${STORAGE_GRPC_PORT}"
     env_file:
       - ".env"
-    environment:
-      HTTP_PORT: 8087
-      GRPC_PORT: 9087
-      STORAGE_GRPC_HOST: storage-service
-      STORAGE_GRPC_PORT: 9087
     depends_on:
       minio:
         condition: service_healthy
