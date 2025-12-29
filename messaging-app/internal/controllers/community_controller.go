@@ -3,10 +3,11 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+
 	"sync"
 	"time"
 
-	"messaging-app/internal/services"
+	"messaging-app/internal/communityclient"
 	"messaging-app/internal/storageclient"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
@@ -17,14 +18,14 @@ import (
 )
 
 type CommunityController struct {
-	communityService *services.CommunityService
-	storageClient    *storageclient.Client
+	communityClient *communityclient.Client
+	storageClient   *storageclient.Client
 }
 
-func NewCommunityController(communityService *services.CommunityService, storageClient *storageclient.Client) *CommunityController {
+func NewCommunityController(communityClient *communityclient.Client, storageClient *storageclient.Client) *CommunityController {
 	return &CommunityController{
-		communityService: communityService,
-		storageClient:    storageClient,
+		communityClient: communityClient,
+		storageClient:   storageClient,
 	}
 }
 
@@ -119,7 +120,7 @@ func (c *CommunityController) CreateCommunity(ctx *gin.Context) {
 		return
 	}
 
-	community, err := c.communityService.CreateCommunity(ctx, userID, req)
+	community, err := c.communityClient.CreateCommunity(ctx.Request.Context(), userID, req)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
@@ -131,15 +132,19 @@ func (c *CommunityController) CreateCommunity(ctx *gin.Context) {
 }
 
 func (c *CommunityController) GetCommunity(ctx *gin.Context) {
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
 	}
 
-	userID, _ := utils.GetUserIDFromContext(ctx) // Optional user ID for detailed response
+	var viewerID primitive.ObjectID
+	if userID, err := utils.GetUserIDFromContext(ctx); err == nil {
+		viewerID = userID
+	}
 
-	response, err := c.communityService.GetDetailedCommunityResponse(ctx, communityID, userID)
+	response, err := c.communityClient.GetCommunity(ctx.Request.Context(), communityID, viewerID)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
@@ -155,21 +160,18 @@ func (c *CommunityController) ListCommunities(ctx *gin.Context) {
 	limit, _ := strconv.ParseInt(ctx.DefaultQuery("limit", "10"), 10, 64)
 
 	query := ctx.Query("q")
-
-	// Get current user ID to check membership status
-	var userID primitive.ObjectID
-	currentUserID, err := utils.GetUserIDFromContext(ctx)
-	if err == nil {
-		userID = currentUserID
+	var viewerID primitive.ObjectID
+	if userID, err := utils.GetUserIDFromContext(ctx); err == nil {
+		viewerID = userID
 	}
 
-	communities, total, err := c.communityService.ListCommunities(ctx, userID, limit, page, query)
+	communities, total, err := c.communityClient.ListCommunities(ctx.Request.Context(), viewerID, limit, page, query)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
 
-	// Sign URLs for list
+	// Sign URLs
 	communityPtrs := make([]*models.CommunityResponse, len(communities))
 	for i := range communities {
 		communityPtrs[i] = &communities[i]
@@ -177,7 +179,7 @@ func (c *CommunityController) ListCommunities(ctx *gin.Context) {
 	c.signCommunityResponse(ctx, communityPtrs...)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"communities": communities,
+		"communities": communityPtrs,
 		"total":       total,
 		"page":        page,
 		"limit":       limit,
@@ -190,31 +192,29 @@ func (c *CommunityController) GetUserCommunities(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusUnauthorized, "Authentication required")
 		return
 	}
+	targetID := userID
 
-	// Optional: if targeting another user
 	targetUserIDParam := ctx.Param("userId")
 	if targetUserIDParam != "" {
-		targetID, err := primitive.ObjectIDFromHex(targetUserIDParam)
-		if err == nil {
-			userID = targetID
+		if tid, err := primitive.ObjectIDFromHex(targetUserIDParam); err == nil {
+			targetID = tid
 		}
 	}
 
-	communities, err := c.communityService.GetUserCommunities(ctx, userID)
+	communities, err := c.communityClient.GetUserCommunities(ctx.Request.Context(), targetID)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
 
-	// Sign URLs for list
-	// GetUserCommunities returns []models.Community
 	communityPtrs := make([]*models.Community, len(communities))
 	for i := range communities {
 		communityPtrs[i] = &communities[i]
 	}
+
 	c.signCommunityMedia(ctx, communityPtrs...)
 
-	ctx.JSON(http.StatusOK, communities)
+	ctx.JSON(http.StatusOK, communityPtrs)
 }
 
 func (c *CommunityController) JoinCommunity(ctx *gin.Context) {
@@ -223,14 +223,14 @@ func (c *CommunityController) JoinCommunity(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusUnauthorized, "Authentication required")
 		return
 	}
-
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
 	}
 
-	if err := c.communityService.JoinCommunity(ctx, communityID, userID); err != nil {
+	if err := c.communityClient.JoinCommunity(ctx.Request.Context(), communityID, userID); err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
@@ -244,14 +244,14 @@ func (c *CommunityController) LeaveCommunity(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusUnauthorized, "Authentication required")
 		return
 	}
-
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
 	}
 
-	if err := c.communityService.LeaveCommunity(ctx, communityID, userID); err != nil {
+	if err := c.communityClient.LeaveCommunity(ctx.Request.Context(), communityID, userID); err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
@@ -265,8 +265,8 @@ func (c *CommunityController) ApproveMember(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusUnauthorized, "Authentication required")
 		return
 	}
-
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
@@ -280,14 +280,13 @@ func (c *CommunityController) ApproveMember(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	targetID, err := primitive.ObjectIDFromHex(req.UserID)
 	if err != nil {
-		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid user ID")
+		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid target user ID")
 		return
 	}
 
-	if err := c.communityService.ApproveMember(ctx, communityID, actorID, targetID); err != nil {
+	if err := c.communityClient.ApproveMember(ctx.Request.Context(), communityID, actorID, targetID); err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
@@ -301,8 +300,8 @@ func (c *CommunityController) RejectMember(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusUnauthorized, "Authentication required")
 		return
 	}
-
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
@@ -316,14 +315,13 @@ func (c *CommunityController) RejectMember(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	targetID, err := primitive.ObjectIDFromHex(req.UserID)
 	if err != nil {
-		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid user ID")
+		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid target user ID")
 		return
 	}
 
-	if err := c.communityService.RejectMember(ctx, communityID, actorID, targetID); err != nil {
+	if err := c.communityClient.RejectMember(ctx.Request.Context(), communityID, actorID, targetID); err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
@@ -337,8 +335,8 @@ func (c *CommunityController) UpdateSettings(ctx *gin.Context) {
 		utils.RespondWithError(ctx, http.StatusUnauthorized, "Authentication required")
 		return
 	}
-
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
@@ -350,7 +348,7 @@ func (c *CommunityController) UpdateSettings(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.communityService.UpdateSettings(ctx, communityID, userID, req); err != nil {
+	if _, err := c.communityClient.UpdateCommunity(ctx.Request.Context(), communityID, userID, req); err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
@@ -361,15 +359,20 @@ func (c *CommunityController) UpdateSettings(ctx *gin.Context) {
 func (c *CommunityController) ListMembers(ctx *gin.Context) {
 	page, _ := strconv.ParseInt(ctx.DefaultQuery("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(ctx.DefaultQuery("limit", "10"), 10, 64)
-	viewerID, _ := utils.GetUserIDFromContext(ctx)
 
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	var viewerID primitive.ObjectID
+	if userID, err := utils.GetUserIDFromContext(ctx); err == nil {
+		viewerID = userID
+	}
+
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
 	}
 
-	users, total, err := c.communityService.GetMembers(ctx, communityID, viewerID, limit, page)
+	users, total, err := c.communityClient.GetMembers(ctx.Request.Context(), communityID, viewerID, limit, page)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
@@ -384,19 +387,20 @@ func (c *CommunityController) ListMembers(ctx *gin.Context) {
 }
 
 func (c *CommunityController) GetAdmins(ctx *gin.Context) {
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
 	}
 
-	admins, err := c.communityService.GetAdmins(ctx, communityID)
+	users, err := c.communityClient.GetAdmins(ctx.Request.Context(), communityID)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, admins)
+	ctx.JSON(http.StatusOK, users)
 }
 
 func (c *CommunityController) GetPendingMembers(ctx *gin.Context) {
@@ -408,13 +412,14 @@ func (c *CommunityController) GetPendingMembers(ctx *gin.Context) {
 		return
 	}
 
-	communityID, err := primitive.ObjectIDFromHex(ctx.Param("id"))
+	communityIDParam := ctx.Param("id")
+	communityID, err := primitive.ObjectIDFromHex(communityIDParam)
 	if err != nil {
 		utils.RespondWithError(ctx, http.StatusBadRequest, "Invalid community ID")
 		return
 	}
 
-	users, total, err := c.communityService.GetPendingMembers(ctx, communityID, userID, limit, page)
+	users, total, err := c.communityClient.GetPendingMembers(ctx.Request.Context(), communityID, userID, limit, page)
 	if err != nil {
 		utils.RespondWithError(ctx, utils.GetStatusCode(err), err.Error())
 		return

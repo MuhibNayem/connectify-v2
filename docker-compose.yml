@@ -439,6 +439,7 @@ services:
       STORY_GRPC_PORT: "9097"
       REEL_GRPC_HOST: reel-service
       STORAGE_GRPC_HOST: storage-service
+      COMMUNITY_GRPC_HOST: community-service
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -465,6 +466,8 @@ services:
       reel-service:
         condition: service_started
       storage-service:
+        condition: service_started
+      community-service:
         condition: service_started
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
@@ -553,13 +556,13 @@ services:
       dockerfile: marketplace-service/Dockerfile
     container_name: marketplace-service
     ports:
-      - "8087:8087"
+      - "8088:8088"
       - "9098:9098"
       - "9198:9198"
     env_file:
       - ".env"
     environment:
-      SERVER_PORT: 8087
+      SERVER_PORT: 8088
       GRPC_PORT: 9098
       JWT_SECRET: ${JWT_SECRET}
       REDIS_URL: redis1:6379,redis2:6379,redis3:6379
@@ -613,6 +616,23 @@ services:
       mongodb3:
         condition: service_healthy
       kafka3:
+        condition: service_healthy
+    networks:
+      - messaging-net
+
+  community-service:
+    build:
+      context: .
+      dockerfile: community-service/Dockerfile
+    container_name: community-service
+    ports:
+      - "9101:9101"
+    env_file:
+      - ".env"
+    environment:
+      COMMUNITY_GRPC_PORT: 9101
+    depends_on:
+      mongodb3:
         condition: service_healthy
     networks:
       - messaging-net

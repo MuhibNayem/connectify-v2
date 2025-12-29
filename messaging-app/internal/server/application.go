@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"messaging-app/config"
+	"messaging-app/internal/communityclient"
 	cassdb "messaging-app/internal/db"
 	"messaging-app/internal/eventsclient"
 	"messaging-app/internal/feedclient"
@@ -57,6 +58,7 @@ type Application struct {
 	eventsClient            *eventsclient.Client
 	marketplaceClient       *marketplaceclient.Client
 	feedClient              *feedclient.Client
+	communityClient         *communityclient.Client
 	storyClient             *storyclient.Client
 	reelClient              *reelclient.Client
 	storageClient           *storageclient.Client
@@ -193,6 +195,9 @@ func (a *Application) Close() {
 			log.Printf("Error shutting down tracer provider: %v", err)
 		}
 	}
+	if a.communityClient != nil {
+		_ = a.communityClient.Close()
+	}
 }
 
 func (a *Application) bootstrap() error {
@@ -293,7 +298,14 @@ func (a *Application) initDomain() error {
 	}
 	a.storageClient = storageClient
 
-	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient, a.reelClient, a.storageClient)
+	// Initialize community gRPC client
+	communityClient, err := communityclient.New(a.ctx, a.cfg)
+	if err != nil {
+		return fmt.Errorf("failed to connect to community service: %w", err)
+	}
+	a.communityClient = communityClient
+
+	controllerConfig := buildControllers(a.cfg, servicesBundle, repos, a.marketplaceClient, a.feedClient, a.storyClient, a.reelClient, a.communityClient, a.storageClient)
 
 	a.kafkaConsumer = kafka.NewMessageConsumer(a.cfg.KafkaBrokers, a.cfg.KafkaTopic, "message-group", a.hub)
 	a.notificationConsumer = kafka.NewNotificationConsumer(a.cfg.KafkaBrokers, "notifications_events", "notification-group", a.hub, repos.Notification, a.dlqProducer)

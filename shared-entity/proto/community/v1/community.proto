@@ -1,0 +1,227 @@
+syntax = "proto3";
+
+package community.v1;
+
+option go_package = "github.com/MuhibNayem/connectify-v2/shared-entity/proto/community/v1;communitypb";
+
+import "google/protobuf/timestamp.proto";
+
+service CommunityService {
+  rpc CreateCommunity(CreateCommunityRequest) returns (CreateCommunityResponse);
+  rpc GetCommunity(GetCommunityRequest) returns (GetCommunityResponse);
+  rpc UpdateCommunity(UpdateCommunityRequest) returns (UpdateCommunityResponse);
+  rpc ListCommunities(ListCommunitiesRequest) returns (ListCommunitiesResponse);
+  rpc GetUserCommunities(GetUserCommunitiesRequest) returns (GetUserCommunitiesResponse);
+
+  rpc JoinCommunity(JoinCommunityRequest) returns (JoinCommunityResponse);
+  rpc LeaveCommunity(LeaveCommunityRequest) returns (LeaveCommunityResponse);
+  rpc ApproveMember(ApproveMemberRequest) returns (ApproveMemberResponse);
+  rpc RejectMember(RejectMemberRequest) returns (RejectMemberResponse);
+
+  rpc GetMembers(GetMembersRequest) returns (GetMembersResponse);
+  rpc GetAdmins(GetAdminsRequest) returns (GetAdminsResponse);
+  rpc GetPendingMembers(GetPendingMembersRequest) returns (GetPendingMembersResponse);
+}
+
+message Community {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string slug = 4;
+  string category = 5;
+  string avatar = 6;
+  string cover_image = 7;
+  string privacy = 8;
+  string visibility = 9;
+  string creator_id = 10;
+  repeated string members = 11;
+  repeated string admins = 12;
+  repeated string pending_members = 13;
+  repeated string banned_users = 14;
+  CommunitySettings settings = 15;
+  repeated CommunityRule rules = 16;
+  repeated string membership_questions = 17;
+  CommunityStats stats = 18;
+  google.protobuf.Timestamp created_at = 19;
+  google.protobuf.Timestamp updated_at = 20;
+  
+  // Computed fields (often returned in responses)
+  bool is_member = 21;
+  bool is_admin = 22;
+  bool is_pending = 23;
+}
+
+message CommunitySettings {
+  bool require_post_approval = 1;
+  bool require_join_approval = 2;
+  bool allow_member_posts = 3;
+  bool show_group_affiliation = 4;
+}
+
+message CommunityRule {
+  string title = 1;
+  string description = 2;
+}
+
+message CommunityStats {
+  int64 member_count = 1;
+  int64 post_count = 2;
+}
+
+message CreateCommunityRequest {
+  string creator_id = 1;
+  string name = 2;
+  string description = 3;
+  string category = 4;
+  string avatar = 5;
+  string cover_image = 6;
+  string privacy = 7;
+  string visibility = 8;
+  bool require_post_approval = 9;
+  bool require_join_approval = 10;
+}
+
+message CreateCommunityResponse {
+  Community community = 1;
+}
+
+message GetCommunityRequest {
+  string community_id = 1;
+  string viewer_id = 2; // Optional, to calculate is_member/is_admin
+}
+
+message GetCommunityResponse {
+  Community community = 1;
+}
+
+message UpdateCommunityRequest {
+  string community_id = 1;
+  string user_id = 2; // Actor (must be admin)
+  
+  optional string name = 3;
+  optional string description = 4;
+  optional string category = 5;
+  optional string avatar = 6;
+  optional string cover_image = 7;
+  optional string privacy = 8;
+  optional string visibility = 9;
+  
+  optional bool require_post_approval = 10;
+  optional bool require_join_approval = 11;
+  optional bool allow_member_posts = 12;
+  optional bool show_group_affiliation = 13;
+  
+  repeated CommunityRule rules = 14;
+  repeated string membership_questions = 15;
+}
+
+message UpdateCommunityResponse {
+  Community community = 1;
+}
+
+message ListCommunitiesRequest {
+  string query = 1;
+  int64 limit = 2;
+  int64 page = 3;
+  string viewer_id = 4; // To filter hidden
+}
+
+message ListCommunitiesResponse {
+  repeated Community communities = 1;
+  int64 total = 2;
+}
+
+message GetUserCommunitiesRequest {
+  string user_id = 1;
+}
+
+message GetUserCommunitiesResponse {
+  repeated Community communities = 1;
+}
+
+message JoinCommunityRequest {
+  string community_id = 1;
+  string user_id = 2;
+}
+
+message JoinCommunityResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LeaveCommunityRequest {
+  string community_id = 1;
+  string user_id = 2; // User leaving
+}
+
+message LeaveCommunityResponse {
+  bool success = 1;
+}
+
+message ApproveMemberRequest {
+  string community_id = 1;
+  string actor_id = 2; // Admin
+  string target_id = 3; // User to approve
+}
+
+message ApproveMemberResponse {
+  bool success = 1;
+}
+
+message RejectMemberRequest {
+  string community_id = 1;
+  string actor_id = 2;
+  string target_id = 3;
+}
+
+message RejectMemberResponse {
+  bool success = 1;
+}
+
+message GetMembersRequest {
+  string community_id = 1;
+  string viewer_id = 2;
+  int64 limit = 3;
+  int64 page = 4;
+}
+
+message UserShort {
+  string id = 1;
+  string username = 2;
+  string full_name = 3;
+  string avatar = 4;
+}
+
+message GetMembersResponse {
+  repeated UserShort members = 1; // Service needs to return UserShorts? Or just IDs? 
+  // Ideally CommunityService shouldn't handle User details, but to keep existing contract fast, maybe it does? 
+  // Actually MessagingApp controller gets IDs and populates Users usually? 
+  // In `CommunityService.go`, GetMembers calls Repo.GetMembers which returns `[]models.User`.
+  // Wait, CommunityRepo joins with Users table? 
+  // If we split services, CommunityService CANNOT join Users table. It can only return IDs.
+  // Refactoring: CommunityService returns IDs, MessagingApp (Gateway) fetches User details from UserService.
+  // BUT the user asked to "extract community service".
+  // If I return IDs, I change the internal logic significantly.
+  // Let's check `community_repository.go` to see if it does a lookup.
+  int64 total = 2;
+}
+
+message GetAdminsRequest {
+  string community_id = 1;
+}
+
+message GetAdminsResponse {
+  repeated UserShort admins = 1;
+}
+
+message GetPendingMembersRequest {
+  string community_id = 1;
+  string actor_id = 2;
+  int64 limit = 3;
+  int64 page = 4;
+}
+
+message GetPendingMembersResponse {
+  repeated UserShort members = 1;
+  int64 total = 2;
+}

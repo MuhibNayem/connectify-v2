@@ -6,6 +6,7 @@ import (
 
 	"messaging-app/config"
 	"messaging-app/internal/cache"
+	"messaging-app/internal/communityclient"
 	"messaging-app/internal/controllers"
 	cassdb "messaging-app/internal/db"
 	"messaging-app/internal/eventsclient"
@@ -100,7 +101,6 @@ type serviceBundle struct {
 	Privacy             *services.PrivacyService
 	Search              *services.SearchService
 	Conversation        *services.ConversationService
-	Community           *services.CommunityService
 	Reel                *services.ReelService
 	Event               services.EventServiceContract
 	EventRecommendation services.EventRecommendationServiceContract
@@ -149,7 +149,6 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	privacyService := services.NewPrivacyService(repos.Privacy, repos.User)
 	searchService := services.NewSearchService(repos.User, repos.Feed, repos.Friendship)
 	conversationService := services.NewConversationService(repos.Conversation, repos.MessageCassandra, repos.User, repos.Group)
-	communityService := services.NewCommunityService(repos.Community, repos.User)
 	reelService := services.NewReelService(repos.Reel, repos.User, repos.Friendship)
 	eventCache := cache.NewEventCache(a.redisClient)
 	cleanupService := services.NewCleanupService(repos.Story, storageClient)
@@ -172,7 +171,6 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 		Privacy:             privacyService,
 		Search:              searchService,
 		Conversation:        conversationService,
-		Community:           communityService,
 		Reel:                reelService,
 		EventCache:          eventCache,
 		Cleanup:             cleanupService,
@@ -181,7 +179,7 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	}, nil
 }
 
-func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client, storageClient *storageclient.Client) routerConfig {
+func buildControllers(cfg *config.Config, services serviceBundle, repos repositoryBundle, marketplaceClient *marketplaceclient.Client, feedClient *feedclient.Client, storyClient *storyclient.Client, reelClient *reelclient.Client, communityClient *communityclient.Client, storageClient *storageclient.Client) routerConfig {
 	return routerConfig{
 		authController:         controllers.NewAuthController(services.Auth, cfg),
 		userController:         controllers.NewUserController(services.User, storageClient),
@@ -194,7 +192,7 @@ func buildControllers(cfg *config.Config, services serviceBundle, repos reposito
 		notificationController: controllers.NewNotificationController(services.Notification),
 		conversationController: controllers.NewConversationController(services.Conversation),
 		uploadController:       controllers.NewUploadController(services.Storage),
-		communityController:    controllers.NewCommunityController(services.Community, storageClient),
+		communityController:    controllers.NewCommunityController(communityClient, storageClient),
 		storyController:        controllers.NewStoryController(storyClient, repos.Friendship, storageClient),
 		reelController:         controllers.NewReelController(reelClient, storageClient),
 		marketplaceController:  controllers.NewMarketplaceController(marketplaceClient, storageClient),

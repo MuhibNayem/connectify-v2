@@ -1,11 +1,9 @@
-package services
+package service
 
 import (
 	"context"
 	"errors"
 	"strings"
-
-	"messaging-app/internal/repositories"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
@@ -13,14 +11,12 @@ import (
 )
 
 type CommunityService struct {
-	communityRepo *repositories.CommunityRepository
-	userRepo      *repositories.UserRepository
+	communityRepo CommunityRepository
 }
 
-func NewCommunityService(communityRepo *repositories.CommunityRepository, userRepo *repositories.UserRepository) *CommunityService {
+func NewCommunityService(communityRepo CommunityRepository) *CommunityService {
 	return &CommunityService{
 		communityRepo: communityRepo,
-		userRepo:      userRepo,
 	}
 }
 
@@ -28,8 +24,8 @@ func (s *CommunityService) CreateCommunity(ctx context.Context, userID primitive
 	// Generate slug from name
 	slug := strings.ToLower(strings.ReplaceAll(req.Name, " ", "-"))
 
-	// Default to visible if private and not specified, or whatever
-	visibility := models.CommunityVisibilityVisible // default
+	// Default to visible if private and not specified
+	visibility := models.CommunityVisibilityVisible
 	if req.Visibility != "" {
 		visibility = req.Visibility
 	}
@@ -39,8 +35,8 @@ func (s *CommunityService) CreateCommunity(ctx context.Context, userID primitive
 		Description: req.Description,
 		Slug:        slug,
 		Category:    req.Category,
-		Avatar:      req.Avatar,     // Assign from request
-		CoverImage:  req.CoverImage, // Assign from request
+		Avatar:      req.Avatar,
+		CoverImage:  req.CoverImage,
 		Privacy:     req.Privacy,
 		Visibility:  visibility,
 		CreatorID:   userID,
@@ -85,13 +81,7 @@ func (s *CommunityService) JoinCommunity(ctx context.Context, communityID, userI
 		}
 	}
 
-	// If Hidden, can't join without invite? Or maybe they found the link.
-	// Assume if they have the ID, they can Request to Join if allowed.
-
 	if community.Settings.RequireJoinApproval || community.Privacy == models.CommunityPrivacyPrivate {
-		// Private groups usually require approval unless explicitly disabled
-		// actually user said "does not it include member approval for private group ?"
-		// so yes, private = approval needed typically.
 		return s.communityRepo.AddPendingMember(ctx, communityID, userID)
 	}
 
@@ -187,12 +177,6 @@ func (s *CommunityService) ListCommunities(ctx context.Context, userID primitive
 	for i, community := range communities {
 		responses[i] = *s.mapToResponse(&community, userID)
 	}
-
-	// Filter Hidden communities if user is NOT a member
-	// Although repo Search excludes hidden, repo List might include Visibles
-	// We double check here or trust repo. Repo Search excluded hidden.
-	// But List included Public || Visible. Hidden is excluded.
-	// So we are good.
 
 	return responses, total, nil
 }
@@ -356,7 +340,7 @@ func (s *CommunityService) GetMembers(ctx context.Context, communityID, viewerID
 		if err != nil {
 			return nil, 0, err
 		}
-		if !isMember {
+		if !isMember && viewerID != primitive.NilObjectID {
 			return nil, 0, errors.New("unauthorized: cannot view members of private community")
 		}
 	}
