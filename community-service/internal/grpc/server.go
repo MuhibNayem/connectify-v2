@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"community-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/community-service/internal/service"
 
 	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	communitypb "github.com/MuhibNayem/connectify-v2/shared-entity/proto/community/v1"

@@ -151,87 +151,24 @@ services:
       - messaging-net
     restart: "no"
 
-  # Redis Cluster 
-  redis1:
-    image: redis:7.0
-    container_name: redis1
-    hostname: redis1
-    environment:
-      REDISCLI_AUTH: redispass
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    container_name: dragonfly
+    ulimits:
+      memlock: -1
     ports:
       - "6379:6379"
-      - "16379:16379"
-    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis1", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
-
+    command: --requirepass=redispass --keys_output_limit=12288
     volumes:
-      - redis1_data:/data
+      - dragonfly_data:/data
+    networks:
+      - messaging-net
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
-      interval: 5s
+      test: ["CMD", "redis-cli", "-a", "redispass", "ping"]
+      interval: 1s
       timeout: 3s
-      retries: 3
-    networks:
-      - messaging-net
+      retries: 5
 
-  redis2:
-    image: redis:7.0
-    container_name: redis2
-    hostname: redis2
-    depends_on:
-      - redis1
-    environment:
-      REDISCLI_AUTH: redispass
-    ports:
-      - "6380:6379"
-      - "16380:16379"
-    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis2", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
-
-    volumes:
-      - redis2_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    networks:
-      - messaging-net
-
-  redis3:
-    image: redis:7.0
-    container_name: redis3
-    hostname: redis3
-    depends_on:
-      - redis2
-    environment:
-      REDISCLI_AUTH: redispass
-    ports:
-      - "6381:6379"
-      - "16381:16379"
-    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis3", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
-    volumes:
-      - redis3_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    networks:
-      - messaging-net
-
-  redis-init:
-    image: redis:7.0
-    container_name: redis-init
-    depends_on:
-      redis1:
-        condition: service_healthy
-      redis2:
-        condition: service_healthy
-      redis3:
-        condition: service_healthy
-    entrypoint: [ "bash", "-c", " echo 'Waiting for Redis cluster nodes to be ready...'; sleep 5; echo 'Creating Redis cluster...'; yes yes | redis-cli --cluster create redis1:6379 redis2:6379 redis3:6379 --cluster-replicas 0 -a redispass; echo 'Redis cluster initialized.' " ]
-    networks:
-      - messaging-net
-    restart: "no"
 
   # Kafka brokers
 
@@ -440,18 +377,17 @@ services:
       REEL_GRPC_HOST: reel-service
       STORAGE_GRPC_HOST: storage-service
       COMMUNITY_GRPC_HOST: community-service
+      CASSANDRA_HOSTS: scylladb
     depends_on:
       mongodb3:
         condition: service_healthy
-      redis3:
+      dragonfly:
         condition: service_healthy
-      redis-init:
-        condition: service_completed_successfully
       kafka3:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      cassandra:
+      scylladb:
         condition: service_healthy
       events-service:
         condition: service_started
@@ -487,21 +423,20 @@ services:
       - ".env"
     environment:
       REALTIME_GRPC_HOST: app
+      CASSANDRA_HOSTS: scylladb
     ports:
       - "9096:9096"
       - "9100:9100"
     depends_on:
       mongodb3:
         condition: service_healthy
-      redis3:
+      dragonfly:
         condition: service_healthy
-      redis-init:
-        condition: service_completed_successfully
       kafka3:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      cassandra:
+      scylladb:
         condition: service_healthy
     networks:
       - messaging-net
@@ -520,6 +455,7 @@ services:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: connectify
+      CASSANDRA_HOSTS: scylladb
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -543,7 +479,7 @@ services:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      redis3:
+      dragonfly:
         condition: service_healthy
     networks:
       - messaging-net
@@ -565,11 +501,12 @@ services:
       SERVER_PORT: 8088
       GRPC_PORT: 9098
       JWT_SECRET: ${JWT_SECRET}
-      REDIS_URL: redis1:6379,redis2:6379,redis3:6379
+      REDIS_URL: dragonfly:6379
       REDIS_PASS: ${REDIS_PASS}
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_LIMIT: 50
       RATE_LIMIT_BURST: 100
+      CASSANDRA_HOSTS: scylladb
     depends_on:
       mongodb3:
         condition: service_healthy
@@ -705,7 +642,7 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     depends_on:
       - app
-      - redis1
+      - dragonfly
       - mongodb1
       - kafka1
     networks:
@@ -793,17 +730,17 @@ services:
       timeout: 5s
       retries: 5
 
-  cassandra:
-    image: cassandra:latest
-    container_name: cassandra
+  scylladb:
+    image: scylladb/scylla:latest
+    container_name: scylladb
     ports:
       - "9042:9042"
     environment:
-      - CASSANDRA_CLUSTER_NAME=connectify_cluster
-      - CASSANDRA_DC=datacenter1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - SCYLLA_CLUSTER_NAME=connectify_cluster
+      - SCYLLA_DC=datacenter1
+    command: --smp 1 --memory 1G --overprovisioned 1 --developer-mode 1
     volumes:
-      - cassandra_data:/var/lib/cassandra
+      - scylla_data:/var/lib/scylla
     networks:
       - messaging-net
     healthcheck:
@@ -837,15 +774,14 @@ services:
 volumes:
   neo4j_data:
   neo4j_logs:
-  cassandra_data:
+  scylla_data:
   prometheus_data:
   grafana_data:
   mongodb1_data:
   mongodb2_data:
   mongodb3_data:
-  redis1_data:
-  redis2_data:
-  redis3_data:
+  dragonfly_data:
+    driver: local
   zookeeper_data:
   zookeeper_log:
   kafka1_data:

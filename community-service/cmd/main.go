@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
-	"community-service/internal/config"
-	"community-service/internal/grpc"
-	"community-service/internal/repository"
-	"community-service/internal/service"
+	"github.com/MuhibNayem/connectify-v2/community-service/internal/config"
+	"github.com/MuhibNayem/connectify-v2/community-service/internal/grpc"
+	"github.com/MuhibNayem/connectify-v2/community-service/internal/repository"
+	"github.com/MuhibNayem/connectify-v2/community-service/internal/service"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
