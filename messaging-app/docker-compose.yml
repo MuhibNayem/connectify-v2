@@ -151,87 +151,34 @@ services:
       - messaging-net
     restart: "no"
 
-  # Redis Cluster 
-  redis1:
-    image: redis:7.0
-    container_name: redis1
-    hostname: redis1
-    environment:
-      REDISCLI_AUTH: redispass
+  # Dragonfly - High-performance Redis-compatible in-memory datastore
+  # Replaces Redis Cluster for better performance and simpler operations
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    container_name: dragonfly
+    hostname: dragonfly
     ports:
-      - "6379:6379"
-      - "16379:16379"
-    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis1", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
-
+      - "6379:6379" # Redis-compatible port
+      - "6380:6380" # Admin port
+    environment:
+      - DRAGONFLY_PASSWORD=redispass
+    command:
+      - --requirepass=redispass
+      - --maxmemory=4G
+      - --snapshot_cron=0_*/6_*_*_*
+      - --dbfilename=dump.rdb
+      - --dir=/data
+      - --logtostderr
     volumes:
-      - redis1_data:/data
+      - dragonfly_data:/data
+    networks:
+      - messaging-net
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
+      test: [ "CMD", "redis-cli", "-a", "redispass", "PING" ]
       interval: 5s
       timeout: 3s
       retries: 3
-    networks:
-      - messaging-net
-
-  redis2:
-    image: redis:7.0
-    container_name: redis2
-    hostname: redis2
-    depends_on:
-      - redis1
-    environment:
-      REDISCLI_AUTH: redispass
-    ports:
-      - "6380:6379"
-      - "16380:16379"
-    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis2", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
-
-    volumes:
-      - redis2_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    networks:
-      - messaging-net
-
-  redis3:
-    image: redis:7.0
-    container_name: redis3
-    hostname: redis3
-    depends_on:
-      - redis2
-    environment:
-      REDISCLI_AUTH: redispass
-    ports:
-      - "6381:6379"
-      - "16381:16379"
-    command: [ "redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000", "--requirepass", "redispass", "--masterauth", "redispass", "--protected-mode", "no", "--cluster-announce-ip", "redis3", "--cluster-announce-port", "6379", "--cluster-announce-bus-port", "16379" ]
-    volumes:
-      - redis3_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    networks:
-      - messaging-net
-
-  redis-init:
-    image: redis:7.0
-    container_name: redis-init
-    depends_on:
-      redis1:
-        condition: service_healthy
-      redis2:
-        condition: service_healthy
-      redis3:
-        condition: service_healthy
-    entrypoint: [ "bash", "-c", " echo 'Waiting for Redis cluster nodes to be ready...'; sleep 5; echo 'Creating Redis cluster...'; yes yes | redis-cli --cluster create redis1:6379 redis2:6379 redis3:6379 --cluster-replicas 0 -a redispass; echo 'Redis cluster initialized.' " ]
-    networks:
-      - messaging-net
-    restart: "no"
+      start_period: 10s
 
   # Kafka brokers
 
@@ -407,15 +354,13 @@ services:
     depends_on:
       mongodb3:
         condition: service_healthy
-      redis3:
+      dragonfly:
         condition: service_healthy
-      redis-init:
-        condition: service_completed_successfully
       kafka3:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      cassandra:
+      scylladb:
         condition: service_healthy
       events-service:
         condition: service_started
@@ -445,15 +390,13 @@ services:
     depends_on:
       mongodb3:
         condition: service_healthy
-      redis3:
+      dragonfly:
         condition: service_healthy
-      redis-init:
-        condition: service_completed_successfully
       kafka3:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      cassandra:
+      scylladb:
         condition: service_healthy
     networks:
       - messaging-net
@@ -561,7 +504,7 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     depends_on:
       - app
-      - redis1
+      - dragonfly
       - mongodb1
       - kafka1
     networks:
@@ -619,12 +562,12 @@ services:
     image: oliver006/redis_exporter:v1.55.0
     container_name: redis-exporter
     environment:
-      - REDIS_ADDR=redis://redis1:6379
+      - REDIS_ADDR=redis://dragonfly:6379
       - REDIS_PASSWORD=redispass
     ports:
       - "9121:9121"
     depends_on:
-      - redis1
+      - dragonfly
     networks:
       - messaging-net
 
@@ -649,37 +592,42 @@ services:
       timeout: 5s
       retries: 5
 
-  cassandra:
-    image: cassandra:latest
-    container_name: cassandra
+  # ScyllaDB (Cassandra-compatible, high-performance NoSQL database)
+  scylladb:
+    image: scylladb/scylla:5.4
+    container_name: scylladb
     ports:
-      - "9042:9042"
+      - "9042:9042" # CQL native transport
+      - "10000:10000" # ScyllaDB REST API
+      - "9180:9180" # Prometheus metrics
     environment:
-      - CASSANDRA_CLUSTER_NAME=connectify_cluster
-      - CASSANDRA_DC=datacenter1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - SCYLLA_CLUSTER_NAME=connectify_cluster
+      - SCYLLA_DC=datacenter1
+      - SCYLLA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
     volumes:
-      - cassandra_data:/var/lib/cassandra
+      - scylladb_data:/var/lib/scylla
     networks:
       - messaging-net
+    # ScyllaDB-specific tuning for dev (single node, low resources)
+    command: >
+      --smp 2 --memory 2G --overprovisioned 1 --api-address 0.0.0.0 --developer-mode 1
     healthcheck:
       test: [ "CMD-SHELL", "cqlsh", "-e", "describe keyspaces" ]
       interval: 15s
       timeout: 10s
       retries: 5
+      start_period: 30s
 
 volumes:
   neo4j_data:
   neo4j_logs:
-  cassandra_data:
+  scylladb_data:
   prometheus_data:
   grafana_data:
   mongodb1_data:
   mongodb2_data:
   mongodb3_data:
-  redis1_data:
-  redis2_data:
-  redis3_data:
+  dragonfly_data:
   zookeeper_data:
   zookeeper_log:
   kafka1_data:

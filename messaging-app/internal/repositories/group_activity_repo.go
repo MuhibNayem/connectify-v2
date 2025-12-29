@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"messaging-app/internal/db"
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"sort"
 	"time"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"github.com/gocql/gocql"
 	"go.mongodb.org/mongo-driver/bson/primitive"
