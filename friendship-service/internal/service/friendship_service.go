@@ -23,20 +23,21 @@ import (
 type FriendshipService struct {
 	friendshipRepo *repository.FriendshipRepository
 	userClient     *repository.UserClient
-	graphRepo      *repository.GraphRepository
+	graphClient    repository.GraphClient
 	kafkaProducer  *kafka.MessageProducer
 	cache          *cache.FriendshipCache
 	breaker        *CircuitBreakerWrapper
 	metrics        *metrics.BusinessMetrics
 	validator      *validation.Validator
 	logger         *slog.Logger
+	eventQueue     chan events.FriendshipEvent // For async publishing
 }
 
 // NewFriendshipService creates a new FriendshipService with all dependencies
 func NewFriendshipService(
 	fr *repository.FriendshipRepository,
 	uc *repository.UserClient,
-	gr *repository.GraphRepository,
+	gc repository.GraphClient,
 	kp *kafka.MessageProducer,
 	c *cache.FriendshipCache,
 	cb *CircuitBreakerWrapper,
@@ -47,24 +48,84 @@ func NewFriendshipService(
 	if l == nil {
 		l = slog.Default()
 	}
-	return &FriendshipService{
+	s := &FriendshipService{
 		friendshipRepo: fr,
 		userClient:     uc,
-		graphRepo:      gr,
+		graphClient:    gc,
 		kafkaProducer:  kp,
 		cache:          c,
 		breaker:        cb,
 		metrics:        m,
 		validator:      v,
 		logger:         l,
+		eventQueue:     make(chan events.FriendshipEvent, 1000), // Buffer size 1000
+	}
+	// Start async event publisher
+	go s.eventPublisher()
+	return s
+}
+
+// eventPublisher processes events from the queue asynchronously
+func (s *FriendshipService) eventPublisher() {
+	batch := make([]events.FriendshipEvent, 0, 100)
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case event := <-s.eventQueue:
+			batch = append(batch, event)
+			if len(batch) >= 100 {
+				s.publishBatch(batch)
+				batch = batch[:0]
+			}
+		case <-ticker.C:
+			if len(batch) > 0 {
+				s.publishBatch(batch)
+				batch = batch[:0]
+			}
+		}
 	}
 }
 
-func (s *FriendshipService) publishEvent(ctx context.Context, requesterID, receiverID string, status, action string) {
+// publishBatch publishes a batch of events
+func (s *FriendshipService) publishBatch(batch []events.FriendshipEvent) {
 	if s.kafkaProducer == nil {
 		return
 	}
 
+	for _, event := range batch {
+		payload, err := json.Marshal(event)
+		if err != nil {
+			s.logger.Error("Failed to marshal event for batch", "error", err, "action", event.Action)
+			continue
+		}
+
+		msg := kafkalib.Message{
+			Key:   []byte(event.RequesterID + ":" + event.ReceiverID),
+			Value: payload,
+			Time:  event.Timestamp,
+		}
+
+		// Use circuit breaker for Kafka operations
+		if s.breaker != nil {
+			err = s.breaker.ExecuteKafkaOp(context.Background(), "publish_event_batch", func() error {
+				return s.kafkaProducer.ProduceMessage(context.Background(), msg)
+			})
+		} else {
+			err = s.kafkaProducer.ProduceMessage(context.Background(), msg)
+		}
+
+		if err != nil {
+			s.logger.Error("Failed to publish event in batch", "error", err, "action", event.Action)
+			if s.metrics != nil {
+				s.metrics.RecordOperationError("publish_event_batch")
+			}
+		}
+	}
+}
+
+func (s *FriendshipService) publishEvent(ctx context.Context, requesterID, receiverID string, status, action string) {
 	event := events.FriendshipEvent{
 		RequesterID: requesterID,
 		ReceiverID:  receiverID,
@@ -73,32 +134,12 @@ func (s *FriendshipService) publishEvent(ctx context.Context, requesterID, recei
 		Timestamp:   time.Now(),
 	}
 
-	payload, err := json.Marshal(event)
-	if err != nil {
-		s.logger.Error("Failed to marshal event", "error", err)
-		return
-	}
-
-	msg := kafkalib.Message{
-		Key:   []byte(requesterID),
-		Value: payload,
-		Time:  time.Now(),
-	}
-
-	// Use circuit breaker for Kafka operations
-	if s.breaker != nil {
-		err = s.breaker.ExecuteKafkaOp(ctx, "publish_event", func() error {
-			return s.kafkaProducer.ProduceMessage(ctx, msg)
-		})
-	} else {
-		err = s.kafkaProducer.ProduceMessage(ctx, msg)
-	}
-
-	if err != nil {
-		s.logger.Error("Failed to publish event", "error", err, "action", action)
-		if s.metrics != nil {
-			s.metrics.RecordOperationError("publish_event")
-		}
+	// Try to queue non-blocking
+	select {
+	case s.eventQueue <- event:
+		// Queued
+	default:
+		s.logger.Warn("Event queue full, dropping event", "requester", requesterID, "receiver", receiverID)
 	}
 }
 
@@ -119,14 +160,14 @@ func (s *FriendshipService) SendRequest(ctx context.Context, requesterID, receiv
 	}
 
 	// Sync graph user nodes with circuit breaker
-	if s.graphRepo != nil && s.breaker != nil {
+	if s.graphClient != nil && s.breaker != nil {
 		_ = s.breaker.ExecuteGraphOp(ctx, "sync_user", func() error {
-			_ = s.graphRepo.SyncUser(ctx, requesterID)
-			return s.graphRepo.SyncUser(ctx, receiverID)
+			_ = s.graphClient.SyncUser(ctx, requesterID)
+			return s.graphClient.SyncUser(ctx, receiverID)
 		})
-	} else if s.graphRepo != nil {
-		_ = s.graphRepo.SyncUser(ctx, requesterID)
-		_ = s.graphRepo.SyncUser(ctx, receiverID)
+	} else if s.graphClient != nil {
+		_ = s.graphClient.SyncUser(ctx, requesterID)
+		_ = s.graphClient.SyncUser(ctx, receiverID)
 	}
 
 	// Create MongoDB request
@@ -140,14 +181,14 @@ func (s *FriendshipService) SendRequest(ctx context.Context, requesterID, receiv
 	}
 
 	// Create Graph request with circuit breaker
-	if s.graphRepo != nil {
+	if s.graphClient != nil {
 		graphErr := func() error {
 			if s.breaker != nil {
 				return s.breaker.ExecuteGraphOp(ctx, "send_request", func() error {
-					return s.graphRepo.SendRequest(ctx, requesterID, receiverID)
+					return s.graphClient.SendRequest(ctx, requesterID, receiverID)
 				})
 			}
-			return s.graphRepo.SendRequest(ctx, requesterID, receiverID)
+			return s.graphClient.SendRequest(ctx, requesterID, receiverID)
 		}()
 		if graphErr != nil {
 			s.logger.Warn("Graph SendRequest error", "error", graphErr)
@@ -216,12 +257,12 @@ func (s *FriendshipService) RespondToRequest(ctx context.Context, friendshipID, 
 	}
 
 	// Update Graph
-	if s.graphRepo != nil {
+	if s.graphClient != nil {
 		graphFn := func() error {
 			if accept {
-				return s.graphRepo.AcceptRequest(ctx, targetRequest.RequesterID, targetRequest.ReceiverID)
+				return s.graphClient.AcceptRequest(ctx, targetRequest.RequesterID, targetRequest.ReceiverID)
 			}
-			return s.graphRepo.RejectRequest(ctx, targetRequest.RequesterID, targetRequest.ReceiverID)
+			return s.graphClient.RejectRequest(ctx, targetRequest.RequesterID, targetRequest.ReceiverID)
 		}
 		if s.breaker != nil {
 			_ = s.breaker.ExecuteGraphOp(ctx, "respond_request", graphFn)
@@ -275,17 +316,17 @@ func (s *FriendshipService) CheckFriendship(ctx context.Context, userID1, userID
 		}
 	}
 
-	if s.graphRepo != nil {
+	if s.graphClient != nil {
 		var areFriends bool
 		var graphErr error
 		if s.breaker != nil {
 			graphErr = s.breaker.ExecuteGraphOp(ctx, "check_friendship", func() error {
 				var err error
-				areFriends, _, _, _, _, err = s.graphRepo.CheckFriendshipStatus(ctx, userID1, userID2)
+				areFriends, _, _, _, _, err = s.graphClient.CheckFriendshipStatus(ctx, userID1, userID2)
 				return err
 			})
 		} else {
-			areFriends, _, _, _, _, graphErr = s.graphRepo.CheckFriendshipStatus(ctx, userID1, userID2)
+			areFriends, _, _, _, _, graphErr = s.graphClient.CheckFriendshipStatus(ctx, userID1, userID2)
 		}
 		if graphErr == nil {
 			return areFriends, nil
@@ -323,13 +364,13 @@ func (s *FriendshipService) Unfriend(ctx context.Context, userID, friendID primi
 	}
 
 	// Remove from Graph
-	if s.graphRepo != nil {
+	if s.graphClient != nil {
 		if s.breaker != nil {
 			_ = s.breaker.ExecuteGraphOp(ctx, "unfriend", func() error {
-				return s.graphRepo.Unfriend(ctx, userID, friendID)
+				return s.graphClient.Unfriend(ctx, userID, friendID)
 			})
 		} else {
-			_ = s.graphRepo.Unfriend(ctx, userID, friendID)
+			_ = s.graphClient.Unfriend(ctx, userID, friendID)
 		}
 	}
 
@@ -366,13 +407,13 @@ func (s *FriendshipService) BlockUser(ctx context.Context, blockerID, blockedID 
 		}
 	}
 
-	if s.graphRepo != nil {
+	if s.graphClient != nil {
 		if s.breaker != nil {
 			_ = s.breaker.ExecuteGraphOp(ctx, "block_user", func() error {
-				return s.graphRepo.BlockUser(ctx, blockerID, blockedID)
+				return s.graphClient.BlockUser(ctx, blockerID, blockedID)
 			})
 		} else {
-			_ = s.graphRepo.BlockUser(ctx, blockerID, blockedID)
+			_ = s.graphClient.BlockUser(ctx, blockerID, blockedID)
 		}
 	}
 
@@ -393,13 +434,13 @@ func (s *FriendshipService) BlockUser(ctx context.Context, blockerID, blockedID 
 func (s *FriendshipService) UnblockUser(ctx context.Context, blockerID, blockedID primitive.ObjectID) error {
 	_ = s.friendshipRepo.UnblockUser(ctx, blockerID, blockedID)
 
-	if s.graphRepo != nil {
+	if s.graphClient != nil {
 		if s.breaker != nil {
 			_ = s.breaker.ExecuteGraphOp(ctx, "unblock_user", func() error {
-				return s.graphRepo.UnblockUser(ctx, blockerID, blockedID)
+				return s.graphClient.UnblockUser(ctx, blockerID, blockedID)
 			})
 		} else {
-			_ = s.graphRepo.UnblockUser(ctx, blockerID, blockedID)
+			_ = s.graphClient.UnblockUser(ctx, blockerID, blockedID)
 		}
 	}
 

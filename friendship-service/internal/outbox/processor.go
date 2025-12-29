@@ -14,30 +14,30 @@ import (
 
 // Processor processes outbox events asynchronously
 type Processor struct {
-	repo      *Repository
-	graphRepo *repository.GraphRepository
-	producer  *kafka.MessageProducer
-	logger    *slog.Logger
-	batchSize int64
-	interval  time.Duration
-	stopChan  chan struct{}
+	repo        *Repository
+	graphClient repository.GraphClient
+	producer    *kafka.MessageProducer
+	logger      *slog.Logger
+	batchSize   int64
+	interval    time.Duration
+	stopChan    chan struct{}
 }
 
 // NewProcessor creates a new outbox processor
 func NewProcessor(
 	repo *Repository,
-	graphRepo *repository.GraphRepository,
+	graphClient repository.GraphClient,
 	producer *kafka.MessageProducer,
 	logger *slog.Logger,
 ) *Processor {
 	return &Processor{
-		repo:      repo,
-		graphRepo: graphRepo,
-		producer:  producer,
-		logger:    logger,
-		batchSize: 100,
-		interval:  1 * time.Second,
-		stopChan:  make(chan struct{}),
+		repo:        repo,
+		graphClient: graphClient,
+		producer:    producer,
+		logger:      logger,
+		batchSize:   100,
+		interval:    1 * time.Second,
+		stopChan:    make(chan struct{}),
 	}
 }
 
@@ -101,9 +101,9 @@ func (p *Processor) processBatch(ctx context.Context) {
 }
 
 func (p *Processor) processEvent(ctx context.Context, event *Event) error {
-	// Step 1: Update Neo4j (if graph repo available)
-	if p.graphRepo != nil {
-		if err := p.syncToNeo4j(ctx, event); err != nil {
+	// Step 1: Update graph database (if graph client available)
+	if p.graphClient != nil {
+		if err := p.syncToGraph(ctx, event); err != nil {
 			return err
 		}
 	}
@@ -118,31 +118,31 @@ func (p *Processor) processEvent(ctx context.Context, event *Event) error {
 	return nil
 }
 
-func (p *Processor) syncToNeo4j(ctx context.Context, event *Event) error {
+func (p *Processor) syncToGraph(ctx context.Context, event *Event) error {
 	requesterID, _ := primitive.ObjectIDFromHex(event.Payload["requester_id"].(string))
 	receiverID, _ := primitive.ObjectIDFromHex(event.Payload["receiver_id"].(string))
 
 	switch event.EventType {
 	case EventFriendRequestSent:
-		return p.graphRepo.SendRequest(ctx, requesterID, receiverID)
+		return p.graphClient.SendRequest(ctx, requesterID, receiverID)
 
 	case EventFriendRequestAccepted:
-		return p.graphRepo.AcceptRequest(ctx, requesterID, receiverID)
+		return p.graphClient.AcceptRequest(ctx, requesterID, receiverID)
 
 	case EventFriendRequestRejected:
-		return p.graphRepo.RejectRequest(ctx, requesterID, receiverID)
+		return p.graphClient.RejectRequest(ctx, requesterID, receiverID)
 
 	case EventUnfriended:
-		return p.graphRepo.Unfriend(ctx, requesterID, receiverID)
+		return p.graphClient.Unfriend(ctx, requesterID, receiverID)
 
 	case EventUserBlocked:
-		return p.graphRepo.Block(ctx, requesterID, receiverID)
+		return p.graphClient.Block(ctx, requesterID, receiverID)
 
 	case EventUserUnblocked:
-		return p.graphRepo.Unblock(ctx, requesterID, receiverID)
+		return p.graphClient.Unblock(ctx, requesterID, receiverID)
 
 	default:
-		p.logger.Warn("Unknown event type for Neo4j sync", "event_type", event.EventType)
+		p.logger.Warn("Unknown event type for graph sync", "event_type", event.EventType)
 		return nil
 	}
 }

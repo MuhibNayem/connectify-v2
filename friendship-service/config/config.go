@@ -22,9 +22,16 @@ type Config struct {
 	RedisURLs []string
 	RedisPass string
 
+	// Graph Database Selection: "neo4j" or "dgraph"
+	GraphDB string
+
+	// Neo4j Config (legacy, kept for backward compatibility)
 	Neo4jURI      string
 	Neo4jUser     string
 	Neo4jPassword string
+
+	// Dgraph Config
+	DgraphAddr string
 
 	GRPCPort       string
 	HTTPPort       string
@@ -72,6 +79,11 @@ func LoadConfig() *Config {
 		RedisURLs: strings.Split(getEnv("REDIS_URL", "localhost:6379"), ","),
 		RedisPass: getEnv("REDIS_PASS", ""),
 
+		// Graph database selection (default to dgraph for new deployments)
+		GraphDB:    getEnv("GRAPH_DB", "dgraph"),
+		DgraphAddr: getEnv("DGRAPH_ADDR", "localhost:9080"),
+
+		// Neo4j config (kept for backward compatibility)
 		Neo4jURI:      getEnv("NEO4J_URI", "bolt://localhost:7687"),
 		Neo4jUser:     getEnv("NEO4J_USER", "neo4j"),
 		Neo4jPassword: getEnv("NEO4J_PASSWORD", "connectify"),

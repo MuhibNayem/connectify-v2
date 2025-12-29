@@ -54,7 +54,7 @@ type Application struct {
 	outboxProcessor *outbox.Processor
 	cachePubSub     *cache.PubSub
 	reconcileJob    *reconciliation.Job
-	graphRepo       *repository.GraphRepository
+	graphClient     repository.GraphClient // Interface for Neo4j or Dgraph
 
 	friendshipService *service.FriendshipService
 	grpcServer        *grpc.Server
@@ -237,8 +237,30 @@ func (a *Application) bootstrap() error {
 
 	// Initialize repositories
 	friendshipRepo := repository.NewFriendshipRepository(a.db)
-	if a.neo4jClient != nil {
-		a.graphRepo = repository.NewGraphRepository(a.neo4jClient.Driver)
+
+	// Initialize graph client based on config (Dgraph or Neo4j)
+	switch a.cfg.GraphDB {
+	case "dgraph":
+		slog.Info("Using Dgraph as graph database", "addr", a.cfg.DgraphAddr)
+		dgraphClient, err := repository.NewDgraphRepository(a.cfg.DgraphAddr)
+		if err != nil {
+			slog.Warn("Failed to connect to Dgraph, graph operations disabled", "error", err)
+		} else {
+			a.graphClient = dgraphClient
+		}
+	case "neo4j":
+		slog.Info("Using Neo4j as graph database", "uri", a.cfg.Neo4jURI)
+		if a.neo4jClient != nil {
+			a.graphClient = repository.NewGraphRepository(a.neo4jClient.Driver)
+		}
+	default:
+		slog.Warn("Unknown graph database type, defaulting to Dgraph", "type", a.cfg.GraphDB)
+		dgraphClient, err := repository.NewDgraphRepository(a.cfg.DgraphAddr)
+		if err != nil {
+			slog.Warn("Failed to connect to Dgraph", "error", err)
+		} else {
+			a.graphClient = dgraphClient
+		}
 	}
 
 	// Initialize user client
@@ -260,7 +282,7 @@ func (a *Application) bootstrap() error {
 	a.outboxRepo = outbox.NewRepository(a.db)
 	a.outboxProcessor = outbox.NewProcessor(
 		a.outboxRepo,
-		a.graphRepo,
+		a.graphClient,
 		a.kafkaProducer,
 		logger,
 	)
@@ -268,7 +290,7 @@ func (a *Application) bootstrap() error {
 	// Initialize reconciliation job
 	a.reconcileJob = reconciliation.NewJob(
 		friendshipRepo,
-		a.graphRepo,
+		a.graphClient,
 		friendshipCache,
 		a.businessMetrics,
 		logger,
@@ -278,7 +300,7 @@ func (a *Application) bootstrap() error {
 	a.friendshipService = service.NewFriendshipService(
 		friendshipRepo,
 		userClient,
-		a.graphRepo,
+		a.graphClient,
 		a.kafkaProducer,
 		friendshipCache,
 		circuitBreaker,

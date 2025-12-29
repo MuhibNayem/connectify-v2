@@ -12,10 +12,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Job performs periodic reconciliation between MongoDB and Neo4j
+// Job performs periodic reconciliation between MongoDB and graph database
 type Job struct {
 	friendshipRepo *repository.FriendshipRepository
-	graphRepo      *repository.GraphRepository
+	graphClient    repository.GraphClient
 	cache          *cache.FriendshipCache
 	metrics        *metrics.BusinessMetrics
 	logger         *slog.Logger
@@ -27,7 +27,7 @@ type Job struct {
 // NewJob creates a new reconciliation job
 func NewJob(
 	friendshipRepo *repository.FriendshipRepository,
-	graphRepo *repository.GraphRepository,
+	graphClient repository.GraphClient,
 	cache *cache.FriendshipCache,
 	metrics *metrics.BusinessMetrics,
 	logger *slog.Logger,
@@ -37,7 +37,7 @@ func NewJob(
 	}
 	return &Job{
 		friendshipRepo: friendshipRepo,
-		graphRepo:      graphRepo,
+		graphClient:    graphClient,
 		cache:          cache,
 		metrics:        metrics,
 		logger:         logger,
@@ -77,8 +77,8 @@ func (j *Job) Stop() {
 }
 
 func (j *Job) reconcile(ctx context.Context) {
-	if j.graphRepo == nil {
-		j.logger.Debug("Skipping reconciliation - no graph repository")
+	if j.graphClient == nil {
+		j.logger.Debug("Skipping reconciliation - no graph client")
 		return
 	}
 
@@ -98,10 +98,10 @@ func (j *Job) reconcile(ctx context.Context) {
 	for _, friendship := range friendships {
 		checked++
 
-		// Check if Neo4j matches
-		neoAreFriends, err := j.graphRepo.AreFriends(ctx, friendship.RequesterID, friendship.ReceiverID)
+		// Check if graph database matches
+		graphAreFriends, err := j.graphClient.AreFriends(ctx, friendship.RequesterID, friendship.ReceiverID)
 		if err != nil {
-			j.logger.Warn("Failed to check Neo4j friendship",
+			j.logger.Warn("Failed to check graph friendship",
 				"requester", friendship.RequesterID.Hex(),
 				"receiver", friendship.ReceiverID.Hex(),
 				"error", err,
@@ -109,17 +109,17 @@ func (j *Job) reconcile(ctx context.Context) {
 			continue
 		}
 
-		if friendship.Status == models.FriendshipStatusAccepted && !neoAreFriends {
-			// INCONSISTENCY: MongoDB says friends, Neo4j says not
+		if friendship.Status == models.FriendshipStatusAccepted && !graphAreFriends {
+			// INCONSISTENCY: MongoDB says friends, graph says not
 			j.logger.Warn("Inconsistency detected - repairing",
 				"friendship_id", friendship.ID.Hex(),
 				"mongo_status", friendship.Status,
-				"neo4j_are_friends", neoAreFriends,
+				"graph_are_friends", graphAreFriends,
 			)
 
-			// Repair Neo4j
-			if err := j.graphRepo.AcceptRequest(ctx, friendship.RequesterID, friendship.ReceiverID); err != nil {
-				j.logger.Error("Failed to repair Neo4j", "error", err)
+			// Repair graph
+			if err := j.graphClient.AcceptRequest(ctx, friendship.RequesterID, friendship.ReceiverID); err != nil {
+				j.logger.Error("Failed to repair graph", "error", err)
 				continue
 			}
 
@@ -130,7 +130,7 @@ func (j *Job) reconcile(ctx context.Context) {
 
 			// Record metric
 			if j.metrics != nil {
-				j.metrics.RecordInconsistency("mongo_neo4j_mismatch")
+				j.metrics.RecordInconsistency("mongo_graph_mismatch")
 			}
 
 			repaired++
@@ -146,18 +146,18 @@ func (j *Job) reconcile(ctx context.Context) {
 
 // RepairOnRead performs read-repair when inconsistency is detected during a read
 func (j *Job) RepairOnRead(ctx context.Context, userA, userB primitive.ObjectID, mongoResult bool) {
-	if j.graphRepo == nil {
+	if j.graphClient == nil {
 		return
 	}
 
 	go func() {
 		var err error
 		if mongoResult {
-			// MongoDB says friends, ensure Neo4j agrees
-			err = j.graphRepo.AcceptRequest(ctx, userA, userB)
+			// MongoDB says friends, ensure graph agrees
+			err = j.graphClient.AcceptRequest(ctx, userA, userB)
 		} else {
-			// MongoDB says not friends, ensure Neo4j agrees
-			err = j.graphRepo.Unfriend(ctx, userA, userB)
+			// MongoDB says not friends, ensure graph agrees
+			err = j.graphClient.Unfriend(ctx, userA, userB)
 		}
 
 		if err != nil {

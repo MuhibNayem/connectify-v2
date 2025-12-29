@@ -4,6 +4,7 @@ go 1.25.1
 
 require (
 	github.com/MuhibNayem/connectify-v2/shared-entity v0.0.4
+	github.com/dgraph-io/dgo/v240 v240.2.0
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/joho/godotenv v1.5.1
