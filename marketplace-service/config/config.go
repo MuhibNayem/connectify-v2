@@ -33,8 +33,8 @@ type Config struct {
 func LoadConfig() *Config {
 	_ = godotenv.Load()
 
-	grpcPort := getEnv("GRPC_PORT", "9097")
-	serverPort := getEnv("SERVER_PORT", "8087")
+	grpcPort := getEnv("GRPC_PORT", "9095")
+	serverPort := getEnv("SERVER_PORT", "8088")
 	metricsPort := getEnv("METRICS_PORT", "9198")
 	mongoURI := getEnv("MONGO_URI", "mongodb://localhost:27017/messaging_app")
 

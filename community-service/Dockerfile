@@ -1,33 +1,28 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 
 WORKDIR /app
 
-# Copy shared entity first for caching
-COPY shared-entity /shared-entity
+RUN apk add --no-cache git
+
+COPY shared-entity ./shared-entity
 
 COPY community-service/go.mod community-service/go.sum ./community-service/
 WORKDIR /app/community-service
-
-# Mod replace directive needs access to shared-entity at ../shared-entity relative to go.mod
-# Structure in build:
-# /app (root)
-# /shared-entity
-# /app/community-service
-
-# Wait, if I am in /app/community-service, then ../shared-entity is /app/shared-entity.
-# It matches current layout.
-
 RUN go mod download
 
-COPY community-service/ .
+COPY community-service .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/community-service ./cmd/main.go
 
-FROM alpine:latest
-WORKDIR /root/
-COPY --from=builder /app/community-service/app .
-COPY --from=builder /app/community-service/.env .
+# Final stage
+FROM gcr.io/distroless/base-debian12
+
+ENV COMMUNITY_GRPC_PORT=9101
+
+COPY --from=builder /bin/community-service /bin/community-service
 
 EXPOSE 9101
 
-CMD ["./app"]
+USER nonroot:nonroot
+
+ENTRYPOINT ["/bin/community-service"]

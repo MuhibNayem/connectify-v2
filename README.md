@@ -191,7 +191,7 @@ graph TD
 | **story-service** | 8082 / 9092 | Ephemeral stories, view tracking, reactions |
 | **feed-service** | 8083 / 9093 | Posts, comments, replies, albums, hashtags |
 | **events-service** | 8084 / 9094 | Events, RSVPs, recommendations, co-hosts |
-| **marketplace-service** | 8085 / 9095 | Products, categories, search, view counts |
+| **marketplace-service** | 8088 / 9095 | Product listings, categories, search, view counts |
 | **reel-service** | 8086 / 9096 | Short-form video reels, reactions, comments |
 | **storage-service** | 8087 / 9087 | File uploads, MinIO wrapper, archival |
 | **shared-entity** | — | Proto definitions, shared models |

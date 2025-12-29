@@ -27,6 +27,6 @@ COPY --from=builder /app/marketplace-service/marketplace-service /marketplace-se
 
 USER nonroot:nonroot
 
-EXPOSE 9097 9198
+EXPOSE 8088 9095 9198
 
 ENTRYPOINT ["/marketplace-service"]

@@ -427,7 +427,7 @@ services:
       REALTIME_GRPC_HOST: app
       CASSANDRA_HOSTS: scylladb
     ports:
-      - "9096:9096"
+      - "9094:9094"
       - "9100:9100"
     depends_on:
       mongodb3:
@@ -439,6 +439,8 @@ services:
       neo4j:
         condition: service_healthy
       scylladb:
+        condition: service_healthy
+      dgraph-alpha:
         condition: service_healthy
     networks:
       - messaging-net
@@ -454,16 +456,22 @@ services:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=connectify
+      - GRAPH_DB=dgraph
+      - DGRAPH_ADDR=dgraph-alpha:9080
       - REDIS_URL=dragonfly:6379
       - KAFKA_BROKERS=kafka1:9092
       - FRIENDSHIP_GRPC_PORT=9103
       - USER_SERVICE_URL=user-service:8083 # user-service internal port defined in dockerfile might vary, checking
+      - PROMETHEUS_PORT=9104
     ports:
+      - "8103:8103"
       - "9103:9103"
+      - "9104:9104"
     depends_on:
       - mongodb3
       - neo4j
       - dragonfly
+      - dgraph-alpha
       - kafka1
       - user-service
     networks:
@@ -509,6 +517,8 @@ services:
         condition: service_healthy
       dragonfly:
         condition: service_healthy
+      dgraph-alpha:
+        condition: service_healthy
     networks:
       - messaging-net
     env_file:
@@ -521,13 +531,13 @@ services:
     container_name: marketplace-service
     ports:
       - "8088:8088"
-      - "9098:9098"
+      - "9095:9095"
       - "9198:9198"
     env_file:
       - ".env"
     environment:
       SERVER_PORT: 8088
-      GRPC_PORT: 9098
+      GRPC_PORT: 9095
       JWT_SECRET: ${JWT_SECRET}
       REDIS_URL: dragonfly:6379
       REDIS_PASS: ${REDIS_PASS}
@@ -724,19 +734,6 @@ services:
     networks:
       - messaging-net
 
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.55.0
-    container_name: redis-exporter
-    environment:
-      - REDIS_ADDR=redis://redis1:6379
-      - REDIS_PASSWORD=redispass
-    ports:
-      - "9121:9121"
-    depends_on:
-      - redis1
-    networks:
-      - messaging-net
-
   neo4j:
     image: neo4j:5.26.0
     container_name: neo4j
@@ -776,7 +773,50 @@ services:
       interval: 15s
       timeout: 10s
       retries: 5
+  dgraph-zero:
+    image: dgraph/dgraph:latest
+    container_name: dgraph-zero
+    ports:
+      - "5080:5080"
+      - "6080:6080"
+    volumes:
+      - dgraph_zero_data:/dgraph
+    command: dgraph zero --my=dgraph-zero:5080
+    networks:
+      - messaging-net
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:6080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  dgraph-alpha:
+    image: dgraph/dgraph:latest
+    container_name: dgraph-alpha
+    ports:
+      - "8089:8080" # Maps host 8089 to container 8080 (Dgraph HTTP)
+      - "9080:9080" # Maps host 9080 to container 9080 (Dgraph gRPC)
+    volumes:
+      - dgraph_alpha_data:/dgraph
+    command: dgraph alpha --my=dgraph-alpha:7080 --zero=dgraph-zero:5080 --security whitelist=0.0.0.0/0
+    depends_on:
+      dgraph-zero:
+        condition: service_healthy
+    networks:
+      - messaging-net
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dgraph-ratel:
+    image: dgraph/ratel:latest
+    container_name: dgraph-ratel
+    ports:
+      - "8000:8000"
+    networks:
+      - messaging-net
   # =========================
   # Distributed Tracing
   # =========================
@@ -815,6 +855,8 @@ volumes:
   kafka1_data:
   kafka2_data:
   kafka3_data:
+  dgraph_zero_data:
+  dgraph_alpha_data:
   minio_data:
 
 

@@ -94,7 +94,7 @@ kind: ConfigMap
 metadata:
   name: marketplace-service-config
 data:
-  SERVER_PORT: "8087"
+  SERVER_PORT: "8088"
   GRPC_PORT: "9095"
   METRICS_PORT: "9198"
   MONGO_URI: "mongodb://mongodb:27017/connectify"

@@ -42,7 +42,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
     CMD wget -qO- http://localhost:8080/healthz || exit 1
 
 EXPOSE 8080
-EXPOSE 8181
-EXPOSE 9090
+EXPOSE 8081
+EXPOSE 9091
 
 ENTRYPOINT ["./messaging-app"]

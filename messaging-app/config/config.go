@@ -97,10 +97,10 @@ func LoadConfig() *Config {
 		corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
 	}
 	cookieSecure, _ := strconv.ParseBool(getEnv("COOKIE_SECURE", "false"))
-	eventsGRPCPort := getEnv("EVENTS_GRPC_PORT", "9096")
+	eventsGRPCPort := getEnv("EVENTS_GRPC_PORT", "9094")
 	eventsGRPCHost := getEnv("EVENTS_GRPC_HOST", "localhost")
 	eventsMetricsPort := getEnv("EVENTS_METRICS_PORT", "9100")
-	marketplaceGRPCPort := getEnv("MARKETPLACE_GRPC_PORT", "9098")
+	marketplaceGRPCPort := getEnv("MARKETPLACE_GRPC_PORT", "9095")
 	marketplaceGRPCHost := getEnv("MARKETPLACE_GRPC_HOST", "localhost")
 	storyGRPCPort := getEnv("STORY_GRPC_PORT", "9097")
 	storyGRPCHost := getEnv("STORY_GRPC_HOST", "localhost")

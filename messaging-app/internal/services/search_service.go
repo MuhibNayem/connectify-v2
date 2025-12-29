@@ -4,8 +4,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 	"messaging-app/internal/repositories"
+
+	"github.com/MuhibNayem/connectify-v2/shared-entity/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -25,6 +26,15 @@ func NewSearchService(userRepo *repositories.UserRepository, feedRepo *repositor
 		feedRepo:       feedRepo,
 		friendshipRepo: friendshipRepo,
 	}
+}
+
+// FriendshipStatusResponse defines the detailed status between two users
+type FriendshipStatusResponse struct {
+	AreFriends        bool `json:"are_friends"`
+	RequestSent       bool `json:"request_sent"`         // Viewer sent request to other user
+	RequestReceived   bool `json:"request_received"`     // Viewer received request from other user
+	IsBlockedByViewer bool `json:"is_blocked_by_viewer"` // Viewer has blocked other user
+	HasBlockedViewer  bool `json:"has_blocked_viewer"`   // Other user has blocked viewer
 }
 
 // UserWithFriendshipStatus extends SafeUserResponse with friendship info

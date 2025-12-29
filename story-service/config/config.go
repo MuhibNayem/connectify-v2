@@ -56,7 +56,7 @@ func Load() *Config {
 		MongoURI: getEnv("MONGO_URI", "mongodb://localhost:27017"),
 		DBName:   getEnv("DB_NAME", "messaging_app"),
 
-		ServerPort: getEnv("SERVER_PORT", "8088"),
+		ServerPort: getEnv("SERVER_PORT", "8084"),
 		GRPCPort:   getEnv("GRPC_PORT", "9097"),
 
 		// Kafka

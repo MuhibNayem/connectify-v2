@@ -97,7 +97,6 @@ type serviceBundle struct {
 	Feed                *services.FeedService
 	User                *services.UserService
 	Group               *services.GroupService
-	Friendship          *services.FriendshipService
 	Message             *services.MessageService
 	Privacy             *services.PrivacyService
 	Search              *services.SearchService
@@ -145,7 +144,6 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 	feedService := services.NewFeedService(repos.Feed, repos.User, repos.Friendship, repos.Community, repos.Privacy, a.kafkaProducer, notificationService, storageClient)
 	userService := services.NewUserService(repos.User, repos.Reel, a.redisClient.GetClient(), feedService, a.userKafkaProducer, userClient)
 	groupService := services.NewGroupService(repos.Group, repos.User, repos.GroupActivity, a.cassandra, a.kafkaProducer, a.redisClient.GetClient(), graphs.GroupGraph)
-	friendshipService := services.NewFriendshipService(repos.Friendship, repos.User, graphs.UserGraph, a.friendshipKafkaProducer)
 	messageService := services.NewMessageService(repos.Message, repos.Group, repos.Friendship, a.kafkaProducer, a.redisClient.GetClient(), repos.User, notificationService, repos.MessageCassandra, repos.GroupActivity)
 	privacyService := services.NewPrivacyService(repos.Privacy, repos.User)
 	searchService := services.NewSearchService(repos.User, repos.Feed, repos.Friendship)
@@ -167,7 +165,6 @@ func (a *Application) buildBaseServices(repos repositoryBundle, graphs graphBund
 		Feed:                feedService,
 		User:                userService,
 		Group:               groupService,
-		Friendship:          friendshipService,
 		Message:             messageService,
 		Privacy:             privacyService,
 		Search:              searchService,

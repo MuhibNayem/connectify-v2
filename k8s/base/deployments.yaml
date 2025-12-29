@@ -138,5 +138,5 @@ spec:
         ports:
         - containerPort: 9095
           name: grpc
-        - containerPort: 8087
+        - containerPort: 8088
           name: http

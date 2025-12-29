@@ -17,12 +17,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/events-service ./cmd/
 # Final stage
 FROM gcr.io/distroless/base-debian12
 
-ENV EVENTS_GRPC_PORT=9096 \
+ENV EVENTS_GRPC_PORT=9094 \
     EVENTS_METRICS_PORT=9100
 
 COPY --from=builder /bin/events-service /bin/events-service
 
-EXPOSE 9096 9100
+EXPOSE 9094 9100
 
 USER nonroot:nonroot
 
