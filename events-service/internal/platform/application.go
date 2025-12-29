@@ -189,18 +189,33 @@ func (a *Application) bootstrap() error {
 		return err
 	}
 
-	a.neo4jClient, err = InitNeo4j(a.cfg)
-	if err != nil {
-		slog.Warn("Failed to connect to Neo4j", "error", err)
-	}
-
 	a.dlqProducer = pkgkafka.NewDLQProducer(a.cfg.KafkaBrokers)
 
 	eventRepo := repository.NewEventRepository(a.db)
 	userLocalRepo := integration.NewUserLocalRepository(a.db)
 
 	// Graph & other repos
-	eventGraphRepo := repository.NewEventGraphRepository(a.neo4jClient.Driver)
+	// Graph & other repos
+	var eventGraphRepo service.EventGraphRepo
+	if a.cfg.GraphDB == "dgraph" {
+		slog.Info("Using Dgraph as graph database", "addr", a.cfg.DgraphAddr)
+		dgRepo, err := repository.NewDgraphRepository(a.cfg.DgraphAddr)
+		if err != nil {
+			slog.Error("Failed to initialize Dgraph client", "error", err)
+		} else {
+			eventGraphRepo = dgRepo
+		}
+	} else {
+		// Neo4j Init
+		// We only init Neo4j if we are going to use it
+		var err error
+		a.neo4jClient, err = InitNeo4j(a.cfg)
+		if err != nil {
+			slog.Warn("Failed to connect to Neo4j", "error", err)
+		} else {
+			eventGraphRepo = repository.NewEventGraphRepository(a.neo4jClient.Driver)
+		}
+	}
 	eventInvitationRepo := repository.NewEventInvitationRepository(a.db)
 	eventPostRepo := repository.NewEventPostRepository(a.db)
 	friendshipRepo := integration.NewFriendshipLocalRepository(a.db)

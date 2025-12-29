@@ -54,6 +54,9 @@ type Config struct {
 	Neo4jUser         string
 	Neo4jPassword     string
 
+	GraphDB    string
+	DgraphAddr string
+
 	// Message Archival
 	ArchiveAfterDays    int
 	ArchiveBucket       string
@@ -130,6 +133,10 @@ func LoadConfig() *Config {
 		Neo4jURI:          getEnv("NEO4J_URI", "bolt://localhost:7687"),
 		Neo4jUser:         getEnv("NEO4J_USER", "neo4j"),
 		Neo4jPassword:     getEnv("NEO4J_PASSWORD", "connectify"),
+
+		// Graph DB
+		GraphDB:    getEnv("GRAPH_DB", "dgraph"), // Default to dgraph for migration
+		DgraphAddr: getEnv("DGRAPH_ADDR", "localhost:9080"),
 
 		// Message Archival
 		ArchiveAfterDays:    archiveAfterDays,
