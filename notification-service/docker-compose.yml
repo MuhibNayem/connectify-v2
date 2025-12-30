@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  notification-service:
+    build: .
+    container_name: notification-service
+    ports:
+      - "8090:8090" # HTTP API
+      - "50060:50060" # gRPC (future)
+      - "9102:9102" # Prometheus metrics (future)
+    environment:
+      # Storage
+      - STORAGE_TYPE=memory
+
+      # Queue
+      - QUEUE_TYPE=memory
+
+      # Server
+      - HTTP_PORT=8090
+      - GRPC_PORT=50060
+      - ENVIRONMENT=development
+
+      # Channels
+      - INAPP_ENABLED=true
+      - PUSH_ENABLED=false
+      - EMAIL_ENABLED=false
+      - SMS_ENABLED=false
+      - WEBHOOK_ENABLED=true
+
+      # Rate Limiting
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_MAX_PER_HOUR=100
+
+      # Observability
+      - LOG_LEVEL=info
+      - METRICS_ENABLED=true
+
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8090/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    restart: unless-stopped
+
+    networks:
+      - notification-net
+
+networks:
+  notification-net:
+    driver: bridge

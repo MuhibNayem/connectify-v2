@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/MuhibNayem/connectify-v2/notification-service/proto/notification/v1";
+
+service NotificationService {
+  rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
+  rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+}
+
+message CreateNotificationRequest {
+  string recipient_id = 1;
+  string type = 2;
+  string title = 3;
+  string body = 4;
+  string priority = 5;
+  map<string, string> data = 6;
+}
+
+message CreateNotificationResponse {
+  string id = 1;
+  bool success = 2;
+}
+
+message GetNotificationRequest {
+  string id = 1;
+}
+
+message GetNotificationResponse {
+  Notification notification = 1;
+}
+
+message ListNotificationsRequest {
+  string recipient_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  int64 total = 2;
+}
+
+message Notification {
+  string id = 1;
+  string recipient_id = 2;
+  string type = 3;
+  string title = 4;
+  string body = 5;
+  string created_at = 6;
+  bool read = 7;
+}

@@ -1,0 +1,971 @@
+openapi: 3.0.3
+info:
+  title: Universal Notification Service API
+  description: |
+    Production-grade, industry-agnostic notification service with multi-channel delivery.
+    
+    ## Features
+    - **Multi-channel delivery**: In-app, Push, Email, SMS, Webhooks
+    - **Template support**: Customizable notification templates
+    - **User preferences**: Fine-grained control over notification delivery
+    - **Rate limiting**: Prevent notification spam
+    - **Webhooks**: Subscribe to notification events
+    - **Batch operations**: Efficient bulk operations
+    - **Real-time**: Server-Sent Events (SSE) for live notifications
+    
+    ## Authentication
+    Supports multiple authentication methods:
+    - **API Key**: Pass `X-API-Key` header
+    - **Bearer Token**: Pass `Authorization: Bearer <token>` header
+    - **JWT**: Pass `Authorization: Bearer <jwt>` header
+    
+    ## Rate Limiting
+    All endpoints are rate limited. Check these headers in responses:
+    - `X-RateLimit-Limit`: Max requests per window
+    - `X-RateLimit-Remaining`: Remaining requests
+    - `X-RateLimit-Reset`: Unix timestamp when limit resets
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/yourusername/notification-service
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://staging-api.example.com/v1
+    description: Staging server
+  - url: http://localhost:8090/v1
+    description: Local development server
+
+tags:
+  - name: Notifications
+    description: Notification management operations
+  - name: Preferences
+    description: User preference management
+  - name: Templates
+    description: Notification template management
+  - name: Webhooks
+    description: Webhook subscription management
+  - name: Health
+    description: Health check and metrics
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+  # ==================== Notifications ====================
+  
+  /notifications:
+    post:
+      tags:
+        - Notifications
+      summary: Create a notification
+      description: |
+        Creates a new notification and delivers it through configured channels.
+        
+        The notification will be:
+        1. Validated and rate-limited
+        2. Enriched with user preferences
+        3. Rendered using templates (if specified)
+        4. Delivered to all enabled channels
+        5. Stored for retrieval via API
+      operationId: createNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+            examples:
+              simple:
+                summary: Simple notification
+                value:
+                  recipient_id: "user_123"
+                  type: "message_received"
+                  title: "New Message"
+                  body: "You have a new message from John"
+              template:
+                summary: Template-based notification
+                value:
+                  recipient_id: "user_123"
+                  type: "order_shipped"
+                  template_id: "order_shipped_template"
+                  template_data:
+                    order_id: "ORD-123"
+                    tracking_number: "1Z999AA10123456784"
+                  channels: ["email", "push"]
+      responses:
+        '201':
+          description: Notification created successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+              description: Unique request identifier
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    get:
+      tags:
+        - Notifications
+      summary: List notifications
+      description: |
+        List notifications for the authenticated user with filtering and pagination.
+        
+        Supports cursor-based pagination for efficient scrolling through large datasets.
+      operationId: listNotifications
+      parameters:
+        - name: recipient_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User ID to fetch notifications for
+        - name: types
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by notification types
+          style: form
+          explode: false
+        - name: read
+          in: query
+          schema:
+            type: boolean
+          description: Filter by read status
+        - name: channels
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by delivery channels
+          style: form
+          explode: false
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/Priority'
+          description: Filter by priority
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter notifications created after this time
+        - name: until
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter notifications created before this time
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Pagination cursor from previous response
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of results per page
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [created_at, -created_at, priority, -priority]
+            default: -created_at
+          description: Sort field (prefix with - for descending)
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  
+  /notifications/{id}:
+    get:
+      tags:
+        - Notifications
+      summary: Get notification by ID
+      operationId: getNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Notification ID
+      responses:
+        '200':
+          description: Notification details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    patch:
+      tags:
+        - Notifications
+      summary: Update notification
+      description: Update notification properties (e.g., mark as read)
+      operationId: updateNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                read:
+                  type: boolean
+      responses:
+        '200':
+          description: Notification updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification
+      operationId: deleteNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Notification deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  /notifications/batch/mark-read:
+    post:
+      tags:
+        - Notifications
+      summary: Batch mark as read
+      description: Mark multiple notifications as read in a single API call
+      operationId: batchMarkAsRead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchMarkAsReadRequest'
+      responses:
+        '200':
+          description: Notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_count:
+                    type: integer
+                    description: Number of notifications updated
+  
+  /notifications/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread count
+      description: Get the count of unread notifications for a user
+      operationId: getUnreadCount
+      parameters:
+        - name: recipient_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  by_type:
+                    type: object
+                    additionalProperties:
+                      type: integer
+  
+  /notifications/stream:
+    get:
+      tags:
+        - Notifications
+      summary: Stream notifications (SSE)
+      description: |
+        Server-Sent Events (SSE) endpoint for real-time notification delivery.
+        
+        Connect to this endpoint to receive notifications as they are created.
+      operationId: streamNotifications
+      parameters:
+        - name: recipient_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                notification:
+                  value: |
+                    event: notification
+                    data: {"id":"notif_123","title":"New message","body":"You have a new message"}
+                    
+                    event: notification_read
+                    data: {"id":"notif_123","read":true}
+  
+  # ==================== Preferences ====================
+  
+  /preferences/{user_id}:
+    get:
+      tags:
+        - Preferences
+      summary: Get user preferences
+      operationId: getUserPreferences
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+    
+    put:
+      tags:
+        - Preferences
+      summary: Update user preferences
+      operationId: updateUserPreferences
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+  
+  # ==================== Templates ====================
+  
+  /templates:
+    get:
+      tags:
+        - Templates
+      summary: List templates
+      operationId: listTemplates
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+    
+    post:
+      tags:
+        - Templates
+      summary: Create template
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+  
+  # ==================== Webhooks ====================
+  
+  /webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List webhook subscriptions
+      operationId: listWebhooks
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+    
+    post:
+      tags:
+        - Webhooks
+      summary: Create webhook subscription
+      description: Subscribe to notification events via webhook
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+  
+  # ==================== Health ====================
+  
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      operationId: getMetrics
+      security: []
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+# ==================== Components ====================
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    CreateNotificationRequest:
+      type: object
+      required:
+        - recipient_id
+        - type
+      properties:
+        recipient_id:
+          type: string
+          description: User ID who should receive the notification
+        sender_id:
+          type: string
+          description: User ID who triggered the notification (optional)
+        type:
+          type: string
+          description: Notification type (you define your own types)
+          example: "order_shipped"
+        title:
+          type: string
+          description: Short, human-readable title
+          example: "Order Shipped"
+        body:
+          type: string
+          description: Main notification message
+          example: "Your order #12345 has been shipped"
+        image_url:
+          type: string
+          format: uri
+          description: Optional image URL
+        action_url:
+          type: string
+          format: uri
+          description: URL to navigate when notification is clicked
+        priority:
+          $ref: '#/components/schemas/Priority'
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [inapp, push, email, sms, webhook]
+          description: Channels to use (if empty, uses all enabled channels)
+        data:
+          type: object
+          additionalProperties: true
+          description: Arbitrary metadata for your app
+        template_id:
+          type: string
+          description: Template ID for template-based notifications
+        template_data:
+          type: object
+          additionalProperties: true
+          description: Data to render template with
+        ttl:
+          type: integer
+          description: Time-to-live in seconds
+        tenant_id:
+          type: string
+          description: Tenant ID for multi-tenant systems
+    
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        recipient_id:
+          type: string
+        sender_id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        action_url:
+          type: string
+          format: uri
+        priority:
+          $ref: '#/components/schemas/Priority'
+        channels:
+          type: array
+          items:
+            type: string
+        data:
+          type: object
+          additionalProperties: true
+        read:
+          type: boolean
+        read_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: object
+          additionalProperties:
+            type: string
+            format: date-time
+        failed_channels:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    NotificationResponse:
+      allOf:
+        - $ref: '#/components/schemas/Notification'
+        - type: object
+          properties:
+            delivery_status:
+              type: object
+              properties:
+                channels:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      delivered:
+                        type: boolean
+                      delivered_at:
+                        type: string
+                        format: date-time
+                      error:
+                        type: string
+    
+    NotificationListResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        total:
+          type: integer
+          format: int64
+        next_cursor:
+          type: string
+        has_more:
+          type: boolean
+    
+    BatchMarkAsReadRequest:
+      type: object
+      required:
+        - recipient_id
+      properties:
+        recipient_id:
+          type: string
+        notification_ids:
+          type: array
+          items:
+            type: string
+          description: Specific IDs to mark as read
+        mark_all_as_read:
+          type: boolean
+          description: Mark all notifications as read
+        types:
+          type: array
+          items:
+            type: string
+          description: Mark all of these types as read
+        before:
+          type: string
+          format: date-time
+          description: Mark all before this date as read
+    
+    Priority:
+      type: string
+      enum: [normal, high, critical]
+      default: normal
+      description: |
+        - normal: Standard notification
+        - high: Shown prominently
+        - critical: Bypasses rate limiting and quiet hours
+    
+    UserPreferences:
+      type: object
+      properties:
+        user_id:
+          type: string
+        inapp_enabled:
+          type: boolean
+        push_enabled:
+          type: boolean
+        email_enabled:
+          type: boolean
+        sms_enabled:
+          type: boolean
+        webhook_enabled:
+          type: boolean
+        type_preferences:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ChannelPreferences'
+        quiet_hours:
+          $ref: '#/components/schemas/QuietHours'
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+        device_tokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceToken'
+        webhook_url:
+          type: string
+          format: uri
+        locale:
+          type: string
+          example: "en-US"
+        timezone:
+          type: string
+          example: "America/New_York"
+    
+    ChannelPreferences:
+      type: object
+      properties:
+        inapp:
+          type: boolean
+        push:
+          type: boolean
+        email:
+          type: boolean
+        sms:
+          type: boolean
+        webhook:
+          type: boolean
+    
+    QuietHours:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        start_time:
+          type: string
+          example: "22:00"
+        end_time:
+          type: string
+          example: "08:00"
+        timezone:
+          type: string
+          example: "America/New_York"
+        days_of_week:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+          description: 0=Sunday, 6=Saturday
+    
+    DeviceToken:
+      type: object
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+          enum: [ios, android, web]
+        enabled:
+          type: boolean
+    
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+    
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - content
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+    
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        secret:
+          type: string
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    
+    CreateWebhookRequest:
+      type: object
+      required:
+        - url
+        - events
+      properties:
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+            enum: [notification.created, notification.delivered, notification.read, notification.failed]
+        secret:
+          type: string
+    
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+              message:
+                type: string
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+  
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

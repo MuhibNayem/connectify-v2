@@ -164,11 +164,10 @@ services:
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redispass", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "redispass", "ping" ]
       interval: 1s
       timeout: 3s
       retries: 5
-
 
   # Kafka brokers
 
@@ -581,6 +580,36 @@ services:
     networks:
       - messaging-net
 
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "${NOTIFICATION_SERVER_PORT}:${NOTIFICATION_SERVER_PORT}"
+      - "${NOTIFICATION_GRPC_PORT}:${NOTIFICATION_GRPC_PORT}"
+    environment:
+      - SERVER_PORT=${NOTIFICATION_SERVER_PORT}
+      - GRPC_PORT=${NOTIFICATION_GRPC_PORT}
+      - LOG_LEVEL=info
+      - STORAGE_TYPE=mongodb
+      - MONGO_URI=${NOTIFICATION_MONGO_URI}
+      - DB_NAME=${NOTIFICATION_DB_NAME}
+      - QUEUE_TYPE=kafka
+      - KAFKA_BROKERS=${NOTIFICATION_KAFKA_BROKERS}
+      - KAFKA_TOPIC=${NOTIFICATION_KAFKA_TOPIC}
+      - KAFKA_GROUP_ID=${NOTIFICATION_KAFKA_GROUP_ID}
+      - CHANNEL_IN_APP_ENABLED=true
+      - CHANNEL_EMAIL_ENABLED=true
+      - CHANNEL_PUSH_ENABLED=true
+    depends_on:
+      mongodb1:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+    networks:
+      - messaging-net
+
   # MinIO Service
   minio:
     image: minio/minio
@@ -608,7 +637,7 @@ services:
       minio:
         condition: service_healthy
     entrypoint: >
-      /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin; /usr/bin/mc mb myminio/connectify-uploads; /usr/bin/mc anonymous set public myminio/connectify-uploads; exit 0; "
+      /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin; /usr/bin/mc mb myminio/connectify-uploads; exit 0; "
     networks:
       - messaging-net
 
@@ -733,7 +762,7 @@ services:
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD", "curl", "-s", "http://localhost:6080/health"]
+      test: [ "CMD", "curl", "-s", "http://localhost:6080/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -753,7 +782,7 @@ services:
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD", "curl", "-s", "http://localhost:8080/health"]
+      test: [ "CMD", "curl", "-s", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -774,16 +803,16 @@ services:
     container_name: jaeger
     restart: unless-stopped
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC receiver
-      - "4318:4318"    # OTLP HTTP receiver
+      - "16686:16686" # Jaeger UI
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
       - "6831:6831/udp" # Jaeger Thrift compact
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     networks:
       - messaging-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:16686" ]
       interval: 10s
       timeout: 5s
       retries: 3

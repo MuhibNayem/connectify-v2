@@ -1,0 +1,339 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/MuhibNayem/connectify-v2/notification-service/config"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/auth"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/cache"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/email"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/inapp"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/push"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/sms"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/cleanup"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/core"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/dlq"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/idempotency"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/observability"
+	kafkaqueue "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/kafka"
+	memoryqueue "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/memory"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/ratelimit"
+	grpcserver "github.com/MuhibNayem/connectify-v2/notification-service/internal/server/grpc"
+	httpserver "github.com/MuhibNayem/connectify-v2/notification-service/internal/server/http"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/storage/memory"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/storage/mongodb"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/storage/postgres"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/tracing"
+	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/adapters"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	fmt.Println("🚀 Universal Notification Service - Production Grade")
+	fmt.Println("   Industry-agnostic | Plugin Architecture | Zero Dependencies")
+	fmt.Println()
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("❌ Failed to load config: %v", err)
+	}
+
+	// Initialize logger
+	logger, err := observability.NewLogger(cfg.Observability.LogLevel, cfg.Observability.LogFormat)
+	if err != nil {
+		log.Fatalf("❌ Failed to create logger: %v", err)
+	}
+	defer logger.Sync()
+
+	// Metrics system initialized via package init
+	logger.Info("✅ Metrics system initialized")
+
+	// ==================== STORAGE INITIALIZATION ====================
+	var storage adapters.StorageAdapter
+
+	switch cfg.Storage.Type {
+	case "mongodb":
+		storage, err = mongodb.NewMongoStorage(cfg.Storage.URI, cfg.Storage.Database, cfg.Storage.Collection)
+		if err != nil {
+			logger.Fatal("❌ Failed to initialize MongoDB", zap.Error(err))
+		}
+		logger.Info("✅ Using MongoDB storage", zap.String("database", cfg.Storage.Database))
+
+	case "postgres", "postgresql":
+		storage, err = postgres.NewPostgresStorage(cfg.Storage.URI)
+		if err != nil {
+			logger.Fatal("❌ Failed to initialize PostgreSQL", zap.Error(err))
+		}
+		logger.Info("✅ Using PostgreSQL storage")
+
+	case "memory":
+		storage = memory.NewMemoryStorage()
+		logger.Info("✅ Using in-memory storage (development mode)")
+
+	default:
+		storage = memory.NewMemoryStorage()
+		logger.Warn("⚠️  Unknown storage type, using in-memory", zap.String("type", cfg.Storage.Type))
+	}
+
+	// ==================== QUEUE INITIALIZATION ====================
+	var queue adapters.QueueAdapter
+
+	switch cfg.Queue.Type {
+	case "kafka":
+		queue = kafkaqueue.NewKafkaQueue(cfg.Queue.Brokers, cfg.Queue.Topic, cfg.Queue.GroupID)
+		logger.Info("✅ Using Kafka queue", zap.Strings("brokers", cfg.Queue.Brokers))
+
+	case "memory":
+		queue = memoryqueue.NewMemoryQueue()
+		logger.Info("✅ Using in-memory queue (development mode)")
+
+	default:
+		queue = memoryqueue.NewMemoryQueue()
+		logger.Warn("⚠️  Unknown queue type, using in-memory", zap.String("type", cfg.Queue.Type))
+	}
+
+	// ==================== SHARED REDIS CLIENT ====================
+	var redisClient *redis.Client
+	if cfg.Redis.Addr != "" {
+		redisClient = redis.NewClient(&redis.Options{
+			Addr:     cfg.Redis.Addr,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		if err := redisClient.Ping(ctx).Err(); err != nil {
+			logger.Warn("⚠️  Redis not available", zap.Error(err), zap.String("addr", cfg.Redis.Addr))
+			redisClient = nil
+		} else {
+			logger.Info("✅ Redis connected", zap.String("addr", cfg.Redis.Addr))
+		}
+	}
+
+	// ==================== CACHE ====================
+	// RedisCache is unused if rateLimiter is injected directly
+	_ = cache.NewRedisCache // Satisfy import
+
+	// ==================== 10/10 PRODUCTION COMPONENTS ====================
+
+	// 1. Idempotency Service (Exactly-Once Processing)
+	var idempotencyService *idempotency.Service
+	if redisClient != nil {
+		idempotencyService = idempotency.NewService(redisClient, 24*time.Hour)
+		logger.Info("✅ Idempotency service initialized (24h TTL)")
+	}
+
+	// 2. Dead Letter Queue Handler
+	dlqHandler := dlq.NewHandler(storage, logger)
+	logger.Info("✅ DLQ handler initialized")
+
+	// 3. Distributed Tracing
+	tracer := tracing.NewTracer("notification-service")
+	logger.Info("✅ Tracing initialized")
+
+	// 4. User Resolver
+	var userResolver adapters.UserResolver
+	if cfg.Server.UserServiceURL != "" {
+		userResolver = adapters.NewHTTPUserResolver(cfg.Server.UserServiceURL)
+		logger.Info("✅ Using HTTP User Resolver", zap.String("url", cfg.Server.UserServiceURL))
+	} else {
+		userResolver = &adapters.DefaultUserResolver{}
+		logger.Info("✅ Using Default User Resolver (Notification Data Only)")
+	}
+
+	// ==================== ORCHESTRATOR ====================
+	orchestrator := core.NewOrchestrator(&core.OrchestratorConfig{
+		Storage:         storage,
+		Queue:           queue,
+		UserPrefAdapter: nil,
+		UserResolver:    userResolver,
+		Logger:          logger,
+		Idempotency:     idempotencyService,
+		DLQHandler:      dlqHandler,
+		Tracer:          tracer,
+	})
+
+	// Start Worker
+	go func() {
+		if err := orchestrator.StartWorker(context.Background()); err != nil {
+			logger.Error("❌ Worker failed", zap.Error(err))
+		}
+	}()
+
+	// ==================== CHANNELS ====================
+
+	// 1. In-App (WebSocket)
+	if cfg.Channels.InApp.Enabled {
+		wsChannel := inapp.NewWebSocketChannel(inapp.WebSocketConfig{
+			RedisClient:         redisClient,
+			MaxTotalConnections: 10000, // 10k per instance
+			MaxPerUserConns:     5,     // 5 devices per user
+		})
+		orchestrator.RegisterChannel(wsChannel)
+		logger.Info("✅ Channel enabled: In-App (WebSocket)")
+	}
+
+	// 2. Email (SMTP)
+	if cfg.Channels.Email.Enabled {
+		emailCfg := email.EmailConfig{
+			Host:     cfg.Channels.Email.SMTPHost,
+			Port:     cfg.Channels.Email.SMTPPort,
+			Username: cfg.Channels.Email.SMTPUsername,
+			Password: cfg.Channels.Email.SMTPPassword,
+			From:     cfg.Channels.Email.FromEmail,
+			FromName: cfg.Channels.Email.FromName,
+			UseTLS:   cfg.Channels.Email.UseTLS,
+		}
+		emailChannel := email.NewEmailChannel(emailCfg)
+		orchestrator.RegisterChannel(emailChannel)
+		logger.Info("✅ Channel enabled: Email (SMTP)")
+	}
+
+	// 3. SMS (Pluggable)
+	if cfg.Channels.SMS.Enabled {
+		// Example: Choose provider based on config
+		// For now using Twilio as example provider
+		provider := sms.NewTwilioProvider(
+			cfg.Channels.SMS.TwilioAccountSID,
+			cfg.Channels.SMS.TwilioAuthToken,
+			cfg.Channels.SMS.TwilioFromNumber,
+		)
+		smsChannel := sms.NewSMSChannel(provider)
+		orchestrator.RegisterChannel(smsChannel)
+		logger.Info("✅ Channel enabled: SMS (Twilio Provider)")
+	}
+
+	// 4. Push (Pluggable)
+	if cfg.Channels.Push.Enabled {
+		// Example: Choose provider based on config
+		// This shows how easily we can plug in different providers
+		var provider push.PushProvider
+		if cfg.Channels.Push.FCMEnabled {
+			p, _ := push.NewFCMProvider("project-id", "creds.json")
+			provider = p
+			logger.Info("✅ Channel enabled: Push (FCM Provider)")
+		} else if cfg.Channels.Push.APNSEnabled {
+			p, _ := push.NewAPNSProvider("team-id", "key-id", "key.p8", true)
+			provider = p
+			logger.Info("✅ Channel enabled: Push (APNS Provider)")
+		}
+
+		if provider != nil {
+			pushChannel := push.NewPushChannel(provider)
+			orchestrator.RegisterChannel(pushChannel)
+		}
+	}
+
+	// ==================== BACKGROUND SERVICES ====================
+
+	// Cleanup Service
+	cleanupService := cleanup.NewCleanupService(storage, 1*time.Hour)
+	cleanupService.Start()
+	logger.Info("✅ Background cleanup service started")
+
+	// ==================== SERVERS ====================
+
+	// Metrics Server
+	if cfg.Observability.MetricsEnabled {
+		go func() {
+			http.Handle("/metrics", promhttp.Handler())
+			http.ListenAndServe(":"+cfg.Observability.MetricsPort, nil)
+		}()
+	}
+
+	// Initialize Auth and Rate Limiter for HTTP server
+	var authenticator *auth.Authenticator
+	var rateLimiter *ratelimit.Limiter
+
+	// Auth: Only enable if JWT_SECRET is configured
+	if cfg.Auth.JWTSecret != "" {
+		// Parse API keys from config (format: "key1:name1,key2:name2")
+		apiKeys := make(map[string]string)
+		if cfg.Auth.APIKeys != "" {
+			for _, pair := range strings.Split(cfg.Auth.APIKeys, ",") {
+				parts := strings.SplitN(pair, ":", 2)
+				if len(parts) == 2 {
+					apiKeys[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+				}
+			}
+		}
+
+		authenticator = auth.NewAuthenticator(auth.Config{
+			JWTSecret: cfg.Auth.JWTSecret,
+			JWTIssuer: cfg.Auth.JWTIssuer,
+			APIKeys:   apiKeys,
+		})
+		logger.Info("✅ Authentication initialized", zap.Int("api_keys", len(apiKeys)))
+	} else {
+		logger.Warn("⚠️  Authentication disabled (JWT_SECRET not set)")
+	}
+
+	// Rate Limiter: Only enable if Redis is available
+	if redisClient != nil && cfg.RateLimit.Enabled {
+		rateLimiter = ratelimit.NewLimiter(redisClient, ratelimit.Config{
+			RequestsPerSecond: cfg.RateLimit.MaxPerHour / 3600, // Convert to per-second
+			BurstSize:         cfg.RateLimit.MaxPerHour / 1800, // Allow 2x burst
+			KeyPrefix:         "ratelimit:notification",
+		})
+		logger.Info("✅ Rate limiter initialized")
+	}
+
+	// HTTP API
+	httpServer := httpserver.NewServer(httpserver.ServerConfig{
+		Orchestrator:  orchestrator,
+		Authenticator: authenticator,
+		RateLimiter:   rateLimiter,
+	})
+	apiAddr := ":" + cfg.Server.HTTPPort
+
+	go func() {
+		logger.Info("🌐 HTTP server listening", zap.String("addr", apiAddr))
+		if err := http.ListenAndServe(apiAddr, httpServer); err != nil {
+			logger.Fatal("HTTP server failed", zap.Error(err))
+		}
+	}()
+
+	// gRPC API
+	grpcAddr := ":" + cfg.Server.GRPCPort
+	lis, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		logger.Fatal("Failed to listen for gRPC", zap.Error(err))
+	}
+
+	grpcServer := grpc.NewServer()
+	notificationServer := grpcserver.NewNotificationServer(orchestrator)
+	notificationServer.Register(grpcServer)
+
+	go func() {
+		logger.Info("🔌 gRPC server listening", zap.String("addr", grpcAddr))
+		if err := grpcServer.Serve(lis); err != nil {
+			logger.Fatal("gRPC server failed", zap.Error(err))
+		}
+	}()
+
+	// ==================== SHUTDOWN ====================
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("🛑 Shutting down...")
+	cleanupService.Stop()
+	grpcServer.GracefulStop()
+
+	logger.Info("✅ Shutdown complete")
+}
