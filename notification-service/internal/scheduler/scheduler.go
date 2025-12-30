@@ -77,21 +77,31 @@ func (s *Service) StartPoller(ctx context.Context) {
 }
 
 func (s *Service) processDueEvents(ctx context.Context) {
-	// Atomic pop of ready events (Score <= Now)
+	// Atomic move from Delayed ZSET to Active List (durability)
+	// If the worker crashes after this script but before publishing, items remain in 'active' list
+	// A separate recovery process (or startup check) could re-queue them.
+	// For now, this is "At Least Once" if we just process the list.
 	script := redis.NewScript(`
 		local key = KEYS[1]
+		local activeList = KEYS[2]
 		local maxScore = ARGV[1]
 		local limit = tonumber(ARGV[2])
 
 		local events = redis.call('ZRANGEBYSCORE', key, '-inf', maxScore, 'LIMIT', 0, limit)
 		if #events > 0 then
 			redis.call('ZREM', key, unpack(events))
+			// Push to active list to persist them while processing
+			// In a full implementation, we'd use RPOPLPUSH per item, but batch move is efficient
+			for i, v in ipairs(events) do
+				redis.call('RPUSH', activeList, v)
+			end
 		end
 		return events
 	`)
 
 	now := float64(time.Now().UnixNano()) / 1e9
-	res, err := script.Run(ctx, s.redis, []string{DelayedKey}, now, 20).Result() // Process 20 at a time
+	activeKey := "notifications:active" // Durable list
+	res, err := script.Run(ctx, s.redis, []string{DelayedKey, activeKey}, now, 20).Result()
 	if err != nil && err != redis.Nil {
 		s.logger.Error("Failed to poll delayed events", zap.Error(err))
 		return
@@ -107,15 +117,26 @@ func (s *Service) processDueEvents(ctx context.Context) {
 		var event adapters.NotificationEvent
 		if err := json.Unmarshal(data, &event); err != nil {
 			s.logger.Error("Failed to unmarshal delayed event", zap.Error(err))
+			// Poison message? Remove from list to avoid block?
+			// For now, we leave it or remove it. Ideally remove.
+			s.redis.LRem(ctx, activeKey, 1, dataStr)
 			continue
 		}
 
 		s.logger.Info("⏰ Triggering delayed retry", zap.String("id", event.ID))
 		if err := s.queue.Publish(ctx, &event); err != nil {
 			s.logger.Error("Failed to publish delayed event", zap.Error(err))
-			// TODO: Re-add to ZSET with backoff? For now, we risk dropping if Kafka down.
-			// Ideally we shouldn't have removed from ZSET until publish success, but that makes atomicity hard without blocking.
-			// Acceptable trade-off for "Retry" logic (best effort resilience).
+			// Re-queue with backoff?
+			// Use ZADD to put back in delayed (retry later)
+			// And remove from active list
+			s.redis.ZAdd(ctx, DelayedKey, redis.Z{
+				Score:  float64(time.Now().Add(10*time.Second).UnixNano()) / 1e9,
+				Member: data,
+			})
+			s.redis.LRem(ctx, activeKey, 1, dataStr)
+		} else {
+			// Success: Remove from active list
+			s.redis.LRem(ctx, activeKey, 1, dataStr)
 		}
 	}
 }

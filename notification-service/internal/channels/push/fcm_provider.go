@@ -7,28 +7,39 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 // FCMProvider implements PushProvider using Firebase Cloud Messaging HTTP v1 API
 type FCMProvider struct {
 	projectID   string
-	credentials []byte
+	tokenSource oauth2.TokenSource
 	client      *http.Client
 }
 
-func NewFCMProvider(projectID string, credentialsFile string) (*FCMProvider, error) {
-	// In a real implementation, we would load credentials from file
-	// For now, we simulate success
+func NewFCMProvider(projectID string, credentialsJSON []byte) (*FCMProvider, error) {
+	// Create TokenSource from service account JSON
+	creds, err := google.CredentialsFromJSON(context.Background(), credentialsJSON, "https://www.googleapis.com/auth/firebase.messaging")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse credentials: %w", err)
+	}
+
 	return &FCMProvider{
-		projectID: projectID,
-		client:    &http.Client{Timeout: 10 * time.Second},
+		projectID:   projectID,
+		tokenSource: creds.TokenSource,
+		client:      &http.Client{Timeout: 10 * time.Second},
 	}, nil
 }
 
 func (f *FCMProvider) SendPush(ctx context.Context, token string, title, body string, data map[string]interface{}) error {
-	// Get Access Token (Mocked for now to avoid google package dependency issues if not installed)
-	// In production: ts, err := google.CredentialsFromJSON(ctx, f.credentials, "https://www.googleapis.com/auth/firebase.messaging")
-	accessToken := "mock-access-token"
+	// Get Access Token
+	oauthToken, err := f.tokenSource.Token()
+	if err != nil {
+		return fmt.Errorf("failed to get oauth token: %w", err)
+	}
+	accessToken := oauthToken.AccessToken
 
 	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", f.projectID)
 

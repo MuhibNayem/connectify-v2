@@ -25,6 +25,7 @@ import (
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/observability"
 	kafkaqueue "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/kafka"
 	memoryqueue "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/memory"
+	rabbitmq "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/rabbitmq"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/ratelimit"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/scheduler"
 	grpcserver "github.com/MuhibNayem/connectify-v2/notification-service/internal/server/grpc"
@@ -125,6 +126,18 @@ func main() {
 		})
 		logger.Info("✅ Using Kafka queue (with DLQ enabled)", zap.Strings("brokers", cfg.Queue.Brokers))
 
+	case "rabbitmq":
+		if len(cfg.Queue.Brokers) == 0 {
+			logger.Fatal("❌ RabbitMQ requires at least one broker URL (amqp://...)")
+		}
+		// Use first broker as URL
+		q, err := rabbitmq.NewRabbitQueue(cfg.Queue.Brokers[0], cfg.Queue.Topic)
+		if err != nil {
+			logger.Fatal("❌ Failed to init RabbitMQ", zap.Error(err))
+		}
+		queue = q
+		logger.Info("✅ Using RabbitMQ queue", zap.String("url", cfg.Queue.Brokers[0]))
+
 	case "memory":
 		queue = memoryqueue.NewMemoryQueue()
 		logger.Info("✅ Using in-memory queue (development mode)")
@@ -132,6 +145,30 @@ func main() {
 	default:
 		queue = memoryqueue.NewMemoryQueue()
 		logger.Warn("⚠️  Unknown queue type, using in-memory", zap.String("type", cfg.Queue.Type))
+	}
+
+	// ==================== DLQ QUEUE SETUP (Separate Topic) ====================
+	switch cfg.Queue.Type {
+	case "kafka":
+		dlqTopic := cfg.Queue.Topic + "-dlq"
+		dlqQueue := kafkaqueue.NewKafkaQueue(cfg.Queue.Brokers, dlqTopic, cfg.Queue.GroupID, nil)
+		dlqHandler.SetQueue(dlqQueue)
+		logger.Info("✅ DLQ Queue configured (Kafka)", zap.String("topic", dlqTopic))
+
+	case "rabbitmq":
+		if len(cfg.Queue.Brokers) > 0 {
+			dlqTopic := cfg.Queue.Topic + "-dlq"
+			q, err := rabbitmq.NewRabbitQueue(cfg.Queue.Brokers[0], dlqTopic)
+			if err == nil {
+				dlqHandler.SetQueue(q)
+				logger.Info("✅ DLQ Queue configured (RabbitMQ)", zap.String("topic", dlqTopic))
+			} else {
+				logger.Error("❌ Failed to init DLQ (RabbitMQ)", zap.Error(err))
+			}
+		}
+
+	case "memory":
+		dlqHandler.SetQueue(memoryqueue.NewMemoryQueue())
 	}
 
 	// 3. Distributed Tracing
@@ -229,13 +266,34 @@ func main() {
 		// This shows how easily we can plug in different providers
 		var provider push.PushProvider
 		if cfg.Channels.Push.FCMEnabled {
-			p, _ := push.NewFCMProvider("project-id", "creds.json")
-			provider = p
-			logger.Info("✅ Channel enabled: Push (FCM Provider)")
+			p, err := push.NewFCMProvider(cfg.Channels.Push.FCMProjectID, []byte(cfg.Channels.Push.FCMCredentials))
+			if err != nil {
+				logger.Error("❌ Failed to init FCM", zap.Error(err))
+			} else {
+				provider = p
+				logger.Info("✅ Channel enabled: Push (FCM Provider)")
+			}
 		} else if cfg.Channels.Push.APNSEnabled {
-			p, _ := push.NewAPNSProvider("team-id", "key-id", "key.p8", true)
-			provider = p
-			logger.Info("✅ Channel enabled: Push (APNS Provider)")
+			// Read p8 file content
+			p8Content, err := os.ReadFile(cfg.Channels.Push.APNSKeyFile)
+			if err != nil {
+				// Fallback: maybe it's the content itself?
+				p8Content = []byte(cfg.Channels.Push.APNSKeyFile)
+			}
+
+			p, err := push.NewAPNSProvider(
+				cfg.Channels.Push.APNSTeamID,
+				cfg.Channels.Push.APNSKeyID,
+				cfg.Channels.Push.APNSBundleID,
+				string(p8Content),
+				cfg.Channels.Push.APNSProduction,
+			)
+			if err != nil {
+				logger.Error("❌ Failed to init APNS", zap.Error(err))
+			} else {
+				provider = p
+				logger.Info("✅ Channel enabled: Push (APNS Provider)")
+			}
 		}
 
 		if provider != nil {

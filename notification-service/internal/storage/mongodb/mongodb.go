@@ -14,8 +14,10 @@ import (
 )
 
 type MongoStorage struct {
-	client     *mongo.Client
-	collection *mongo.Collection
+	client                  *mongo.Client
+	collection              *mongo.Collection
+	outboxCollection        *mongo.Collection
+	deliveryStateCollection *mongo.Collection
 }
 
 func NewMongoStorage(uri, database, collection string) (*MongoStorage, error) {
@@ -32,6 +34,8 @@ func NewMongoStorage(uri, database, collection string) (*MongoStorage, error) {
 	}
 
 	coll := client.Database(database).Collection(collection)
+	outboxColl := client.Database(database).Collection("outbox")
+	deliveryStateColl := client.Database(database).Collection("delivery_states")
 
 	// Create indexes
 	_, err = coll.Indexes().CreateMany(ctx, []mongo.IndexModel{
@@ -45,9 +49,20 @@ func NewMongoStorage(uri, database, collection string) (*MongoStorage, error) {
 		return nil, fmt.Errorf("failed to create indexes: %w", err)
 	}
 
+	// Outbox Indexes
+	_, err = outboxColl.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "Timestamp", Value: 1}}},    // FIFO processing
+		{Keys: bson.D{{Key: "locked_until", Value: 1}}}, // For leasing
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create outbox indexes: %w", err)
+	}
+
 	return &MongoStorage{
-		client:     client,
-		collection: coll,
+		client:                  client,
+		collection:              coll,
+		outboxCollection:        outboxColl,
+		deliveryStateCollection: deliveryStateColl,
 	}, nil
 }
 
@@ -234,24 +249,99 @@ func (m *MongoStorage) HealthCheck(ctx context.Context) error {
 }
 
 func (m *MongoStorage) SaveDeliveryState(ctx context.Context, state *models.NotificationDeliveryState) error {
-	return nil // Stub
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"notification_id": state.NotificationID}
+	update := bson.M{"$set": state}
+
+	_, err := m.deliveryStateCollection.UpdateOne(ctx, filter, update, opts)
+	return err
 }
 
 func (m *MongoStorage) GetDeliveryState(ctx context.Context, notificationID string) (*models.NotificationDeliveryState, error) {
-	return nil, nil // Stub
+	var state models.NotificationDeliveryState
+	err := m.deliveryStateCollection.FindOne(ctx, bson.M{"notification_id": notificationID}).Decode(&state)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &state, nil
 }
 
 func (m *MongoStorage) CreateWithOutbox(ctx context.Context, notification *adapters.Notification, event *adapters.NotificationEvent) error {
-	// TODO: Implement multi-document transaction
-	return m.Create(ctx, notification)
+	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
+		// 1. Insert Notification
+		doc := m.toDocument(notification)
+		if _, err := m.collection.InsertOne(sessCtx, doc); err != nil {
+			return nil, err
+		}
+
+		// 2. Insert Outbox Event
+		if _, err := m.outboxCollection.InsertOne(sessCtx, event); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	session, err := m.client.StartSession()
+	if err != nil {
+		return fmt.Errorf("failed to start session: %w", err)
+	}
+	defer session.EndSession(ctx)
+
+	_, err = session.WithTransaction(ctx, callback)
+	return err
 }
 
 func (m *MongoStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
-	return nil, nil // Stub
+	// Mongo Queue Pattern: FindOneAndUpdate with locking
+	// We loop 'limit' times because Mongo doesn't easily support "Update N and Return N" atomically
+
+	var events []*adapters.NotificationEvent
+	now := time.Now()
+	lockDuration := 2 * time.Minute
+	lockedUntil := now.Add(lockDuration).Format(time.RFC3339)
+
+	for i := 0; i < limit; i++ {
+		// Find an event that is NOT locked or lock EXPIRED
+		filter := bson.M{
+			"$or": []bson.M{
+				{"locked_until": bson.M{"$exists": false}},
+				{"locked_until": nil},
+				{"locked_until": bson.M{"$lt": now.Format(time.RFC3339)}},
+			},
+		}
+
+		update := bson.M{
+			"$set": bson.M{
+				"locked_until": lockedUntil,
+			},
+		}
+
+		// Sort by Timestamp ASC to serve FIFO
+		opts := options.FindOneAndUpdate().
+			SetSort(bson.D{{Key: "Timestamp", Value: 1}}).
+			SetReturnDocument(options.After)
+
+		var event adapters.NotificationEvent
+		err := m.outboxCollection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&event)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				break // No more pending events
+			}
+			return nil, err
+		}
+		events = append(events, &event)
+	}
+
+	return events, nil
 }
 
 func (m *MongoStorage) DeleteOutboxEvent(ctx context.Context, eventID string) error {
-	return nil // Stub
+	_, err := m.outboxCollection.DeleteOne(ctx, bson.M{"ID": eventID})
+	return err
 }
 
 func (m *MongoStorage) Close() error {

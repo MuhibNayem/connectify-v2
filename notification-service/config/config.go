@@ -24,9 +24,10 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret string
-	JWTIssuer string
-	APIKeys   string // comma-separated key:name pairs
+	JWTSecret    string
+	JWTPublicKey string // PEM encoded or path
+	JWTIssuer    string
+	APIKeys      string // comma-separated key:name pairs
 }
 
 type ServerConfig struct {
@@ -44,8 +45,8 @@ type StorageConfig struct {
 }
 
 type QueueConfig struct {
-	Type    string // "kafka", "rabbitmq", "redis", "memory"
-	Brokers []string
+	Type    string   // "kafka", "rabbitmq", "memory"
+	Brokers []string // Kafka: ["host:port"], RabbitMQ: ["amqp://user:pass@host:port"]
 	Topic   string
 	GroupID string
 }
@@ -215,9 +216,10 @@ func Load() (*Config, error) {
 			DB:       getEnvInt("REDIS_DB", 0),
 		},
 		Auth: AuthConfig{
-			JWTSecret: getEnv("JWT_SECRET", ""),
-			JWTIssuer: getEnv("JWT_ISSUER", "notification-service"),
-			APIKeys:   getEnv("API_KEYS", ""), // Format: "key1:name1,key2:name2"
+			JWTSecret:    getEnv("JWT_SECRET", ""),
+			JWTPublicKey: getEnv("JWT_PUBLIC_KEY", ""), // Can be content or file path
+			JWTIssuer:    getEnv("JWT_ISSUER", "notification-service"),
+			APIKeys:      getEnv("API_KEYS", ""), // Format: "key1:name1,key2:name2"
 		},
 	}, nil
 }

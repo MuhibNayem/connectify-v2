@@ -2,8 +2,13 @@ package auth
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -22,8 +27,11 @@ type Claims struct {
 // This enables the service to work as:
 // 1. Internal microservice (API Key from other services)
 // 2. External API (JWT from end users/frontends)
+// Authenticator handles both API Key and JWT authentication
+// Supports both HS256 (Shared Secret) and RS256 (Public Key)
 type Authenticator struct {
 	secretKey    []byte
+	publicKey    *rsa.PublicKey
 	issuer       string
 	skipPaths    map[string]bool
 	validAPIKeys map[string]string // key -> service name
@@ -31,14 +39,15 @@ type Authenticator struct {
 
 // Config for the authenticator
 type Config struct {
-	JWTSecret string
-	JWTIssuer string
-	APIKeys   map[string]string // Maps API keys to service names
+	JWTSecret    string
+	JWTPublicKey string // PEM content or file path
+	JWTIssuer    string
+	APIKeys      map[string]string // Maps API keys to service names
 }
 
 // NewAuthenticator creates a new authenticator with dual-mode support
 func NewAuthenticator(cfg Config) *Authenticator {
-	return &Authenticator{
+	auth := &Authenticator{
 		secretKey: []byte(cfg.JWTSecret),
 		issuer:    cfg.JWTIssuer,
 		skipPaths: map[string]bool{
@@ -47,6 +56,29 @@ func NewAuthenticator(cfg Config) *Authenticator {
 		},
 		validAPIKeys: cfg.APIKeys,
 	}
+
+	// Try to parse Public Key if provided
+	if cfg.JWTPublicKey != "" {
+		// content or file? Check if file exists
+		var content []byte
+		if _, err := os.Stat(cfg.JWTPublicKey); err == nil {
+			content, _ = os.ReadFile(cfg.JWTPublicKey)
+		} else {
+			content = []byte(cfg.JWTPublicKey)
+		}
+
+		block, _ := pem.Decode(content)
+		if block != nil {
+			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err == nil {
+				if rsaPub, ok := pub.(*rsa.PublicKey); ok {
+					auth.publicKey = rsaPub
+				}
+			}
+		}
+	}
+
+	return auth
 }
 
 // Middleware returns HTTP middleware for dual-mode authentication
@@ -109,11 +141,23 @@ func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 // ValidateToken validates a JWT token and returns claims
 func (a *Authenticator) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		// Validate signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+		// 1. Check if HMAC (HS256)
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
+			if len(a.secretKey) == 0 {
+				return nil, fmt.Errorf("HS256 token received but no secret key configured")
+			}
+			return a.secretKey, nil
 		}
-		return a.secretKey, nil
+
+		// 2. Check if RSA (RS256)
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
+			if a.publicKey == nil {
+				return nil, fmt.Errorf("RS256 token received but no public key configured")
+			}
+			return a.publicKey, nil
+		}
+
+		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 	})
 
 	if err != nil {

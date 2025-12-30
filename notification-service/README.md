@@ -1,4 +1,5 @@
-# 🔔 Universal Notification Service
+# ⚡ Velox
+> *The Hyperscale Universal Notification Engine*
 
 A **production-grade, plug-and-play notification microservice** built with Go. Designed to be dropped into any project and handle millions of notifications across multiple channels.
 
@@ -13,12 +14,14 @@ A **production-grade, plug-and-play notification microservice** built with Go. D
 |---------|-------------|
 | 🚀 **Multi-Channel Delivery** | In-App (WebSocket), Email (SMTP), SMS (Twilio/AWS), Push (FCM/APNS) |
 | ⚡ **Priority Queues** | Fast lane for OTPs, slow lane for marketing—no head-of-line blocking |
-| 🔄 **Exactly-Once Delivery** | Redis-backed idempotency prevents duplicate notifications |
+| 🛡️ **User Governance** | Enforces user preferences (Mute, Do Not Disturb) at the infrastructure level |
+| 🔄 **Exactly-Once Delivery** | Redis-backed idempotency & Transactional Outbox prevents data loss |
+| 🐇 **RabbitMQ / Kafka** | Production-grade queue support with Durable Queues, Publisher Confirms, and QoS |
 | 👁️ **SLO-Grade Observability** | Prometheus metrics for latency, queue depth, and delivery success rates |
 | 📜 **Delivery State Machine** | Tracks every step (Pending → Sent → Delivered) per channel |
-| 💀 **Dead Letter Queue** | Failed notifications are stored for inspection and retry |
+| 💀 **Dead Letter Queue** | Failed notifications are stored (DB) AND published to DLQ topics (Queue) |
 | 🔐 **Dual-Mode Auth** | API Keys for services, JWT for end-users |
-| 🌐 **Horizontally Scalable** | Redis Pub/Sub enables multi-instance WebSocket broadcasting |
+| 🌐 **Horizontally Scalable** | Parallel Outbox Processors & Redis Pub/Sub allow million-user scale |
 | 🔌 **Pluggable Architecture** | Swap storage, queue, or user resolution easily |
 | ⚙️ **Zero Hardcoded Values** | 100% configuration via environment variables |
 
@@ -26,13 +29,18 @@ A **production-grade, plug-and-play notification microservice** built with Go. D
 
 ## 🏗️ Production-Grade Architecture
 
+### Key Components
+1. **Parallel Outbox Processor**: Concurrent fan-out processing (up to 25k/sec per node).
+2. **RabbitMQ Adapter**: Implements `amqp091` with auto-reconnect, publisher confirms, and prefetch (QoS) for backpressure.
+3. **User Preference Adapter**: Governance layer that checks `EmailEnabled`, `TopicPreferences`, etc., before delivery.
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         NOTIFICATION SERVICE                         │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐ │
-│  │  Kafka Consumer │───▶│   Orchestrator  │───▶│    Channels     │ │
-│  │  (Commit-on-    │    │  - Priority Qs  │    │  - Email/SMS    │ │
-│  │   Success)      │    │  - Idempotency  │    │  - Push/WebSocket│ │
+│  │   Msg Broker    │───▶│   Orchestrator  │───▶│    Channels     │ │
+│  │ (RabbitMQ/Kafka)│    │  (Parallelized) │    │  - Email/SMS    │ │
+│  │   [Durable Q]   │    │  - Governance   │    │  - Push/WebSocket│ │
 │  └─────────────────┘    │  - State Machine│    └─────────────────┘ │
 │                         └─────────────────┘                         │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐ │
@@ -47,7 +55,35 @@ A **production-grade, plug-and-play notification microservice** built with Go. D
 
 ## 🚀 Quick Start
 
-### 1. Configure Environment
+### 1. Run using Docker (Recommended)
+
+You don't need to clone the code. Just run the pre-built image:
+
+```bash
+docker run -d \
+  --name notifications \
+  -p 8090:8090 \
+  -e STORAGE_TYPE=memory \
+  -e QUEUE_TYPE=memory \
+  connectify/notification-service:latest
+```
+
+Or add to your `docker-compose.yml`:
+
+```yaml
+services:
+  notifications:
+    image: connectify/notification-service:latest
+    ports:
+      - "8090:8090"
+    environment:
+      - STORAGE_TYPE=postgres
+      - STORAGE_URI=postgres://...
+      - QUEUE_TYPE=rabbitmq
+      - QUEUE_BROKERS=amqp://...
+```
+
+### 2. Configure Environment
 
 ```bash
 # Required for production
@@ -59,8 +95,19 @@ export API_KEYS=key1:service1,key2:service2
 export USER_SERVICE_URL=http://localhost:8080
 
 # Storage (choose one)
-export STORAGE_TYPE=mongodb
-export STORAGE_URI=mongodb://localhost:27017
+export STORAGE_TYPE=postgres
+export STORAGE_URI="postgres://user:pass@localhost:5432/notif?sslmode=disable"
+# Or MongoDB
+# export STORAGE_TYPE=mongodb
+# export STORAGE_URI=mongodb://localhost:27017
+
+# Queue (choose one - Production Recommended)
+export QUEUE_TYPE=rabbitmq
+export QUEUE_BROKERS=amqp://guest:guest@localhost:5672/
+export QUEUE_TOPIC=notifications
+# Or Kafka
+# export QUEUE_TYPE=kafka
+# export QUEUE_BROKERS=localhost:9092
 
 # Observability
 export METRICS_PORT=9102

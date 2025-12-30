@@ -21,6 +21,7 @@ type FailedEvent struct {
 // Handler manages dead letter queue operations
 type Handler struct {
 	storage adapters.StorageAdapter
+	queue   adapters.QueueAdapter
 	logger  *zap.Logger
 }
 
@@ -30,6 +31,11 @@ func NewHandler(storage adapters.StorageAdapter, logger *zap.Logger) *Handler {
 		storage: storage,
 		logger:  logger,
 	}
+}
+
+// SetQueue sets the queue adapter for publishing DLQ events
+func (h *Handler) SetQueue(queue adapters.QueueAdapter) {
+	h.queue = queue
 }
 
 // Send sends a failed event to the dead letter queue
@@ -51,7 +57,24 @@ func (h *Handler) Send(ctx context.Context, event *adapters.NotificationEvent, e
 		zap.Int("attempts", attempts),
 		zap.ByteString("payload", data))
 
-	// Store in a DLQ collection/table for later inspection and reprocessing
+	// 1. Publish to DLQ Topic (if configured)
+	if h.queue != nil {
+		dlqEvent := &adapters.NotificationEvent{
+			ID:        "dlq_" + event.ID,
+			Type:      "DLQ_FAILED",
+			Payload:   map[string]interface{}{"failed_event": failedEvent},
+			Timestamp: time.Now().Format(time.RFC3339),
+			TenantID:  event.TenantID,
+		}
+		if err := h.queue.Publish(ctx, dlqEvent); err != nil {
+			h.logger.Error("💀 Failed to publish to DLQ topic", zap.Error(err))
+			// Fallback to storage is critical
+		} else {
+			h.logger.Info("✅ Published to DLQ topic")
+		}
+	}
+
+	// 2. Persist to Storage (Primary persistence for inspection)
 	dlqNotification := &adapters.Notification{
 		ID:             "dlq_" + event.ID,
 		Type:           "DLQ_FAILED",

@@ -131,19 +131,26 @@ func (o *Orchestrator) StartOutboxProcessor(ctx context.Context) {
 				continue
 			}
 
-			// Parallel publish could optionally be done here, but sequential is safer for ordering
+			// Parallel publish to increase throughput (Fan-out)
+			var wg sync.WaitGroup
 			for _, event := range events {
-				if err := o.queue.Publish(ctx, event); err != nil {
-					o.logger.Error("Failed to publish outbox event", zap.String("id", event.ID), zap.Error(err))
-					// Don't delete, will retry next tick
-					// In production, might want backoff/circuit break if Kafka is down
-				} else {
-					if err := o.storage.DeleteOutboxEvent(ctx, event.ID); err != nil {
-						o.logger.Error("Failed to delete outbox event", zap.String("id", event.ID), zap.Error(err))
-						// Risk: Event re-published. Idempotency handles this.
+				wg.Add(1)
+				go func(evt *adapters.NotificationEvent) {
+					defer wg.Done()
+					// 1. Publish (Retry inside Queue Adapter or here?)
+					// Queue adapter does not retry automatically implies transient failure.
+					if err := o.queue.Publish(ctx, evt); err != nil {
+						o.logger.Error("Failed to publish outbox event", zap.String("id", evt.ID), zap.Error(err))
+						// Will be retried in next poll
+					} else {
+						// 2. Delete from Outbox (Commit)
+						if err := o.storage.DeleteOutboxEvent(ctx, evt.ID); err != nil {
+							o.logger.Error("Failed to delete outbox event", zap.String("id", evt.ID), zap.Error(err))
+						}
 					}
-				}
+				}(event)
 			}
+			wg.Wait()
 		}
 	}
 }
@@ -343,6 +350,17 @@ func (o *Orchestrator) deliverNotification(ctx context.Context, notifID string, 
 		}
 	}
 
+	// 0. Fetch User Preferences (Once for all channels)
+	var prefs *adapters.UserPreferences
+	if o.userPrefAdapter != nil {
+		p, err := o.userPrefAdapter.GetPreferences(ctx, notif.RecipientID)
+		if err != nil {
+			log.Warn("Failed to fetch user preferences, using defaults", zap.Error(err))
+		} else {
+			prefs = p
+		}
+	}
+
 	var wg sync.WaitGroup
 	// We track status to decide on Fallbacks
 	results := make(chan string, len(notif.Channels))
@@ -366,7 +384,7 @@ func (o *Orchestrator) deliverNotification(ctx context.Context, notifID string, 
 		go func(c channels.Channel, name string) {
 			defer wg.Done()
 
-			success, retryable := o.executeSmartDelivery(ctx, c, notif, log)
+			success, retryable := o.executeSmartDelivery(ctx, c, notif, prefs, log)
 
 			o.storage.SaveDeliveryState(ctx, state) // Optimistic save
 
@@ -416,7 +434,32 @@ func hasChannel(target string, list []string) bool {
 	return false
 }
 
-func (o *Orchestrator) executeSmartDelivery(ctx context.Context, channel channels.Channel, notif *adapters.Notification, log *zap.Logger) (bool, bool) {
+func (o *Orchestrator) executeSmartDelivery(ctx context.Context, channel channels.Channel, notif *adapters.Notification, prefs *adapters.UserPreferences, log *zap.Logger) (bool, bool) {
+	// A. Check User Preferences (Governance)
+	if prefs != nil {
+		// 1. Global Channel Switch
+		if !isChannelEnabled(prefs, channel.Name()) {
+			log.Info("🔕 Skipped by User Preference (Channel Disabled)", zap.String("channel", channel.Name()))
+			return true, false // Treated as success (we respected the user)
+		}
+
+		// 2. Notification Type Preference
+		// e.g., "marketing" -> email: false
+		if notif.Type != "" && prefs.TypePreferences != nil {
+			if typePrefs, ok := prefs.TypePreferences[notif.Type]; ok {
+				if !isChannelEnabledForType(typePrefs, channel.Name()) {
+					log.Info("🔕 Skipped by User Preference (Type Disabled)",
+						zap.String("channel", channel.Name()),
+						zap.String("type", notif.Type))
+					return true, false
+				}
+			}
+		}
+
+		// 3. Quiet Hours (P1 Feature - can implement logic here if needed)
+		// if isInQuietHours(prefs.QuietHours) && notif.Priority != "HIGH" { ... }
+	}
+
 	// 1. Resolve Recipient via UserResolver
 	recipientInfo, err := o.userResolver.ResolveRecipient(ctx, notif.RecipientID)
 	if err != nil {
@@ -529,6 +572,40 @@ func containsImpl(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// Check if channel is enabled globally in prefs
+func isChannelEnabled(prefs *adapters.UserPreferences, channel string) bool {
+	switch channel {
+	case "email":
+		return prefs.EmailEnabled == nil || *prefs.EmailEnabled
+	case "sms":
+		return prefs.SMSEnabled == nil || *prefs.SMSEnabled
+	case "push":
+		return prefs.PushEnabled == nil || *prefs.PushEnabled
+	case "inapp":
+		return prefs.InAppEnabled == nil || *prefs.InAppEnabled
+	case "webhook":
+		return prefs.WebhookEnabled == nil || *prefs.WebhookEnabled
+	}
+	return true // Default to true if unknown
+}
+
+// Check if channel is enabled for specific type
+func isChannelEnabledForType(prefs *adapters.ChannelPreferences, channel string) bool {
+	switch channel {
+	case "email":
+		return prefs.Email
+	case "sms":
+		return prefs.SMS
+	case "push":
+		return prefs.Push
+	case "inapp":
+		return prefs.InApp
+	case "webhook":
+		return prefs.Webhook
+	}
+	return true
 }
 
 func (o *Orchestrator) CreateNotification(ctx context.Context, req *models.CreateNotificationRequest) (*models.Notification, error) {
