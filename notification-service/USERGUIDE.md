@@ -17,22 +17,22 @@ The **Universal Notification Service** is a production-grade, event-driven syste
 
 ## System Architecture
 
-The service follows a **Hexagonal Architecture** (Ports & Adapters), isolating the core business logic from external dependencies.
+The service follows a **Hexagonal Architecture** (Ports & Adapters), isolating the core business logic from external dependencies. The orchestrator now consumes directly from the broker with bounded worker pools, so backpressure is applied immediately to Kafka/RabbitMQ instead of buffering inside the service.
 
 ```mermaid
 graph TD
-    Client[Client App / Microservices] -->|HTTP/gRPC| API[API Interface]
+    Client[Client App / Microservices] -->|HTTP / gRPC (auth)| API[API Gateway]
     Client -->|Events| Kafka[Kafka / RabbitMQ]
     
     subgraph "Notification Service"
         API --> Orchestrator
         Kafka --> Orchestrator
         
-        Orchestrator -->|Priority Routing| Queue[Priority Queue]
-        Orchestrator -->|Check/Set| Redis[Redis (Idempotency & Rate Limit)]
+        Orchestrator -->|Direct Subscribe| Queue[Kafka / RabbitMQ]
+        Orchestrator -->|Check/Set| Redis[Redis (Idempotency, Rate Limit)]
         Orchestrator -->|Persist| DB[(PostgreSQL / MongoDB)]
-        
-        Queue --> Worker[Worker Pool]
+
+        Queue --> Worker[Bounded Worker Pool (50+)]
         
         Worker -->|Resolution| UserSvc[User Service]
         Worker -->|Delivery| Channels
@@ -49,9 +49,10 @@ graph TD
 ### Key Components
 
 - **Orchestrator**: The central brain that coordinates the lifecycle of a notification. It handles validation, preference checks, and routing.
-- **Priority Queue**: A tiered queuing system (Fast Lane vs. Slow Lane) to ensure critical alerts (e.g., OTPs) are processed before marketing messages.
-- **Worker Pool**: Scalable workers that consume from the queue and execute delivery logic with retries and circuit breaking.
+- **Priority Routing**: Priority fields on the event dictate broker topic / consumer group selection; the orchestrator logs the lane (“HIGH” or “DEFAULT”) for observability.
+- **Worker Pool**: Bounded concurrent workers (default 50) consume directly from the broker, ensuring backpressure is applied immediately when storage or downstream providers slow down.
 - **Storage Adapter**: Pluggable persistence layer supporting both PostgreSQL (relational) and MongoDB (document).
+- **Security Layer**: HTTP middleware + gRPC interceptors enforce API key/JWT authentication, propagate tenant IDs, and gate recipient access consistently.
 
 ---
 
@@ -70,8 +71,18 @@ The service decouples user identity from contact details.
 
 ### 3. Smart Delivery
 - **Retries**: Exponential backoff for transient failures (e.g., network timeout).
-- **Dead Letter Queue (DLQ)**: Permanent failures are routed to a generic DLQ for inspection.
+- **Dead Letter Queue (DLQ)**: Permanent failures are routed to a generic DLQ for inspection. DLQ entries now persist the original notification payload (recipient, tenant, metadata) for accurate replay.
 - **Rate Limiting**: Per-user or global limits to prevent spamming.
+- **Fallbacks**: Automatic SMS fallback triggers when push delivery fails and SMS is not part of the initial channel list.
+
+### 4. Security & Multi-Tenancy
+
+- **Authentication**:  
+  - HTTP: API keys via `X-API-Key` and JWTs via `Authorization: Bearer <token>`.  
+  - gRPC: Metadata-based auth with identical enforcement (either `authorization` or `x-api-key` headers).  
+- **Authorization**: End-user tokens can access only their own recipient data; service/admin roles may impersonate recipients but must explicitly pass the `recipient_id`.  
+- **Tenant Isolation**: Tenant IDs travel across HTTP/gRPC, are stored on every notification/delivery record, and are enforced in list/mark-read queries to prevent noisy-neighbor reads.  
+- **Rate Limiting**: Configured via `RATE_LIMIT_MAX_PER_HOUR`; the service converts this to a precise per-second quota with a burst factor of 2x.
 
 ---
 
@@ -198,8 +209,119 @@ Marks multiple notifications as read.
 Returns the count of unread notifications for a user.
 
 ---
+## Running MAANG-Scale Load Tests
+
+The repository ships with two complementary load suites:
+
+1. `tests/loadtest/load_test.go` – quick smoke tests for HTTP, unary gRPC, streaming gRPC, and mixed workloads.
+2. `tests/loadtest/maanf_load_test.go` – comprehensive MAANG scenarios (sustained load, spikes, stress/breaking point, streaming backpressure, and soak).
+
+### Prerequisites
+- Notification service running locally (HTTP `:8090`, gRPC `:9090` by default).  
+- Real backing services (Postgres, Redis, Kafka/RabbitMQ) are recommended for accurate numbers.  
+- Go 1.21+.
+
+### Commands
+
+```bash
+# Terminal 1 – start the service
+cd notification-service
+SERVER_PORT=8090 GRPC_PORT=9090 STORAGE_TYPE=postgres \
+QUEUE_TYPE=kafka JWT_SECRET=dev-secret \
+go run ./cmd/server
+
+# Terminal 2 – run MAANG sustained load
+cd notification-service
+GOCACHE=$PWD/.gocache go test ./tests/loadtest -run TestMAANG_SustainedLoad -count=1
+
+# Optional: run spike/soak/backpressure suites
+GOCACHE=$PWD/.gocache go test ./tests/loadtest -run TestMAANG_SpikeTest -count=1
+```
+
+Each run emits a structured report covering:
+- Total/peak RPS
+- p50/p95/p99/p99.9 latency
+- Success/error rates (target ≥99.9%)
+- Memory and goroutine peaks
+
+Use these numbers to size worker pools, Kafka partitions, or to validate regression fixes before deploying.
+
+---
 
 ## Configuration Reference
+
+The service reads configuration from environment variables. The defaults are opinionated for local development; production deployments should override them via a secrets manager or container orchestrator.
+
+### 1. Server & Network
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVER_PORT` | `8090` | HTTP REST port. |
+| `GRPC_PORT` | `9090` | gRPC port. |
+| `ENVIRONMENT` | `development` | Used for logging tags. |
+
+### 2. Storage
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `STORAGE_TYPE` | `memory` | `postgres`, `mongodb`, or `memory`. |
+| `STORAGE_URI` | `""` | DSN for Postgres or Mongo. Required unless using memory. |
+| `STORAGE_DATABASE` | `notifications` | MongoDB database name. |
+| `STORAGE_COLLECTION` | `notifications` | MongoDB collection for notifications. |
+
+### 3. Queue
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUEUE_TYPE` | `memory` | `kafka`, `rabbitmq`, or `memory`. |
+| `QUEUE_BROKERS` | `localhost:9092` | Kafka brokers (`host:port`) or RabbitMQ AMQP URLs. |
+| `QUEUE_TOPIC` | `notifications` | Topic/queue name for primary events. |
+| `QUEUE_GROUP_ID` | `notification-service` | Consumer group ID (Kafka only). |
+
+### 4. Redis (Idempotency, Rate Limit, Scheduler, WebSocket)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_ADDR` | `""` | e.g., `localhost:6379`. Required for prod features. |
+| `REDIS_PASSWORD` | `""` | Optional. |
+| `REDIS_DB` | `0` | Redis logical database. |
+
+### 5. Authentication & Security
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | `""` | Required for HS256 JWT validation (HTTP + gRPC). |
+| `JWT_PUBLIC_KEY` | `""` | Optional PEM for RS256 validation. |
+| `API_KEYS` | `""` | Comma-separated `key:name` pairs for service-to-service auth. |
+
+### 6. Rate Limiting
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RATE_LIMIT_ENABLED` | `true` | Toggles Redis token bucket. |
+| `RATE_LIMIT_MAX_PER_HOUR` | `100` | Total allowed requests per hour; converted to per-second + burst automatically. |
+
+### 7. Channels
+
+Each channel has an `*_ENABLED` flag plus provider-specific settings.
+
+- **Email**: `EMAIL_ENABLED`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_USE_TLS`.
+- **SMS (Twilio example)**: `SMS_ENABLED`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`.
+- **Push**: `PUSH_ENABLED`, `FCM_ENABLED`, `FCM_PROJECT_ID`, `FCM_CREDENTIALS`, `APNS_ENABLED`, `APNS_TEAM_ID`, `APNS_KEY_ID`, `APNS_BUNDLE_ID`, `APNS_KEY_FILE`.
+- **In-App**: `INAPP_ENABLED`, connection limits, and optional Redis for multi-node broadcasts.
+
+Refer to `config/config.go` for the full list and defaults.
+
+### 8. Observability
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `METRICS_ENABLED` | `true` | Exposes Prometheus metrics on `METRICS_PORT`. |
+| `METRICS_PORT` | `9102` | Metrics server port. |
+| `TRACING_ENABLED` | `false` | Toggles tracing exporter. |
+| `JAEGER_ENDPOINT` | `""` | Target for Jaeger collector (when tracing enabled). |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error`. |
+| `LOG_FORMAT` | `json` | `json` or `console`. |
 
 The service is configured via environment variables.
 

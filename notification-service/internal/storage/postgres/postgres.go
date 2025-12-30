@@ -19,7 +19,7 @@ type PostgresStorage struct {
 	db *sql.DB
 }
 
-func NewPostgresStorage(connStr string) (*PostgresStorage, error) {
+func NewPostgresStorage(connStr string, maxOpenConns, maxIdleConns int) (*PostgresStorage, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open postgres: %w", err)
@@ -29,9 +29,10 @@ func NewPostgresStorage(connStr string) (*PostgresStorage, error) {
 		return nil, fmt.Errorf("failed to ping postgres: %w", err)
 	}
 
-	db.SetMaxOpenConns(50)
-	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(maxOpenConns)
+	db.SetMaxIdleConns(maxIdleConns)
 	db.SetConnMaxLifetime(15 * time.Minute)
+	db.SetConnMaxIdleTime(10 * time.Minute)
 
 	schema := `
 	CREATE TABLE IF NOT EXISTS notifications (

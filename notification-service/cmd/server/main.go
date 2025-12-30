@@ -73,7 +73,7 @@ func main() {
 		logger.Info("Using MongoDB storage", zap.String("database", cfg.Storage.Database))
 
 	case "postgres", "postgresql":
-		storage, err = postgres.NewPostgresStorage(cfg.Storage.URI)
+		storage, err = postgres.NewPostgresStorage(cfg.Storage.URI, cfg.Storage.MaxOpenConns, cfg.Storage.MaxIdleConns)
 		if err != nil {
 			logger.Fatal("Failed to initialize PostgreSQL", zap.Error(err))
 		}
@@ -203,15 +203,16 @@ func main() {
 	}
 
 	orchestrator := core.NewOrchestrator(&core.OrchestratorConfig{
-		Storage:         storage,
-		Queue:           queue,
-		UserPrefAdapter: prefAdapter,
-		UserResolver:    userResolver,
-		Logger:          logger,
-		Idempotency:     idempotencyService,
-		DLQHandler:      dlqHandler,
-		Tracer:          tracer,
-		Scheduler:       schedulerService,
+		Storage:           storage,
+		Queue:             queue,
+		UserPrefAdapter:   prefAdapter,
+		UserResolver:      userResolver,
+		Logger:            logger,
+		Idempotency:       idempotencyService,
+		DLQHandler:        dlqHandler,
+		Tracer:            tracer,
+		Scheduler:         schedulerService,
+		WorkerConcurrency: cfg.Performance.WorkerConcurrency,
 	})
 
 	// ==================== CHANNELS ====================
@@ -391,6 +392,9 @@ func main() {
 
 	grpcInterceptorMgr := grpcserver.NewInterceptorManager(logger, authenticator)
 	grpcServer := grpc.NewServer(
+		grpc.MaxConcurrentStreams(uint32(cfg.Server.GRPCMaxConcurrentStreams)),
+		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
+		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle: 15 * time.Second,
 			MaxConnectionAge:  30 * time.Minute,

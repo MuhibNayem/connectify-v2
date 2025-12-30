@@ -15,6 +15,7 @@ type Config struct {
 	Observability ObservabilityConfig
 	Redis         RedisConfig
 	Auth          AuthConfig
+	Performance   PerformanceConfig
 }
 
 type RedisConfig struct {
@@ -31,17 +32,20 @@ type AuthConfig struct {
 }
 
 type ServerConfig struct {
-	HTTPPort       string
-	GRPCPort       string
-	Environment    string
-	UserServiceURL string
+	HTTPPort                 string
+	GRPCPort                 string
+	Environment              string
+	UserServiceURL           string
+	GRPCMaxConcurrentStreams int
 }
 
 type StorageConfig struct {
-	Type       string // "mongodb", "postgres", "memory"
-	URI        string
-	Database   string
-	Collection string
+	Type         string // "mongodb", "postgres", "memory"
+	URI          string
+	Database     string
+	Collection   string
+	MaxOpenConns int
+	MaxIdleConns int
 }
 
 type QueueConfig struct {
@@ -122,19 +126,29 @@ type ObservabilityConfig struct {
 	LogFormat      string
 }
 
+type PerformanceConfig struct {
+	WorkerConcurrency   int
+	HTTPMaxIdleConns    int
+	HTTPMaxConnsPerHost int
+	HTTPIdleConnTimeout int // seconds
+}
+
 func Load() (*Config, error) {
 	return &Config{
 		Server: ServerConfig{
-			HTTPPort:       getEnv("SERVER_PORT", "8090"),
-			GRPCPort:       getEnv("GRPC_PORT", "50060"),
-			Environment:    getEnv("ENVIRONMENT", "development"),
-			UserServiceURL: getEnv("USER_SERVICE_URL", ""),
+			HTTPPort:                 getEnv("SERVER_PORT", "8090"),
+			GRPCPort:                 getEnv("GRPC_PORT", "50060"),
+			Environment:              getEnv("ENVIRONMENT", "development"),
+			UserServiceURL:           getEnv("USER_SERVICE_URL", ""),
+			GRPCMaxConcurrentStreams: getEnvInt("GRPC_MAX_CONCURRENT_STREAMS", 1000),
 		},
 		Storage: StorageConfig{
-			Type:       getEnv("STORAGE_TYPE", "memory"),
-			URI:        getEnv("STORAGE_URI", ""),
-			Database:   getEnv("STORAGE_DATABASE", "notifications"),
-			Collection: getEnv("STORAGE_COLLECTION", "notifications"),
+			Type:         getEnv("STORAGE_TYPE", "memory"),
+			URI:          getEnv("STORAGE_URI", ""),
+			Database:     getEnv("STORAGE_DATABASE", "notifications"),
+			Collection:   getEnv("STORAGE_COLLECTION", "notifications"),
+			MaxOpenConns: getEnvInt("DB_MAX_OPEN_CONNS", 200),
+			MaxIdleConns: getEnvInt("DB_MAX_IDLE_CONNS", 50),
 		},
 		Queue: QueueConfig{
 			Type:    getEnv("QUEUE_TYPE", "memory"),
@@ -220,6 +234,12 @@ func Load() (*Config, error) {
 			JWTPublicKey: getEnv("JWT_PUBLIC_KEY", ""), // Can be content or file path
 			JWTIssuer:    getEnv("JWT_ISSUER", "notification-service"),
 			APIKeys:      getEnv("API_KEYS", ""), // Format: "key1:name1,key2:name2"
+		},
+		Performance: PerformanceConfig{
+			WorkerConcurrency:   getEnvInt("WORKER_CONCURRENCY", 200),
+			HTTPMaxIdleConns:    getEnvInt("HTTP_MAX_IDLE_CONNS", 200),
+			HTTPMaxConnsPerHost: getEnvInt("HTTP_MAX_CONNS_PER_HOST", 100),
+			HTTPIdleConnTimeout: getEnvInt("HTTP_IDLE_CONN_TIMEOUT", 90),
 		},
 	}, nil
 }

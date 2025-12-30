@@ -348,8 +348,24 @@ services:
           echo 'Topic messages already exists, skipping creation'
         fi
         
+        NOTIF_TOPIC_EXISTS=$(kafka-topics --bootstrap-server kafka1:9092 --list | grep '^notifications$' || echo '')
+        
+        if [ -z \"$NOTIF_TOPIC_EXISTS\" ]; then
+          echo 'Creating notifications topic...'
+          kafka-topics --bootstrap-server kafka1:9092 --create --topic notifications --partitions 10 --replication-factor 3
+          NOTIF_RESULT=$?
+          if [ \"$NOTIF_RESULT\" -eq 0 ]; then
+            echo 'Notifications topic created successfully'
+          else
+            echo 'Failed to create notifications topic, but continuing...'
+          fi
+        else
+          echo 'Topic notifications already exists, skipping creation'
+        fi
+        
         echo 'Topic information:'
         kafka-topics --bootstrap-server kafka1:9092 --describe --topic messages
+        kafka-topics --bootstrap-server kafka1:9092 --describe --topic notifications || true
       "
     restart: no
     networks:
@@ -593,20 +609,41 @@ services:
       - GRPC_PORT=${NOTIFICATION_GRPC_PORT}
       - LOG_LEVEL=info
       - STORAGE_TYPE=mongodb
-      - MONGO_URI=${NOTIFICATION_MONGO_URI}
-      - DB_NAME=${NOTIFICATION_DB_NAME}
+      - STORAGE_URI=${NOTIFICATION_MONGO_URI}
+      - STORAGE_DATABASE=${NOTIFICATION_DB_NAME}
       - QUEUE_TYPE=kafka
-      - KAFKA_BROKERS=${NOTIFICATION_KAFKA_BROKERS}
-      - KAFKA_TOPIC=${NOTIFICATION_KAFKA_TOPIC}
-      - KAFKA_GROUP_ID=${NOTIFICATION_KAFKA_GROUP_ID}
+      - QUEUE_BROKERS=${NOTIFICATION_KAFKA_BROKERS}
+      - QUEUE_TOPIC=${NOTIFICATION_KAFKA_TOPIC}
+      - QUEUE_GROUP_ID=${NOTIFICATION_KAFKA_GROUP_ID}
       - CHANNEL_IN_APP_ENABLED=true
       - CHANNEL_EMAIL_ENABLED=true
       - CHANNEL_PUSH_ENABLED=true
+      - REDIS_ADDR=${REDIS_ADDR}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - USER_SERVICE_URL=${USER_SERVICE_URL}
+      - WORKER_CONCURRENCY=200
+      - DB_MAX_OPEN_CONNS=200
+      - DB_MAX_IDLE_CONNS=50
+      - GRPC_MAX_CONCURRENT_STREAMS=1000
     depends_on:
       mongodb1:
         condition: service_healthy
+      mongodb2:
+        condition: service_healthy
+      mongodb3:
+        condition: service_healthy
       kafka1:
         condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      dragonfly:
+        condition: service_healthy
+      user-service:
+        condition: service_started
     networks:
       - messaging-net
 

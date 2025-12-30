@@ -39,23 +39,24 @@ type Orchestrator struct {
 	logger          *zap.Logger
 
 	// Core components
-	idempotency *idempotency.Service
-	dlqHandler  *dlq.Handler
-	tracer      *tracing.Tracer
-	scheduler   *scheduler.Service
+	idempotency       *idempotency.Service
+	dlqHandler        *dlq.Handler
+	tracer            *tracing.Tracer
+	scheduler         *scheduler.Service
+	workerConcurrency int
 }
 
-// OrchestratorConfig holds all configuration for the orchestrator
 type OrchestratorConfig struct {
-	Storage         adapters.StorageAdapter
-	Queue           adapters.QueueAdapter
-	UserPrefAdapter adapters.UserPreferenceAdapter
-	UserResolver    adapters.UserResolver
-	Logger          *zap.Logger
-	Idempotency     *idempotency.Service
-	DLQHandler      *dlq.Handler
-	Tracer          *tracing.Tracer
-	Scheduler       *scheduler.Service
+	Storage           adapters.StorageAdapter
+	Queue             adapters.QueueAdapter
+	UserPrefAdapter   adapters.UserPreferenceAdapter
+	UserResolver      adapters.UserResolver
+	Logger            *zap.Logger
+	Idempotency       *idempotency.Service
+	DLQHandler        *dlq.Handler
+	Tracer            *tracing.Tracer
+	Scheduler         *scheduler.Service
+	WorkerConcurrency int
 }
 
 // NewOrchestrator creates a new Orchestrator instance with the provided configuration.
@@ -66,18 +67,24 @@ func NewOrchestrator(cfg *OrchestratorConfig) *Orchestrator {
 		userResolver = &adapters.DefaultUserResolver{}
 	}
 
+	workerConcurrency := cfg.WorkerConcurrency
+	if workerConcurrency == 0 {
+		workerConcurrency = 200 // Default
+	}
+
 	return &Orchestrator{
-		storage:         cfg.Storage,
-		queue:           cfg.Queue,
-		userPrefAdapter: cfg.UserPrefAdapter,
-		userResolver:    userResolver,
-		channelRegistry: make(map[string]channels.Channel),
-		circuitBreakers: make(map[string]*resilience.CircuitBreaker),
-		logger:          cfg.Logger,
-		idempotency:     cfg.Idempotency,
-		dlqHandler:      cfg.DLQHandler,
-		tracer:          cfg.Tracer,
-		scheduler:       cfg.Scheduler,
+		storage:           cfg.Storage,
+		queue:             cfg.Queue,
+		userPrefAdapter:   cfg.UserPrefAdapter,
+		userResolver:      userResolver,
+		channelRegistry:   make(map[string]channels.Channel),
+		circuitBreakers:   make(map[string]*resilience.CircuitBreaker),
+		logger:            cfg.Logger,
+		idempotency:       cfg.Idempotency,
+		dlqHandler:        cfg.DLQHandler,
+		tracer:            cfg.Tracer,
+		scheduler:         cfg.Scheduler,
+		workerConcurrency: workerConcurrency,
 	}
 }
 
@@ -162,12 +169,11 @@ func (o *Orchestrator) StartWorker(ctx context.Context) error {
 	}
 
 	// Subscribe to queue events with Direct Handler
-	// We use HighPriorityWorkers constant (e.g. 50) as Concurrency limit for QoS
-	const ConcurrencyLimit = 50
+	o.logger.Info("Orchestrator Worker Started",
+		zap.String("strategy", "direct_concurrent_processing"),
+		zap.Int("concurrency", o.workerConcurrency))
 
-	o.logger.Info("Orchestrator Worker Started", zap.String("strategy", "direct_concurrent_processing"), zap.Int("concurrency", ConcurrencyLimit))
-
-	return o.queue.Subscribe(ctx, o.HandleEvent, ConcurrencyLimit)
+	return o.queue.Subscribe(ctx, o.HandleEvent, o.workerConcurrency)
 }
 
 // HandleEvent is the direct callback from the Queue Adapter.
