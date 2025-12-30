@@ -19,7 +19,8 @@ import (
 )
 
 type StorageService struct {
-	client        *minio.Client
+	client        *minio.Client // Internal client (minio:9000) for server-side ops
+	signerClient  *minio.Client // Public client (localhost:9000) for generating presigned URLs
 	bucketName    string
 	externalHost  string
 	archiveBucket string
@@ -61,8 +62,26 @@ func NewStorageService(cfg *config.Config, logger *slog.Logger) (*StorageService
 		// NOTE: Bucket is PRIVATE by default. Use GetPresignedURL for read access.
 	}
 
+	// Create signer client for generating presigned URLs that match the public hostname
+	signerEndpoint := cfg.StoragePublicURL
+	signerSecure := cfg.StorageUseSSL
+	if strings.Contains(signerEndpoint, "://") {
+		parts := strings.Split(signerEndpoint, "://")
+		signerEndpoint = parts[len(parts)-1]
+		signerSecure = parts[0] == "https"
+	}
+
+	signerClient, err := minio.New(signerEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.StorageAccessKey, cfg.StorageSecretKey, ""),
+		Secure: signerSecure,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create signer client: %w", err)
+	}
+
 	return &StorageService{
 		client:        minioClient,
+		signerClient:  signerClient,
 		bucketName:    cfg.StorageBucket,
 		externalHost:  cfg.StoragePublicURL,
 		archiveBucket: cfg.ArchiveBucket,
@@ -223,10 +242,12 @@ func (s *StorageService) DownloadArchive(ctx context.Context, objectPath string)
 }
 
 func (s *StorageService) GetPresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
-	url, err := s.client.PresignedGetObject(ctx, s.bucketName, key, expiry, nil)
+	// Use signerClient to generate URL with correct public hostname and signature
+	url, err := s.signerClient.PresignedGetObject(ctx, s.bucketName, key, expiry, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
+
 	return url.String(), nil
 }
 
@@ -248,9 +269,9 @@ func (s *StorageService) GetPresignedUploadURL(ctx context.Context, filename, co
 		return "", publicURL, objectKey, true, nil
 	}
 
-	// 2. Generate Presigned PUT URL
+	// 2. Generate Presigned PUT URL using signerClient
 	expiry := 15 * time.Minute
-	u, err := s.client.PresignedPutObject(ctx, s.bucketName, objectKey, expiry)
+	u, err := s.signerClient.PresignedPutObject(ctx, s.bucketName, objectKey, expiry)
 	if err != nil {
 		return "", "", "", false, fmt.Errorf("failed to generate presigned PUT URL: %w", err)
 	}

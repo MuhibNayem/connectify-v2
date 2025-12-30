@@ -47,13 +47,20 @@ func NewCassandraClient(hosts []string, keyspace, username, password string) (*C
 		}
 
 		// Connection failed.
-		// Check if it's because keyspace doesn't exist, or network/startup issue.
-		// We try to connect without keyspace to distinguish.
-		cluster.Keyspace = ""
-		sysSession, sysErr := cluster.CreateSession()
+		// Connection failed.
+		// Check if it's because keyspace doesn't exist.
+		// We use a fresh cluster config to avoid "sharing token aware host selection policy" panic.
+		sysCluster := gocql.NewCluster(hosts...)
+		sysCluster.Consistency = gocql.Quorum
+		sysCluster.ProtoVersion = 4
+		sysCluster.ConnectTimeout = 10 * time.Second
+		sysCluster.Authenticator = cluster.Authenticator
+		sysCluster.Keyspace = "" // No keyspace to create one
+
+		sysSession, sysErr := sysCluster.CreateSession()
 		if sysErr == nil {
-			// Connected to system! Keyspace probably doesn't exist.
-			log.Printf("Connected to ScyllaDB system. Creating keyspace '%s'...", keyspace)
+			// Connected! Keyspace probably doesn't exist.
+			log.Printf("Connected to ScyllaDB (no keyspace). Creating keyspace '%s'...", keyspace)
 			if err := createKeyspace(sysSession, keyspace); err != nil {
 				log.Printf("Failed to create keyspace: %v", err)
 			}
