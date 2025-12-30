@@ -118,6 +118,7 @@ All configuration is driven by environment variables (or a `.env` file if you pr
 | Channels | `EMAIL_ENABLED`, `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMS_ENABLED`, `TWILIO_ACCOUNT_SID`, etc. | Toggle each channel and provide provider credentials. See `config/config.go` for the full list. |
 | Auth | `JWT_SECRET`, `JWT_PUBLIC_KEY`, `API_KEYS` (`key1:name1,key2:name2`) | Required for production deployments. HTTP and gRPC share the same auth config. |
 | Rate Limit | `RATE_LIMIT_ENABLED`, `RATE_LIMIT_MAX_PER_HOUR` | Controls Redis-backed token bucket configuration. |
+| Object Storage* | `STORAGE_ENDPOINT`, `STORAGE_SIGNER_ENDPOINT`, `STORAGE_PUBLIC_URL`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_BUCKET`, `STORAGE_USE_SSL` | Used by the storage-service for uploads and presigned URL generation. `STORAGE_SIGNER_ENDPOINT` is optional (defaults to the internal `STORAGE_ENDPOINT`) and controls which host the service dials when it needs bucket metadata, while every presigned URL is emitted with the hostname from `STORAGE_PUBLIC_URL` so browsers hit the right CDN/edge endpoint. |
 | Observability | `METRICS_ENABLED`, `METRICS_PORT`, `TRACING_ENABLED`, `JAEGER_ENDPOINT` | Toggle metrics/tracing export. |
 
 Example `.env` (development):

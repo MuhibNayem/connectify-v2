@@ -312,7 +312,20 @@ Each channel has an `*_ENABLED` flag plus provider-specific settings.
 
 Refer to `config/config.go` for the full list and defaults.
 
-### 8. Observability
+### 8. Object Storage / Presigned URLs
+
+Used primarily by the `storage-service`. Even if you’re consuming the notification-service only, you likely interact with MinIO/S3 via the storage microservice.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STORAGE_ENDPOINT` | `minio:9000` | Internal endpoint for server-side operations (MinIO/S3 hostname). |
+| `STORAGE_SIGNER_ENDPOINT` | (defaults to `STORAGE_ENDPOINT`) | Optional override for the presign client. The signer still talks to the internal MinIO/S3 endpoint for metadata calls, but every presigned URL uses the hostname from `STORAGE_PUBLIC_URL`, so browsers only see your public/CDN host. |
+| `STORAGE_PUBLIC_URL` | `http://localhost:9000` | Public URL embedded in responses so browsers/frontends can PUT/GET objects. |
+| `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` | `minioadmin` | Credentials for MinIO/S3. |
+| `STORAGE_BUCKET` | `connectify-uploads` | Target bucket. Created automatically if missing. |
+| `STORAGE_USE_SSL` | `false` | Set to `true` for HTTPS endpoints. |
+
+### 9. Observability
 
 | Variable | Default | Description |
 |----------|---------|-------------|

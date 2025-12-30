@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
+	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -20,7 +23,7 @@ import (
 
 type StorageService struct {
 	client        *minio.Client // Internal client (minio:9000) for server-side ops
-	signerClient  *minio.Client // Public client (localhost:9000) for generating presigned URLs
+	signerClient  *minio.Client // Presign client (public host, dials internal endpoint as needed)
 	bucketName    string
 	externalHost  string
 	archiveBucket string
@@ -38,6 +41,14 @@ type UploadResult struct {
 func NewStorageService(cfg *config.Config, logger *slog.Logger) (*StorageService, error) {
 	if logger == nil {
 		logger = slog.Default()
+	}
+
+	publicURL, err := url.Parse(cfg.StoragePublicURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid STORAGE_PUBLIC_URL: %w", err)
+	}
+	if publicURL.Host == "" {
+		return nil, fmt.Errorf("STORAGE_PUBLIC_URL must include host")
 	}
 
 	minioClient, err := minio.New(cfg.StorageEndpoint, &minio.Options{
@@ -62,19 +73,7 @@ func NewStorageService(cfg *config.Config, logger *slog.Logger) (*StorageService
 		// NOTE: Bucket is PRIVATE by default. Use GetPresignedURL for read access.
 	}
 
-	// Create signer client for generating presigned URLs that match the public hostname
-	signerEndpoint := cfg.StoragePublicURL
-	signerSecure := cfg.StorageUseSSL
-	if strings.Contains(signerEndpoint, "://") {
-		parts := strings.Split(signerEndpoint, "://")
-		signerEndpoint = parts[len(parts)-1]
-		signerSecure = parts[0] == "https"
-	}
-
-	signerClient, err := minio.New(signerEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.StorageAccessKey, cfg.StorageSecretKey, ""),
-		Secure: signerSecure,
-	})
+	signerClient, err := newPresignClient(cfg, publicURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signer client: %w", err)
 	}
@@ -242,6 +241,10 @@ func (s *StorageService) DownloadArchive(ctx context.Context, objectPath string)
 }
 
 func (s *StorageService) GetPresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
+	if extracted := extractKeyFromURL(key, s.bucketName); extracted != "" {
+		key = extracted
+	}
+
 	// Use signerClient to generate URL with correct public hostname and signature
 	url, err := s.signerClient.PresignedGetObject(ctx, s.bucketName, key, expiry, nil)
 	if err != nil {
@@ -277,6 +280,71 @@ func (s *StorageService) GetPresignedUploadURL(ctx context.Context, filename, co
 	}
 
 	return u.String(), publicURL, objectKey, false, nil
+}
+
+func newPresignClient(cfg *config.Config, publicURL *url.URL) (*minio.Client, error) {
+	publicHost := publicURL.Host
+	publicSecure := strings.EqualFold(publicURL.Scheme, "https")
+	publicDialAddr := ensurePort(publicHost, publicSecure)
+
+	dialEndpoint := cfg.StorageSignerEndpoint
+	dialSecure := cfg.StorageUseSSL
+	if strings.Contains(dialEndpoint, "://") {
+		u, err := url.Parse(dialEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("invalid STORAGE_SIGNER_ENDPOINT: %w", err)
+		}
+		dialEndpoint = u.Host
+		dialSecure = strings.EqualFold(u.Scheme, "https")
+	}
+	dialAddr := ensurePort(dialEndpoint, dialSecure)
+
+	var transport http.RoundTripper
+	if dialAddr != "" && dialAddr != publicDialAddr {
+		baseTransport, err := minio.DefaultTransport(publicSecure)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build presign transport: %w", err)
+		}
+
+		dialer := &net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}
+		baseTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			if addr == publicDialAddr {
+				addr = dialAddr
+			}
+			return dialer.DialContext(ctx, network, addr)
+		}
+		transport = baseTransport
+	}
+
+	client, err := minio.New(publicHost, &minio.Options{
+		Creds:     credentials.NewStaticV4(cfg.StorageAccessKey, cfg.StorageSecretKey, ""),
+		Secure:    publicSecure,
+		Transport: transport,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func ensurePort(host string, secure bool) string {
+	if host == "" {
+		return ""
+	}
+	if _, _, err := net.SplitHostPort(host); err == nil {
+		return host
+	}
+
+	port := "80"
+	if secure {
+		port = "443"
+	}
+
+	return net.JoinHostPort(host, port)
 }
 
 func detectMediaType(contentType string) string {

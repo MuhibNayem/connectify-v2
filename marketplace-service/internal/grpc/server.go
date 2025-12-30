@@ -87,11 +87,17 @@ func (s *Server) SearchProducts(ctx context.Context, req *marketplacepb.SearchPr
 	filter := models.ProductFilter{
 		CategoryID: req.CategoryId,
 		Query:      req.Query,
-		MinPrice:   &req.MinPrice,
-		MaxPrice:   &req.MaxPrice,
 		SortBy:     req.SortBy,
 		Page:       req.Page,
 		Limit:      req.Limit,
+	}
+
+	if req.MinPrice > 0 {
+		filter.MinPrice = &req.MinPrice
+	}
+
+	if req.MaxPrice > 0 {
+		filter.MaxPrice = &req.MaxPrice
 	}
 
 	if filter.Page == 0 {
