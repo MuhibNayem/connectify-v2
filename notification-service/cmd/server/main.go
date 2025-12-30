@@ -197,11 +197,16 @@ func main() {
 		logger.Info("✅ Using Default User Resolver (Notification Data Only)")
 	}
 
-	// ==================== ORCHESTRATOR ====================
+	// User Pref Wire-up
+	var prefAdapter adapters.UserPreferenceAdapter
+	if r, ok := userResolver.(adapters.UserPreferenceAdapter); ok {
+		prefAdapter = r
+	}
+
 	orchestrator := core.NewOrchestrator(&core.OrchestratorConfig{
 		Storage:         storage,
 		Queue:           queue,
-		UserPrefAdapter: nil,
+		UserPrefAdapter: prefAdapter,
 		UserResolver:    userResolver,
 		Logger:          logger,
 		Idempotency:     idempotencyService,

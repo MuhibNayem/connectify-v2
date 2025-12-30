@@ -386,7 +386,7 @@ func (o *Orchestrator) deliverNotification(ctx context.Context, notifID string, 
 
 			success, retryable := o.executeSmartDelivery(ctx, c, notif, prefs, log)
 
-			o.storage.SaveDeliveryState(ctx, state) // Optimistic save
+			o.storage.SaveDeliveryState(ctx, state.Snapshot()) // Thread-safe snapshot for persistence
 
 			if success {
 				state.UpdateChannelStatus(name, models.DeliveryStatusDelivered, "")
@@ -402,7 +402,7 @@ func (o *Orchestrator) deliverNotification(ctx context.Context, notifID string, 
 			}
 
 			// Persist state update
-			if err := o.storage.SaveDeliveryState(ctx, state); err != nil {
+			if err := o.storage.SaveDeliveryState(ctx, state.Snapshot()); err != nil {
 				log.Warn("Failed to update delivery state", zap.Error(err))
 			}
 		}(channel, channelName)

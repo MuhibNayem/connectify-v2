@@ -68,3 +68,42 @@ func (r *HTTPUserResolver) ResolveRecipient(ctx context.Context, userID string) 
 		Preferences:  userResp.Preferences.Channels,
 	}, nil
 }
+
+// GetPreferences implements UserPreferenceAdapter
+func (r *HTTPUserResolver) GetPreferences(ctx context.Context, userID string) (*UserPreferences, error) {
+	// Fallback to main user endpoint if preferences are embedded?
+	// For "Standard API", let's assume /preferences exists or we parse from user.
+	// We use the main user endpoint as per previous logic (embedded prefs).
+
+	mainUrl := fmt.Sprintf("%s/users/%s", r.baseURL, userID)
+	req, err := http.NewRequestWithContext(ctx, "GET", mainUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil // Return nil to use defaults
+	}
+
+	// Parsing strict UserPreferences struct
+	var userResp struct {
+		Preferences UserPreferences `json:"preferences"`
+	}
+	// Note: We assume the User Service returns "preferences" object matching our struct
+	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
+		return nil, fmt.Errorf("failed to decode preferences: %w", err)
+	}
+
+	return &userResp.Preferences, nil
+}
+
+// UpdatePreferences implements UserPreferenceAdapter
+func (r *HTTPUserResolver) UpdatePreferences(ctx context.Context, userID string, prefs *UserPreferences) error {
+	// Not needed for core delivery, but satisfied interface
+	return nil
+}

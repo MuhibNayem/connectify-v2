@@ -73,13 +73,20 @@ func (r *RabbitQueue) connect() error {
 	// 2. Declare Durable Queue
 	// We use the topic name as the queue name for simplicity in this pattern.
 	// In complex routing, we would bind Queue to Exchange. Here direct usage is fine (default exchange).
+	// 2. Declare Durable Queue with DLX
+	args := amqp.Table{
+		"x-queue-type":              "quorum",
+		"x-dead-letter-exchange":    "",               // Default exchange
+		"x-dead-letter-routing-key": r.topic + "-dlq", // Route rejected msgs to DLQ queue
+	}
+
 	_, err = r.ch.QueueDeclare(
-		r.topic,                              // name
-		true,                                 // durable (survives broker restart)
-		false,                                // delete when unused
-		false,                                // exclusive
-		false,                                // no-wait
-		amqp.Table{"x-queue-type": "quorum"}, // Quorum queues for HA (Optional, good for production)
+		r.topic, // name
+		true,    // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		args,
 	)
 	// Fallback if quorum not supported or simple queue preferred:
 	if err != nil {

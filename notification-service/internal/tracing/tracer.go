@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"time"
 )
 
 // Span represents a trace span for observability
@@ -13,6 +16,7 @@ type Span struct {
 	ParentID   string
 	Name       string
 	Attributes map[string]interface{}
+	StartTime  time.Time
 }
 
 // Tracer provides distributed tracing capabilities
@@ -32,6 +36,7 @@ func (t *Tracer) StartSpan(ctx context.Context, name string) (context.Context, *
 		SpanID:     generateID(8),
 		Name:       name,
 		Attributes: make(map[string]interface{}),
+		StartTime:  time.Now(), // Add StartTime to Span struct
 	}
 
 	// Check for parent span in context
@@ -45,8 +50,26 @@ func (t *Tracer) StartSpan(ctx context.Context, name string) (context.Context, *
 
 // End ends a span and records it
 func (t *Tracer) End(span *Span) {
-	// In production, this would export to Jaeger/Zipkin/OTLP
-	// For now, the span data is available for structured logging
+	duration := time.Since(span.StartTime)
+
+	// Structured Log for Tracing (Stdout - can be scraped by Fluentd/Promtail)
+	entry := map[string]interface{}{
+		"level":       "INFO",
+		"ts":          time.Now().Format(time.RFC3339),
+		"logger":      "tracer",
+		"msg":         "Span Finished",
+		"trace_id":    span.TraceID,
+		"span_id":     span.SpanID,
+		"parent_id":   span.ParentID,
+		"span_name":   span.Name,
+		"duration_ms": duration.Milliseconds(),
+		"attributes":  span.Attributes,
+	}
+
+	// Direct JSON write to avoid cyclic dependency with observability package
+	// Or just use fmt/log
+	jsonBytes, _ := json.Marshal(entry)
+	fmt.Println(string(jsonBytes))
 }
 
 // SetAttribute sets an attribute on the span

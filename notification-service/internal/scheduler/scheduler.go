@@ -90,8 +90,8 @@ func (s *Service) processDueEvents(ctx context.Context) {
 		local events = redis.call('ZRANGEBYSCORE', key, '-inf', maxScore, 'LIMIT', 0, limit)
 		if #events > 0 then
 			redis.call('ZREM', key, unpack(events))
-			// Push to active list to persist them while processing
-			// In a full implementation, we'd use RPOPLPUSH per item, but batch move is efficient
+			-- Push to active list to persist them while processing
+			-- In a full implementation, we'd use RPOPLPUSH per item, but batch move is efficient
 			for i, v in ipairs(events) do
 				redis.call('RPUSH', activeList, v)
 			end

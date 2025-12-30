@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // DeliveryStatus represents the state machine for a single channel delivery
 type DeliveryStatus string
@@ -27,6 +30,7 @@ type ChannelDelivery struct {
 
 // NotificationDeliveryState holds delivery state for all channels
 type NotificationDeliveryState struct {
+	mu             sync.RWMutex       `json:"-" bson:"-"` // Internal lock
 	NotificationID string             `json:"notification_id" bson:"notification_id"`
 	Channels       []*ChannelDelivery `json:"channels" bson:"channels"`
 	OverallStatus  DeliveryStatus     `json:"overall_status" bson:"overall_status"`
@@ -56,6 +60,9 @@ func NewDeliveryState(notificationID string, channels []string) *NotificationDel
 
 // UpdateChannelStatus updates delivery status for a specific channel
 func (s *NotificationDeliveryState) UpdateChannelStatus(channel string, status DeliveryStatus, errMsg string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	now := time.Now()
 	for _, cd := range s.Channels {
 		if cd.Channel == channel {
@@ -76,6 +83,7 @@ func (s *NotificationDeliveryState) UpdateChannelStatus(channel string, status D
 }
 
 // recalculateOverallStatus determines overall status based on channel statuses
+// Assumes lock is already held
 func (s *NotificationDeliveryState) recalculateOverallStatus() {
 	allDelivered := true
 	anyFailed := false
@@ -105,10 +113,35 @@ func (s *NotificationDeliveryState) recalculateOverallStatus() {
 
 // GetChannelStatus returns status for a specific channel
 func (s *NotificationDeliveryState) GetChannelStatus(channel string) *ChannelDelivery {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	for _, cd := range s.Channels {
 		if cd.Channel == channel {
-			return cd
+			// Return a copy to prevent race on fields if caller modifies it (safe read)
+			copy := *cd
+			return &copy
 		}
 	}
 	return nil
+}
+
+// Snapshot returns a deep copy of the state for safe persistence
+func (s *NotificationDeliveryState) Snapshot() *NotificationDeliveryState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	channelsCopy := make([]*ChannelDelivery, len(s.Channels))
+	for i, c := range s.Channels {
+		val := *c // shallow copy struct
+		channelsCopy[i] = &val
+	}
+
+	return &NotificationDeliveryState{
+		NotificationID: s.NotificationID,
+		Channels:       channelsCopy,
+		OverallStatus:  s.OverallStatus,
+		CreatedAt:      s.CreatedAt,
+		UpdatedAt:      s.UpdatedAt,
+	}
 }
