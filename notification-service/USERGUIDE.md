@@ -1,251 +1,290 @@
 # 📖 User Guide: Universal Notification Service
 
-This guide will walk you through integrating the Notification Service into your project—whether you're using Go, Node.js, Python, or any other language.
+The **Universal Notification Service** is a production-grade, event-driven system designed to handle multi-channel notification delivery at scale. It abstracts the complexity of managing multiple providers (Email, SMS, Push, In-App) and offers advanced features like priority routing, idempotency, and distributed tracing.
 
 ---
 
 ## Table of Contents
 
-1. [Understanding the Architecture](#understanding-the-architecture)
-2. [Deployment Options](#deployment-options)
-3. [Required Configuration](#required-configuration)
-4. [Recipient Resolution](#recipient-resolution)
-5. [Delivery Lifecycle & State](#delivery-lifecycle--state)
-6. [Observability & Metrics](#observability--metrics)
-7. [Integration Methods](#integration-methods)
-8. [Language-Specific Examples](#language-specific-examples)
-9. [Configuration Reference](#configuration-reference)
+1. [System Architecture](#system-architecture)
+2. [Core Concepts](#core-concepts)
+3. [API Reference](#api-reference)
+4. [Configuration Reference](#configuration-reference)
+5. [Deployment](#deployment)
+6. [Observability](#observability)
 
 ---
 
-## Understanding the Architecture
+## System Architecture
 
+The service follows a **Hexagonal Architecture** (Ports & Adapters), isolating the core business logic from external dependencies.
+
+```mermaid
+graph TD
+    Client[Client App / Microservices] -->|HTTP/gRPC| API[API Interface]
+    Client -->|Events| Kafka[Kafka / RabbitMQ]
+    
+    subgraph "Notification Service"
+        API --> Orchestrator
+        Kafka --> Orchestrator
+        
+        Orchestrator -->|Priority Routing| Queue[Priority Queue]
+        Orchestrator -->|Check/Set| Redis[Redis (Idempotency & Rate Limit)]
+        Orchestrator -->|Persist| DB[(PostgreSQL / MongoDB)]
+        
+        Queue --> Worker[Worker Pool]
+        
+        Worker -->|Resolution| UserSvc[User Service]
+        Worker -->|Delivery| Channels
+    end
+    
+    subgraph "Channels (Adapters)"
+        Channels -->|SMTP| EmailProvider
+        Channels -->|HTTP| SMSProvider[Twilio / AWS SNS]
+        Channels -->|HTTP/HTTP2| PushProvider[FCM / APNS]
+        Channels -->|WS| WebSocket[In-App WebSocket]
+    end
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        YOUR APPLICATION                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐            │
-│  │ Auth Svc │  │ Order Svc│  │ Chat Svc │  │ Frontend │            │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘            │
-│       │             │             │             │                   │
-│       └─────────────┴─────────────┴─────────────┘                   │
-│                         │                                            │
-│                    ┌────▼────┐                                       │
-│                    │  Kafka  │ (or direct HTTP/gRPC)                 │
-│                    └────┬────┘                                       │
-└─────────────────────────┼───────────────────────────────────────────┘
-                          │
-              ┌───────────▼───────────────────────────┐
-              │      NOTIFICATION SERVICE             │
-              │                                       │
-              │  ┌─────────────────────────────────┐ │
-              │  │         Kafka Consumer          │ │
-              │  │    (Commit-on-Success Only)     │ │
-              │  └────────────┬────────────────────┘ │
-              │               │                      │
-              │  ┌────────────▼────────────────────┐ │
-              │  │         Orchestrator            │ │
-              │  │  • Dual Priority Queues         │ │
-              │  │  • Idempotency (Redis SETNX)    │ │
-              │  │  • State Machine Tracking       │ │
-              │  │  • DLQ for Failed Events        │ │
-              │  └────────────┬────────────────────┘ │
-              │               │                      │
-              │  ┌────────────▼────────────────────┐ │
-              │  │          Channels               │ │
-              │  │  • Email (SMTP)                 │ │
-              │  │  • SMS (Twilio/AWS)             │ │
-              │  │  • Push (FCM/APNS)              │ │
-              │  │  • WebSocket (Redis Pub/Sub)    │ │
-              │  └─────────────────────────────────┘ │
-              └───────────────────────────────────────┘
-```
+
+### Key Components
+
+- **Orchestrator**: The central brain that coordinates the lifecycle of a notification. It handles validation, preference checks, and routing.
+- **Priority Queue**: A tiered queuing system (Fast Lane vs. Slow Lane) to ensure critical alerts (e.g., OTPs) are processed before marketing messages.
+- **Worker Pool**: Scalable workers that consume from the queue and execute delivery logic with retries and circuit breaking.
+- **Storage Adapter**: Pluggable persistence layer supporting both PostgreSQL (relational) and MongoDB (document).
 
 ---
 
-## Recipient Resolution
+## Core Concepts
 
-The service needs contact details (email, phone, device tokens) to deliver messages. You can provide this in two ways:
+### 1. Unified Idempotency
+To guarantee **exactly-once processing**, every request is tracked via an `Idempotency-Key`.
+- **Mechanism**: Redis `SETNX` with a TTL (default 24h).
+- **Behavior**: Duplicate requests within the TTL return the original response/status without re-processing.
 
-### 1. Automatic Resolution (Recommended)
+### 2. Recipient Resolution
+The service decouples user identity from contact details.
+- **Strategy**: You provide a `recipient_id` (e.g., UUID).
+- **Resolution**: The service queries your **User Service** (via `USER_SERVICE_URL`) to fetch email, phone number, and device tokens at runtime.
+- **Override**: You can explicitly provide contact info in the payload to bypass resolution.
 
-Configure the service to call your User Service automatically:
+### 3. Smart Delivery
+- **Retries**: Exponential backoff for transient failures (e.g., network timeout).
+- **Dead Letter Queue (DLQ)**: Permanent failures are routed to a generic DLQ for inspection.
+- **Rate Limiting**: Per-user or global limits to prevent spamming.
 
-```bash
-# Set this to your user service endpoint
-export USER_SERVICE_URL=http://user-service:8080
+---
+
+## API Reference
+
+Base URL: `http://localhost:8090/v1`
+
+### Authentication
+Include the API Key in the header:
+```http
+X-API-Key: your-service-key
 ```
 
-The Notification Service will perform a `GET /users/{recipient_id}` call. It expects a JSON response like:
+### Endpoints
 
+#### 1. Create Notification
+**POST** `/notifications`
+
+Dispatches a new notification.
+
+**Request Body:**
 ```json
 {
-  "id": "user-123",
-  "email": "user@example.com",
-  "phone": "+1234567890",
-  "device_tokens": [
-    {"token": "fcm_token_xyz", "platform": "android"}
-  ]
-}
-```
-
-### 2. Manual Override (Per-Notification)
-
-You can pass contact info directly in the notification request. This **takes priority** over the resolved user data.
-
-```json
-{
-  "recipient_id": "user-123",
-  "channels": ["email"],
+  "recipient_id": "user-1234",
+  "type": "ORDER_UPDATE",
+  "title": "Order Shipped",
+  "body": "Your package is on the way!",
+  "channels": ["email", "inapp"],
+  "priority": "HIGH",
   "data": {
-    "email": "override@example.com"
+    "order_id": "88492"
   }
 }
 ```
 
----
-
-## Delivery Lifecycle & State
-
-The service tracks the precise state of every delivery attempt per channel using a persisted state machine.
-
-### States
-
-| State | Description |
-|-------|-------------|
-| `pending` | Notification received and queued |
-| `sent` | Successfully sent to the provider (e.g., SMTP server accepted it) |
-| `delivered` | Provider confirmed delivery (where supported) |
-| `failed` | Delivery failed after max retries |
-| `retrying` | Temporary failure, waiting for retry |
-
-### Retrying
-
-- **Transient Failures** (e.g., timeout, network): Automatically retried with exponential backoff (default: 3 retries).
-- **Permanent Failures** (e.g., invalid email): fast-failed and sent to DLQ immediately.
-
----
-
-## Observability & Metrics
-
-We export SLO-grade Prometheus metrics on `:${METRICS_PORT}/metrics` (default 9102).
-
-### Key Metrics to Monitor
-
-| Metric Name | Type | Description |
-|-------------|------|-------------|
-| `notification_delivery_latency_seconds` | Histogram | End-to-end latency (p50, p95, p99). **Critical SLO metric**. |
-| `channel_delivery_failure_total` | Counter | Failed deliveries by channel and error type. |
-| `queue_depth` | Gauge | Current size of priority queues. High depth = scaling needed. |
-| `dlq_events_total` | Counter | Number of events sent to Dead Letter Queue (failures). |
-| `backpressure_events_total` | Counter | Requests rejected due to queue saturation. |
-
----
-
-## Deployment Options
-
-### Option A: Docker Compose (Recommended)
-
-```yaml
-version: '3.8'
-services:
-  notification-service:
-    image: notification-service:latest
-    ports:
-      - "8090:8090"   # HTTP
-      - "50060:50060" # gRPC
-      - "9102:9102"   # Metrics
-    environment:
-      - REDIS_ADDR=redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - API_KEYS=orders-svc:key1
-      - USER_SERVICE_URL=http://user-service:8080
-      - STORAGE_TYPE=mongodb
-      - STORAGE_URI=mongodb://mongo:27017/notifications
-    depends_on:
-      - redis
-      - mongodb
+**Response (201 Created):**
+```json
+{
+  "id": "notif-550e8400-e29b",
+  "status": "queued",
+  "created_at": "2023-10-27T10:00:00Z"
+}
 ```
 
-### Option B: Kubernetes
+#### 2. Get Notification
+**GET** `/notifications/{id}`
 
-Deploy using standard Kubernetes manifests. Ensure you set the `REDIS_ADDR` and `JWT_SECRET` environment variables via ConfigMaps/Secrets.
+Retrieves details and status of a specific notification.
 
----
-
-## Integration Methods
-
-### Method 1: REST API (Simplest)
-
-```bash
-curl -X POST http://notification-service:8090/v1/notifications \
-  -H "X-API-Key: your-api-key" \
-  -d '{
-    "recipient_id": "user-123",
-    "type": "ORDER_SHIPPED",
-    "title": "Your order shipped!",
-    "channels": ["inapp", "email"]
-  }'
+**Response (200 OK):**
+```json
+{
+  "id": "notif-550e8400-e29b",
+  "recipient_id": "user-1234",
+  "status": "delivered",
+  "delivery_attempts": [
+    { "channel": "email", "status": "success", "timestamp": "..." }
+  ]
+}
 ```
 
-### Method 2: gRPC (Best Performance)
+### gRPC API
 
-Use the generated Protobuf client to call `CreateNotification`. Ideal for inter-service communication within your cluster.
+#### Stream Notifications (High Throughput)
+### `StreamNotifications`
+**Bi-Directional Streaming**: High-throughput ingestion.
+*   **Performance**: Uses micro-batching (100 items or 50ms buffer) to achieve 50k+ RPS.
+*   **Fail-Safe guarantee**: Responses are strictly correlated to requests in the batch using memory-allocated IDs.
+*   **Usage**: Recommended for bulk ingestion or high-traffic event streams.
 
-### Method 3: Kafka Events
+**Request (`stream CreateNotificationRequest`)**:
+Same as `CreateNotification` request.
 
-Publish generic events to the `notifications` topic. The service consumes, deduplicates, and delivers them.
+**Response (`stream CreateNotificationResponse`)**:
+```protobuf
+message CreateNotificationResponse {
+  string id = 1;
+  bool success = 2;
+}
+```
+
+#### Standard RPCs
+The service supports full feature parity with the HTTP API via gRPC:
+
+| RPC Method | Equivalent HTTP | Description |
+|------------|-----------------|-------------|
+| `CreateNotification` | `POST /v1/notifications` | Dispatch a single notification. |
+| `GetNotification` | `GET /v1/notifications/{id}` | Get details of a notification. |
+| `UpdateNotification` | `PATCH /v1/notifications/{id}` | Update or mark as read. |
+| `DeleteNotification` | `DELETE /v1/notifications/{id}` | Remove a notification. |
+| `ListNotifications` | `GET /v1/notifications` | List notifications with pagination. |
+| `BatchMarkAsRead` | `POST /v1/notifications/batch/mark-read` | Mark multiple as read. |
+| `GetUnreadCount` | `GET /v1/notifications/unread-count` | Get unread badge count. |
+
+
+#### 3. List Notifications
+**GET** `/notifications?recipient_id=user-1234&limit=20`
+
+Lists notifications for a user.
+
+- **Query Params**:
+    - `recipient_id` (required for non-admin)
+    - `limit` (default 20)
+    - `cursor` (pagination)
+    - `read` (filter by read status: `true`/`false`)
+
+#### 4. Mark as Read (Batch)
+**POST** `/notifications/batch/mark-read`
+
+Marks multiple notifications as read.
+
+**Request Body:**
+```json
+{
+  "recipient_id": "user-1234",
+  "notification_ids": ["notif-1", "notif-2"],
+  "all": false
+}
+```
+
+#### 5. Get Unread Count
+**GET** `/notifications/unread-count?recipient_id=user-1234`
+
+Returns the count of unread notifications for a user.
 
 ---
 
 ## Configuration Reference
 
-### Complete Environment Variables
+The service is configured via environment variables.
+
+### General Server
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVER_PORT` | `8090` | HTTP API port |
+| `GRPC_PORT` | `50060` | gRPC API port |
+| `ENVIRONMENT` | `development` | `development`, `production` |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+| `USER_SERVICE_URL` | *(empty)* | URL to fetch user details (e.g. `http://user-service`) |
+
+### Infrastructure
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_ADDR` | *(required)* | Redis connection string (e.g. `localhost:6379`) |
+| `STORAGE_TYPE` | `memory` | `postgres`, `mongodb`, `memory` |
+| `STORAGE_URI` | *(empty)* | Database connection URI |
+| `QUEUE_TYPE` | `memory` | `kafka`, `rabbitmq`, `memory` |
+| `QUEUE_BROKERS` | `localhost:9092` | Comma-separated broker addresses |
+
+### Channels
+Enable or disable specific notification channels.
+
+| Variable | Default | Logic |
+|----------|---------|-------|
+| `EMAIL_ENABLED` | `false` | Enable SMTP Email |
+| `SMS_ENABLED` | `false` | Enable SMS (Twilio) |
+| `PUSH_ENABLED` | `false` | Enable Push (FCM/APNS) |
+| `INAPP_ENABLED` | `true` | Enable WebSocket In-App |
+
+#### Email (SMTP)
+Required if `EMAIL_ENABLED=true`.
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_FROM_EMAIL`
+- `SMTP_FROM_NAME`
+
+#### Push (FCM / APNS)
+Required if `PUSH_ENABLED=true`.
+- `FCM_ENABLED`: `true`/`false`
+- `FCM_PROJECT_ID`
+- `FCM_CREDENTIALS`: JSON content of service account
+- `APNS_ENABLED`: `true`/`false`
+- `APNS_TEAM_ID`
+- `APNS_KEY_ID`
+- `APNS_BUNDLE_ID`
+- `APNS_KEY_FILE`: Path to .p8 file
+
+#### SMS (Twilio)
+Required if `SMS_ENABLED=true`.
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_FROM_NUMBER`
+
+### Security
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | *(empty)* | Secret for verifying User JWTs |
+| `API_KEYS` | *(empty)* | Service-to-Service keys (`key:name,key2:name2`) |
+
+---
+
+## Deployment
+
+### Docker Compose
+A ready-to-use `docker-compose.yml` is provided.
 
 ```bash
-# Server
-SERVER_PORT=8090
-GRPC_PORT=50060
-METRICS_PORT=9102
-LOG_LEVEL=info
-
-# Integrations
-USER_SERVICE_URL=http://user-service:8080
-WEBHOOK_ENABLED=true
-
-# Auth
-JWT_SECRET=your-secret
-API_KEYS=key1:name1,key2:name2
-
-# Redis (Required)
-REDIS_ADDR=localhost:6379
-
-# Storage
-STORAGE_TYPE=mongodb
-STORAGE_URI=mongodb://localhost:27017
-
-# Channels
-EMAIL_ENABLED=true
-SMS_ENABLED=true
-PUSH_ENABLED=true
-INAPP_ENABLED=true
+# Start all services (Service + Redis + Mongo)
+docker-compose up -d --build
 ```
 
-For channel-specific config (SMTP, Twilio, FCM), see `config/config.go`.
+### Kubernetes
+Standard Kubernetes manifests are compatible. Ensure `REDIS_ADDR` and `STORAGE_URI` point to valid internal cluster services.
 
 ---
 
-## Troubleshooting
+## Observability
 
-### Notification not delivered?
+The service exposes Prometheus metrics at `:${METRICS_PORT}/metrics` (default :9102).
 
-1. **Check Metrics**: Is `dlq_events_total` increasing?
-2. **Check Recipient**: Does `user-123` exist in your User Service? Is `USER_SERVICE_URL` correct?
-3. **Check Logs**: Filter by `notification_id` or `trace_id`.
-
-### High Latency?
-
-1. **Check Queue Depth**: Are queues backing up?
-2. **Check Redis**: Is Redis latency high? Idempotency relies on it.
-3. **Check Channel Latency**: `channel_delivery_latency_seconds` will show which provider is slow.
-
----
+**Key Metrics:**
+- `notification_delivery_latency_seconds`: End-to-end delivery time.
+- `queue_depth`: Number of items waiting in priority queues.
+- `active_workers`: Current detailed worker count per channel.

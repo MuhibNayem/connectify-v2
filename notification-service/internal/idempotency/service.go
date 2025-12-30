@@ -22,35 +22,54 @@ func NewService(client *redis.Client, ttl time.Duration) *Service {
 }
 
 // Check returns true if the event has already been processed (duplicate)
-// Uses Redis SETNX for atomic check-and-set
-func (s *Service) Check(ctx context.Context, eventID string) (bool, error) {
+func (s *Service) Check(ctx context.Context, key string) (bool, error) {
 	if s.client == nil {
-		return false, nil // No Redis = no idempotency (dev mode)
+		return false, nil
+	}
+	// Just check existence
+	exists, err := s.client.Exists(ctx, "idempotency:"+key).Result()
+	if err != nil {
+		return false, err
+	}
+	return exists > 0, nil
+}
+
+// Lock attempts to acquire a processing lock for the event.
+// Returns true if lock acquired, false if already locked/processed.
+// Sets status to "processing" with a short TTL (e.g. 5 minutes) to handle crashes.
+func (s *Service) Lock(ctx context.Context, eventID string) (bool, error) {
+	if s.client == nil {
+		return true, nil // Dev mode: always acquire
 	}
 
 	key := "idempotency:" + eventID
 
 	// SETNX: Set if Not eXists
-	// Returns true if key was set (first time processing)
-	// Returns false if key already exists (duplicate)
-	wasSet, err := s.client.SetNX(ctx, key, "processed", s.ttl).Result()
+	// We use a short TTL (e.g. 5m) for the lock. If instance crashes, lock expires, allowing retry.
+	// Processing time is usually milliseconds. 5m is safe.
+	lockTTL := 5 * time.Minute
+	acquired, err := s.client.SetNX(ctx, key, "processing", lockTTL).Result()
 	if err != nil {
 		return false, err
 	}
 
-	// If wasSet is false, it means the key already existed = duplicate
-	isDuplicate := !wasSet
-	return isDuplicate, nil
+	// If not acquired, check if it's "processed" or just "processing" (zombie lock?)
+	// For now, strict idempotency says: if exists, we don't process.
+	// But if it was a zombie lock from a crash 6 minutes ago, it would have expired.
+	// So standard SetNX is sufficient for "At-Most-Once" per TTL.
+
+	return acquired, nil
 }
 
-// MarkProcessed explicitly marks an event as processed
-// Useful for delayed marking after successful processing
-func (s *Service) MarkProcessed(ctx context.Context, eventID string) error {
+// Confirm marks the event as successfully processed.
+// Updates status to "processed" and extends TTL to full duration (e.g. 24h).
+func (s *Service) Confirm(ctx context.Context, eventID string) error {
 	if s.client == nil {
 		return nil
 	}
 
 	key := "idempotency:" + eventID
+	// Overwrite with "processed" and full TTL
 	return s.client.Set(ctx, key, "processed", s.ttl).Err()
 }
 

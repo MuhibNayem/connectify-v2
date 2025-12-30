@@ -28,7 +28,7 @@ func TestIdempotencyService_MarkProcessed(t *testing.T) {
 	service := idempotency.NewService(nil, time.Hour)
 
 	ctx := context.Background()
-	err := service.MarkProcessed(ctx, "test-event-2")
+	err := service.Confirm(ctx, "test-event-2")
 
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)

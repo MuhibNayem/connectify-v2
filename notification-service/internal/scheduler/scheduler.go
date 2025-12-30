@@ -32,8 +32,7 @@ func NewService(redis *redis.Client, queue adapters.QueueAdapter, logger *zap.Lo
 // Schedule adds an event to the delayed set with a future timestamp score
 func (s *Service) Schedule(ctx context.Context, event *adapters.NotificationEvent, delay time.Duration) error {
 	if s.redis == nil {
-		// Fallback for no-redis mode: direct sleep (blocking, bad but safe for tests)
-		// Or separate goroutine
+		// Start a goroutine to handle delay for in-memory mode
 		go func() {
 			time.Sleep(delay)
 			s.queue.Publish(context.Background(), event)
@@ -64,7 +63,7 @@ func (s *Service) StartPoller(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	s.logger.Info("🕰️ Delayed Retry Scheduler Started")
+	s.logger.Info("Delayed Retry Scheduler Started")
 
 	for {
 		select {
@@ -77,10 +76,8 @@ func (s *Service) StartPoller(ctx context.Context) {
 }
 
 func (s *Service) processDueEvents(ctx context.Context) {
-	// Atomic move from Delayed ZSET to Active List (durability)
-	// If the worker crashes after this script but before publishing, items remain in 'active' list
-	// A separate recovery process (or startup check) could re-queue them.
-	// For now, this is "At Least Once" if we just process the list.
+	// Atomic move from Delayed ZSET to Active List for durability.
+	// This ensures that if the worker fails during processing, events are preserved in the active list.
 	script := redis.NewScript(`
 		local key = KEYS[1]
 		local activeList = KEYS[2]
@@ -91,7 +88,6 @@ func (s *Service) processDueEvents(ctx context.Context) {
 		if #events > 0 then
 			redis.call('ZREM', key, unpack(events))
 			-- Push to active list to persist them while processing
-			-- In a full implementation, we'd use RPOPLPUSH per item, but batch move is efficient
 			for i, v in ipairs(events) do
 				redis.call('RPUSH', activeList, v)
 			end
@@ -117,18 +113,16 @@ func (s *Service) processDueEvents(ctx context.Context) {
 		var event adapters.NotificationEvent
 		if err := json.Unmarshal(data, &event); err != nil {
 			s.logger.Error("Failed to unmarshal delayed event", zap.Error(err))
-			// Poison message? Remove from list to avoid block?
-			// For now, we leave it or remove it. Ideally remove.
+			// Remove malformed event from active list to prevent blocking
 			s.redis.LRem(ctx, activeKey, 1, dataStr)
 			continue
 		}
 
-		s.logger.Info("⏰ Triggering delayed retry", zap.String("id", event.ID))
+		s.logger.Info("Triggering delayed retry", zap.String("id", event.ID))
 		if err := s.queue.Publish(ctx, &event); err != nil {
 			s.logger.Error("Failed to publish delayed event", zap.Error(err))
-			// Re-queue with backoff?
-			// Use ZADD to put back in delayed (retry later)
-			// And remove from active list
+			// Re-queue with backoff by adding back to ZSET
+			// Remove from active list as we have re-scheduled it
 			s.redis.ZAdd(ctx, DelayedKey, redis.Z{
 				Score:  float64(time.Now().Add(10*time.Second).UnixNano()) / 1e9,
 				Member: data,

@@ -295,6 +295,43 @@ func (m *MongoStorage) CreateWithOutbox(ctx context.Context, notification *adapt
 	return err
 }
 
+func (m *MongoStorage) CreateBatchWithOutbox(ctx context.Context, notifications []*adapters.Notification, events []*adapters.NotificationEvent) error {
+	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
+		// 1. Bulk Insert Notifications
+		if len(notifications) > 0 {
+			docs := make([]interface{}, len(notifications))
+			for i, n := range notifications {
+				docs[i] = m.toDocument(n)
+			}
+			if _, err := m.collection.InsertMany(sessCtx, docs); err != nil {
+				return nil, err
+			}
+		}
+
+		// 2. Bulk Insert Outbox
+		if len(events) > 0 {
+			eventDocs := make([]interface{}, len(events))
+			for i, e := range events {
+				eventDocs[i] = e
+			}
+			if _, err := m.outboxCollection.InsertMany(sessCtx, eventDocs); err != nil {
+				return nil, err
+			}
+		}
+
+		return nil, nil
+	}
+
+	session, err := m.client.StartSession()
+	if err != nil {
+		return fmt.Errorf("failed to start session: %w", err)
+	}
+	defer session.EndSession(ctx)
+
+	_, err = session.WithTransaction(ctx, callback)
+	return err
+}
+
 func (m *MongoStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
 	// Mongo Queue Pattern: FindOneAndUpdate with locking
 	// We loop 'limit' times because Mongo doesn't easily support "Update N and Return N" atomically

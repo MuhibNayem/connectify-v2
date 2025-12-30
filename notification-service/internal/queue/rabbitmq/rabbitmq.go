@@ -13,8 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// RabbitQueue implements a robust, production-grade RabbitMQ adapter
-// Features: Auto-reconnection, Publisher Confirms, QoS (Backpressure), Thread Safety
+// RabbitQueue implements a robust RabbitMQ adapter with auto-reconnection and publisher confirms.
 type RabbitQueue struct {
 	url       string
 	topic     string
@@ -28,7 +27,7 @@ type RabbitQueue struct {
 	notifyCh  chan *amqp.Error // Channel close notification
 }
 
-// NewRabbitQueue initializes a new RabbitMQ adapter with robust connection handling
+// NewRabbitQueue initializes a new RabbitMQ adapter.
 func NewRabbitQueue(url, topic string) (*RabbitQueue, error) {
 	rq := &RabbitQueue{
 		url:   url,
@@ -70,10 +69,8 @@ func (r *RabbitQueue) connect() error {
 		return fmt.Errorf("failed to enable publisher confirms: %w", err)
 	}
 
-	// 2. Declare Durable Queue
-	// We use the topic name as the queue name for simplicity in this pattern.
-	// In complex routing, we would bind Queue to Exchange. Here direct usage is fine (default exchange).
 	// 2. Declare Durable Queue with DLX
+	// We use the topic name as the queue name.
 	args := amqp.Table{
 		"x-queue-type":              "quorum",
 		"x-dead-letter-exchange":    "",               // Default exchange
@@ -135,17 +132,17 @@ func (r *RabbitQueue) reconnectLoop() {
 }
 
 func (r *RabbitQueue) handleReconnect(typ string, cause error) {
-	fmt.Printf("⚠️ RabbitMQ %s closed: %v. Reconnecting...\n", typ, cause)
+	fmt.Printf("RabbitMQ %s closed: %v. Reconnecting...\n", typ, cause)
 
 	for {
 		// Exponential Backoff could be added here
 		time.Sleep(2 * time.Second)
 
 		if err := r.connect(); err == nil {
-			fmt.Println("✅ RabbitMQ reconnected")
+			fmt.Println("RabbitMQ reconnected")
 			return
 		} else {
-			fmt.Printf("❌ Failed to reconnect: %v. Retrying...\n", err)
+			fmt.Printf("Failed to reconnect: %v. Retrying...\n", err)
 		}
 	}
 }
@@ -200,9 +197,6 @@ func (r *RabbitQueue) Publish(ctx context.Context, event *adapters.NotificationE
 }
 
 func (r *RabbitQueue) PublishBatch(ctx context.Context, events []*adapters.NotificationEvent) error {
-	// For true efficiency, we could use batch publish not supported by AMQP 0.9.1 validly?
-	// AMQP doesn't have native "Batch" command like Kafka. We must loop.
-	// But we can pipeline the confirms? For "Simple Logic", loop is robust enough.
 	for _, event := range events {
 		if err := r.Publish(ctx, event); err != nil {
 			return err
@@ -250,22 +244,24 @@ func (r *RabbitQueue) Subscribe(ctx context.Context, handler adapters.EventHandl
 				continue
 			}
 
-			if err := handler(ctx, &event); err != nil {
-				// Retry Logic?
-				// For simple production grade: Nack with Requeue = TRUE if transient?
-				// But that loops forever.
-				// Better: Nack(false, false) -> DLQ (Dead Letter Exchange setup required in QueueDeclare).
-				// Since we didn't setup DLX explicitly in QueueDeclare above (simple logic),
-				// we should probably Log and Drop (or the app handler already handled retry logic).
-				// The user asked for "Simple Logic".
-				// Best practice without DLX configured: Requeue once? No.
-				// We assume Handler returns error only if it REALLY failed (and maybe tried internal retries).
-				// So we Nack(false) to drop/dead-letter.
-				d.Nack(false, false)
-			} else {
-				d.Ack(false)
+			// INJECT MANUAL ACK/NACK
+			// This allows the specific worker to Ack AFTER it completes processing.
+			// Critical for "At-Least-Once" guarantee.
+			event.Ack = func() error {
+				return d.Ack(false)
 			}
+			event.Nack = func() error {
+				return d.Nack(false, true) // Requeue enabled for retries
+			}
+
+			if err := handler(ctx, &event); err != nil {
+				// If handler returns error (e.g. queue full backpressure), we Nack here.
+				// But generally, the handler (Orchestrator) takes ownership.
+				d.Nack(false, true)
+			}
+			// NO AUTO ACK HERE! Handler (Orchestrator) must call event.Ack()
 		}
+
 	}()
 
 	return nil

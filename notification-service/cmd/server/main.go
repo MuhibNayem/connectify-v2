@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -39,28 +38,27 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 func main() {
-	fmt.Println("🚀 Universal Notification Service - Production Grade")
-	fmt.Println("   Industry-agnostic | Plugin Architecture | Zero Dependencies")
-	fmt.Println()
+	log.Println("Starting Universal Notification Service...")
 
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("❌ Failed to load config: %v", err)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	// Initialize logger
 	logger, err := observability.NewLogger(cfg.Observability.LogLevel, cfg.Observability.LogFormat)
 	if err != nil {
-		log.Fatalf("❌ Failed to create logger: %v", err)
+		log.Fatalf("Failed to create logger: %v", err)
 	}
 	defer logger.Sync()
 
 	// Metrics system initialized via package init
-	logger.Info("✅ Metrics system initialized")
+	logger.Info("Metrics system initialized")
 
 	// ==================== STORAGE INITIALIZATION ====================
 	var storage adapters.StorageAdapter
@@ -69,24 +67,24 @@ func main() {
 	case "mongodb":
 		storage, err = mongodb.NewMongoStorage(cfg.Storage.URI, cfg.Storage.Database, cfg.Storage.Collection)
 		if err != nil {
-			logger.Fatal("❌ Failed to initialize MongoDB", zap.Error(err))
+			logger.Fatal("Failed to initialize MongoDB", zap.Error(err))
 		}
-		logger.Info("✅ Using MongoDB storage", zap.String("database", cfg.Storage.Database))
+		logger.Info("Using MongoDB storage", zap.String("database", cfg.Storage.Database))
 
 	case "postgres", "postgresql":
 		storage, err = postgres.NewPostgresStorage(cfg.Storage.URI)
 		if err != nil {
-			logger.Fatal("❌ Failed to initialize PostgreSQL", zap.Error(err))
+			logger.Fatal("Failed to initialize PostgreSQL", zap.Error(err))
 		}
-		logger.Info("✅ Using PostgreSQL storage")
+		logger.Info("Using PostgreSQL storage")
 
 	case "memory":
 		storage = memory.NewMemoryStorage()
-		logger.Info("✅ Using in-memory storage (development mode)")
+		logger.Info("Using in-memory storage (development mode)")
 
 	default:
 		storage = memory.NewMemoryStorage()
-		logger.Warn("⚠️  Unknown storage type, using in-memory", zap.String("type", cfg.Storage.Type))
+		logger.Warn("Unknown storage type, using in-memory", zap.String("type", cfg.Storage.Type))
 	}
 
 	// ==================== SHARED REDIS CLIENT ====================
@@ -102,18 +100,18 @@ func main() {
 		defer cancel()
 
 		if err := redisClient.Ping(ctx).Err(); err != nil {
-			logger.Warn("⚠️  Redis not available", zap.Error(err), zap.String("addr", cfg.Redis.Addr))
+			logger.Warn("Redis not available", zap.Error(err), zap.String("addr", cfg.Redis.Addr))
 			redisClient = nil
 		} else {
-			logger.Info("✅ Redis connected", zap.String("addr", cfg.Redis.Addr))
+			logger.Info("Redis connected", zap.String("addr", cfg.Redis.Addr))
 		}
 	}
 
-	// ==================== 10/10 COMPONENTS INIT (Moved Up) ====================
+	// ==================== COMPONENTS INIT ====================
 
 	// Dead Letter Queue Handler
 	dlqHandler := dlq.NewHandler(storage, logger)
-	logger.Info("✅ DLQ handler initialized")
+	logger.Info("DLQ handler initialized")
 
 	// ==================== QUEUE INITIALIZATION ====================
 	var queue adapters.QueueAdapter
@@ -124,27 +122,27 @@ func main() {
 		queue = kafkaqueue.NewKafkaQueue(cfg.Queue.Brokers, cfg.Queue.Topic, cfg.Queue.GroupID, func(ctx context.Context, data []byte, err error) error {
 			return dlqHandler.SendRaw(ctx, data, err)
 		})
-		logger.Info("✅ Using Kafka queue (with DLQ enabled)", zap.Strings("brokers", cfg.Queue.Brokers))
+		logger.Info("Using Kafka queue (with DLQ enabled)", zap.Strings("brokers", cfg.Queue.Brokers))
 
 	case "rabbitmq":
 		if len(cfg.Queue.Brokers) == 0 {
-			logger.Fatal("❌ RabbitMQ requires at least one broker URL (amqp://...)")
+			logger.Fatal("RabbitMQ requires at least one broker URL (amqp://...)")
 		}
 		// Use first broker as URL
 		q, err := rabbitmq.NewRabbitQueue(cfg.Queue.Brokers[0], cfg.Queue.Topic)
 		if err != nil {
-			logger.Fatal("❌ Failed to init RabbitMQ", zap.Error(err))
+			logger.Fatal("Failed to init RabbitMQ", zap.Error(err))
 		}
 		queue = q
-		logger.Info("✅ Using RabbitMQ queue", zap.String("url", cfg.Queue.Brokers[0]))
+		logger.Info("Using RabbitMQ queue", zap.String("url", cfg.Queue.Brokers[0]))
 
 	case "memory":
 		queue = memoryqueue.NewMemoryQueue()
-		logger.Info("✅ Using in-memory queue (development mode)")
+		logger.Info("Using in-memory queue (development mode)")
 
 	default:
 		queue = memoryqueue.NewMemoryQueue()
-		logger.Warn("⚠️  Unknown queue type, using in-memory", zap.String("type", cfg.Queue.Type))
+		logger.Warn("Unknown queue type, using in-memory", zap.String("type", cfg.Queue.Type))
 	}
 
 	// ==================== DLQ QUEUE SETUP (Separate Topic) ====================
@@ -153,7 +151,7 @@ func main() {
 		dlqTopic := cfg.Queue.Topic + "-dlq"
 		dlqQueue := kafkaqueue.NewKafkaQueue(cfg.Queue.Brokers, dlqTopic, cfg.Queue.GroupID, nil)
 		dlqHandler.SetQueue(dlqQueue)
-		logger.Info("✅ DLQ Queue configured (Kafka)", zap.String("topic", dlqTopic))
+		logger.Info("DLQ Queue configured (Kafka)", zap.String("topic", dlqTopic))
 
 	case "rabbitmq":
 		if len(cfg.Queue.Brokers) > 0 {
@@ -161,9 +159,9 @@ func main() {
 			q, err := rabbitmq.NewRabbitQueue(cfg.Queue.Brokers[0], dlqTopic)
 			if err == nil {
 				dlqHandler.SetQueue(q)
-				logger.Info("✅ DLQ Queue configured (RabbitMQ)", zap.String("topic", dlqTopic))
+				logger.Info("DLQ Queue configured (RabbitMQ)", zap.String("topic", dlqTopic))
 			} else {
-				logger.Error("❌ Failed to init DLQ (RabbitMQ)", zap.Error(err))
+				logger.Error("Failed to init DLQ (RabbitMQ)", zap.Error(err))
 			}
 		}
 
@@ -173,28 +171,28 @@ func main() {
 
 	// 3. Distributed Tracing
 	tracer := tracing.NewTracer("notification-service")
-	logger.Info("✅ Tracing initialized")
+	logger.Info("Tracing initialized")
 
 	// 5. Delayed Scheduler (For Retries)
 	// Pass redisClient (can be nil) and queue
 	schedulerService := scheduler.NewService(redisClient, queue, logger)
-	logger.Info("✅ Scheduler initialized")
+	logger.Info("Scheduler initialized")
 
 	// 1. Idempotency Service (Exactly-Once Processing)
 	var idempotencyService *idempotency.Service
 	if redisClient != nil {
 		idempotencyService = idempotency.NewService(redisClient, 24*time.Hour)
-		logger.Info("✅ Idempotency service initialized (24h TTL)")
+		logger.Info("Idempotency service initialized (24h TTL)")
 	}
 
 	// 4. User Resolver
 	var userResolver adapters.UserResolver
 	if cfg.Server.UserServiceURL != "" {
 		userResolver = adapters.NewHTTPUserResolver(cfg.Server.UserServiceURL)
-		logger.Info("✅ Using HTTP User Resolver", zap.String("url", cfg.Server.UserServiceURL))
+		logger.Info("Using HTTP User Resolver", zap.String("url", cfg.Server.UserServiceURL))
 	} else {
 		userResolver = &adapters.DefaultUserResolver{}
-		logger.Info("✅ Using Default User Resolver (Notification Data Only)")
+		logger.Info("Using Default User Resolver (Notification Data Only)")
 	}
 
 	// User Pref Wire-up
@@ -218,7 +216,7 @@ func main() {
 	// Start Worker
 	go func() {
 		if err := orchestrator.StartWorker(context.Background()); err != nil {
-			logger.Error("❌ Worker failed", zap.Error(err))
+			logger.Error("Worker failed", zap.Error(err))
 		}
 	}()
 
@@ -273,10 +271,10 @@ func main() {
 		if cfg.Channels.Push.FCMEnabled {
 			p, err := push.NewFCMProvider(cfg.Channels.Push.FCMProjectID, []byte(cfg.Channels.Push.FCMCredentials))
 			if err != nil {
-				logger.Error("❌ Failed to init FCM", zap.Error(err))
+				logger.Error("Failed to init FCM", zap.Error(err))
 			} else {
 				provider = p
-				logger.Info("✅ Channel enabled: Push (FCM Provider)")
+				logger.Info("Channel enabled: Push (FCM Provider)")
 			}
 		} else if cfg.Channels.Push.APNSEnabled {
 			// Read p8 file content
@@ -294,10 +292,10 @@ func main() {
 				cfg.Channels.Push.APNSProduction,
 			)
 			if err != nil {
-				logger.Error("❌ Failed to init APNS", zap.Error(err))
+				logger.Error("Failed to init APNS", zap.Error(err))
 			} else {
 				provider = p
-				logger.Info("✅ Channel enabled: Push (APNS Provider)")
+				logger.Info("Channel enabled: Push (APNS Provider)")
 			}
 		}
 
@@ -312,7 +310,7 @@ func main() {
 	// Cleanup Service
 	cleanupService := cleanup.NewCleanupService(storage, 1*time.Hour)
 	cleanupService.Start()
-	logger.Info("✅ Background cleanup service started")
+	logger.Info("Background cleanup service started")
 
 	// ==================== SERVERS ====================
 
@@ -346,9 +344,9 @@ func main() {
 			JWTIssuer: cfg.Auth.JWTIssuer,
 			APIKeys:   apiKeys,
 		})
-		logger.Info("✅ Authentication initialized", zap.Int("api_keys", len(apiKeys)))
+		logger.Info("Authentication initialized", zap.Int("api_keys", len(apiKeys)))
 	} else {
-		logger.Warn("⚠️  Authentication disabled (JWT_SECRET not set)")
+		logger.Warn("Authentication disabled (JWT_SECRET not set)")
 	}
 
 	// Rate Limiter: Only enable if Redis is available
@@ -358,7 +356,7 @@ func main() {
 			BurstSize:         cfg.RateLimit.MaxPerHour / 1800, // Allow 2x burst
 			KeyPrefix:         "ratelimit:notification",
 		})
-		logger.Info("✅ Rate limiter initialized")
+		logger.Info("Rate limiter initialized")
 	}
 
 	// HTTP API
@@ -370,7 +368,7 @@ func main() {
 	apiAddr := ":" + cfg.Server.HTTPPort
 
 	go func() {
-		logger.Info("🌐 HTTP server listening", zap.String("addr", apiAddr))
+		logger.Info("HTTP server listening", zap.String("addr", apiAddr))
 		if err := http.ListenAndServe(apiAddr, httpServer); err != nil {
 			logger.Fatal("HTTP server failed", zap.Error(err))
 		}
@@ -383,12 +381,25 @@ func main() {
 		logger.Fatal("Failed to listen for gRPC", zap.Error(err))
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle: 15 * time.Second,
+			MaxConnectionAge:  30 * time.Minute,
+			Time:              5 * time.Minute,
+			Timeout:           20 * time.Second,
+		}),
+		grpc.ChainUnaryInterceptor(
+			grpcserver.NewInterceptorManager(logger).UnaryServerInterceptor(),
+		),
+		grpc.ChainStreamInterceptor(
+			grpcserver.NewInterceptorManager(logger).StreamServerInterceptor(),
+		),
+	)
 	notificationServer := grpcserver.NewNotificationServer(orchestrator)
 	notificationServer.Register(grpcServer)
 
 	go func() {
-		logger.Info("🔌 gRPC server listening", zap.String("addr", grpcAddr))
+		logger.Info("gRPC server listening", zap.String("addr", grpcAddr))
 		if err := grpcServer.Serve(lis); err != nil {
 			logger.Fatal("gRPC server failed", zap.Error(err))
 		}
@@ -399,9 +410,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("🛑 Shutting down...")
+	logger.Info("Shutting down...")
 	cleanupService.Stop()
 	grpcServer.GracefulStop()
 
-	logger.Info("✅ Shutdown complete")
+	logger.Info("Shutdown complete")
 }

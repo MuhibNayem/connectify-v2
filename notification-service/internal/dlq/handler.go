@@ -51,7 +51,7 @@ func (h *Handler) Send(ctx context.Context, event *adapters.NotificationEvent, e
 	// For now, we persist to storage with a special type
 	data, _ := json.Marshal(failedEvent)
 
-	h.logger.Error("💀 Event sent to DLQ",
+	h.logger.Error("Event sent to DLQ",
 		zap.String("event_id", event.ID),
 		zap.String("error", err.Error()),
 		zap.Int("attempts", attempts),
@@ -67,10 +67,10 @@ func (h *Handler) Send(ctx context.Context, event *adapters.NotificationEvent, e
 			TenantID:  event.TenantID,
 		}
 		if err := h.queue.Publish(ctx, dlqEvent); err != nil {
-			h.logger.Error("💀 Failed to publish to DLQ topic", zap.Error(err))
+			h.logger.Error("Failed to publish to DLQ topic", zap.Error(err))
 			// Fallback to storage is critical
 		} else {
-			h.logger.Info("✅ Published to DLQ topic")
+			h.logger.Info("Published to DLQ topic")
 		}
 	}
 
@@ -88,7 +88,7 @@ func (h *Handler) Send(ctx context.Context, event *adapters.NotificationEvent, e
 
 // SendRaw sends a malformed/raw message to the dead letter queue (Poison Pill)
 func (h *Handler) SendRaw(ctx context.Context, data []byte, err error) error {
-	h.logger.Error("💀 Malformed message sent to DLQ",
+	h.logger.Error("Malformed message sent to DLQ",
 		zap.String("error", err.Error()),
 		zap.ByteString("raw_data", data))
 
@@ -109,7 +109,7 @@ func (h *Handler) Reprocess(ctx context.Context, eventID string) error {
 	// Fetch from DLQ storage
 	// Re-publish to main queue
 	// This would be called by an admin API or scheduled job
-	h.logger.Info("🔄 Reprocessing DLQ event", zap.String("event_id", eventID))
+	h.logger.Info("Reprocessing DLQ event", zap.String("event_id", eventID))
 	return nil
 }
 

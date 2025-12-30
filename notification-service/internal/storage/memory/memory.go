@@ -225,6 +225,31 @@ func (m *MemoryStorage) CreateWithOutbox(ctx context.Context, notification *adap
 	return nil
 }
 
+func (m *MemoryStorage) CreateBatchWithOutbox(ctx context.Context, notifications []*adapters.Notification, events []*adapters.NotificationEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now().Format(time.RFC3339)
+
+	// 1. Bulk Insert Notifications
+	for _, n := range notifications {
+		if n.ID == "" {
+			n.ID = uuid.New().String()
+		}
+		n.CreatedAt = now
+		n.UpdatedAt = now
+		m.notifications[n.ID] = n
+		m.byRecipient[n.RecipientID] = append(m.byRecipient[n.RecipientID], n.ID)
+	}
+
+	// 2. Bulk Insert Outbox
+	for _, e := range events {
+		m.outbox[e.ID] = e
+	}
+
+	return nil
+}
+
 func (m *MemoryStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

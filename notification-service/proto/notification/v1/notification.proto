@@ -6,7 +6,12 @@ option go_package = "github.com/MuhibNayem/connectify-v2/notification-service/pr
 
 service NotificationService {
   rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
+  rpc StreamNotifications(stream CreateNotificationRequest) returns (stream CreateNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc UpdateNotification(UpdateNotificationRequest) returns (UpdateNotificationResponse);
+  rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
+  rpc BatchMarkAsRead(BatchMarkAsReadRequest) returns (BatchMarkAsReadResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
   rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
 }
 
@@ -51,4 +56,40 @@ message Notification {
   string body = 5;
   string created_at = 6;
   bool read = 7;
+}
+
+message UpdateNotificationRequest {
+  string id = 1;
+  map<string, string> data = 2; // For now only supporting 'read' via map or explicit fields?
+  bool mark_as_read = 3; // Explicit field for common operation
+}
+
+message UpdateNotificationResponse {
+  Notification notification = 1;
+}
+
+message DeleteNotificationRequest {
+  string id = 1;
+}
+
+message DeleteNotificationResponse {
+  bool success = 1;
+}
+
+message BatchMarkAsReadRequest {
+  string recipient_id = 1;
+  repeated string notification_ids = 2;
+  bool mark_all = 3;
+}
+
+message BatchMarkAsReadResponse {
+  int64 updated_count = 1;
+}
+
+message GetUnreadCountRequest {
+  string recipient_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int64 count = 1;
 }

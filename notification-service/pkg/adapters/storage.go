@@ -3,8 +3,12 @@ package adapters
 import (
 	"context"
 
+	"errors"
+
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/models"
 )
+
+var ErrNotFound = errors.New("not found")
 
 // StorageAdapter defines the interface for notification storage.
 // Implement this interface to use any database (MongoDB, PostgreSQL, MySQL, etc.)
@@ -46,6 +50,9 @@ type StorageAdapter interface {
 
 	// CreateWithOutbox atomically saves the notification and an outbox event
 	CreateWithOutbox(ctx context.Context, notification *Notification, event *NotificationEvent) error
+
+	// CreateBatchWithOutbox atomically saves multiple notifications and outbox events
+	CreateBatchWithOutbox(ctx context.Context, notifications []*Notification, events []*NotificationEvent) error
 
 	// GetPendingOutboxEvents retrieves events that haven't been published yet
 	GetPendingOutboxEvents(ctx context.Context, limit int) ([]*NotificationEvent, error)

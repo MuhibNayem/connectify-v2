@@ -28,6 +28,11 @@ type NotificationEvent struct {
 	Payload   map[string]interface{}
 	Timestamp string
 	TenantID  string
+
+	// Internal callbacks for manual acknowledgement
+	// json:"-" ensures these are not serialized
+	Ack  func() error `json:"-"`
+	Nack func() error `json:"-"`
 }
 
 // EventHandler processes incoming events
