@@ -165,6 +165,9 @@ func (s *Server) createNotification(w http.ResponseWriter, r *http.Request) {
 	// Force correct ID for user
 	req.RecipientID = recipientID
 	req.IdempotencyKey = r.Header.Get("Idempotency-Key")
+	if claims := auth.ClaimsFromContext(r.Context()); claims != nil {
+		req.TenantID = claims.TenantID
+	}
 
 	notif, err := s.orchestrator.CreateNotification(r.Context(), &req)
 	if err != nil {
@@ -199,6 +202,9 @@ func (s *Server) listNotifications(w http.ResponseWriter, r *http.Request) {
 		Limit:       limit,
 		Cursor:      r.URL.Query().Get("cursor"),
 		Sort:        r.URL.Query().Get("sort"),
+	}
+	if claims := auth.ClaimsFromContext(r.Context()); claims != nil {
+		req.TenantID = claims.TenantID
 	}
 
 	// Parse read filter
@@ -293,6 +299,9 @@ func (s *Server) batchMarkAsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.RecipientID = recipientID
+	if claims := auth.ClaimsFromContext(r.Context()); claims != nil {
+		req.TenantID = claims.TenantID
+	}
 
 	count, err := s.orchestrator.BatchMarkAsRead(r.Context(), &req)
 	if err != nil {

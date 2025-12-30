@@ -40,12 +40,18 @@ func (m *MemoryQueue) PublishBatch(ctx context.Context, events []*adapters.Notif
 	return nil
 }
 
-func (m *MemoryQueue) Subscribe(ctx context.Context, handler adapters.EventHandler) error {
+func (m *MemoryQueue) Subscribe(ctx context.Context, handler adapters.EventHandler, concurrency int) error {
+	if concurrency <= 0 {
+		concurrency = 1
+	}
+
 	m.mu.Lock()
 	m.handlers = append(m.handlers, handler)
 	m.mu.Unlock()
 
-	go m.processEvents(ctx, handler)
+	for i := 0; i < concurrency; i++ {
+		go m.processEvents(ctx, handler)
+	}
 	return nil
 }
 
@@ -53,6 +59,17 @@ func (m *MemoryQueue) processEvents(ctx context.Context, handler adapters.EventH
 	for {
 		select {
 		case event := <-m.eventCh:
+			if event.Ack == nil {
+				event.Ack = func() error { return nil }
+			}
+			if event.Nack == nil {
+				event.Nack = func() error {
+					go func(evt *adapters.NotificationEvent) {
+						_ = m.Publish(context.Background(), evt)
+					}(event)
+					return nil
+				}
+			}
 			_ = handler(ctx, event)
 		case <-m.stopCh:
 			return

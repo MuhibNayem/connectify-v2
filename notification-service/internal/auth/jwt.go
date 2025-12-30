@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"google.golang.org/grpc/metadata"
 )
 
 // Claims represents the JWT claims
@@ -138,6 +139,23 @@ func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// AuthenticateGRPC validates incoming metadata and returns a context enriched with claims.
+func (a *Authenticator) AuthenticateGRPC(ctx context.Context) (context.Context, error) {
+	if a == nil {
+		return ctx, errors.New("authenticator not configured")
+	}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("missing gRPC metadata")
+	}
+
+	claims, err := a.authenticateMetadata(md)
+	if err != nil {
+		return nil, err
+	}
+	return ContextWithClaims(ctx, claims), nil
+}
+
 // ValidateToken validates a JWT token and returns claims
 func (a *Authenticator) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
@@ -173,6 +191,36 @@ func (a *Authenticator) ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, errors.New("invalid token")
+}
+
+func (a *Authenticator) authenticateMetadata(md metadata.MD) (*Claims, error) {
+	if apiKeys := md.Get("x-api-key"); len(apiKeys) > 0 {
+		apiKey := strings.TrimSpace(apiKeys[0])
+		if serviceName, ok := a.validAPIKeys[apiKey]; ok {
+			return &Claims{
+				UserID:   "service:" + serviceName,
+				TenantID: "system",
+				Role:     "service",
+			}, nil
+		}
+		return nil, errors.New("invalid API key")
+	}
+
+	authHeaders := md.Get("authorization")
+	if len(authHeaders) == 0 {
+		return nil, errors.New("missing authorization metadata")
+	}
+
+	parts := strings.SplitN(authHeaders[0], " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return nil, errors.New("invalid authorization format")
+	}
+
+	claims, err := a.ValidateToken(parts[1])
+	if err != nil {
+		return nil, err
+	}
+	return claims, nil
 }
 
 // GenerateToken generates a JWT token (for testing/internal use)

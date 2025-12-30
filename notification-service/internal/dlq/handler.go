@@ -3,6 +3,7 @@ package dlq
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/adapters"
@@ -75,12 +76,49 @@ func (h *Handler) Send(ctx context.Context, event *adapters.NotificationEvent, e
 	}
 
 	// 2. Persist to Storage (Primary persistence for inspection)
+	var recipientID string
+	var tenantID string
+	var baseNotification *adapters.Notification
+
+	if event != nil {
+		tenantID = event.TenantID
+		if h.storage != nil {
+			if notif, fetchErr := h.storage.Get(ctx, event.ID); fetchErr == nil {
+				baseNotification = notif
+				recipientID = notif.RecipientID
+			}
+		}
+		if recipientID == "" {
+			if rid, ok := event.Payload["recipient_id"].(string); ok {
+				recipientID = rid
+			}
+		}
+	}
+	if recipientID == "" {
+		recipientID = "system"
+	}
+
+	payload := map[string]interface{}{
+		"failed_event": failedEvent,
+	}
+
 	dlqNotification := &adapters.Notification{
 		ID:             "dlq_" + event.ID,
+		RecipientID:    recipientID,
+		SenderID:       "",
 		Type:           "DLQ_FAILED",
-		Data:           map[string]interface{}{"failed_event": string(data)},
-		Priority:       "LOW",
+		Title:          fmt.Sprintf("DLQ failure for event %s", event.ID),
+		Body:           failedEvent.Error,
+		Priority:       "low",
+		Channels:       []string{"dlq"},
+		Data:           payload,
 		FailedChannels: []string{failedEvent.LastChannel},
+		TenantID:       tenantID,
+	}
+
+	if baseNotification != nil {
+		dlqNotification.SenderID = baseNotification.SenderID
+		dlqNotification.Channels = append(dlqNotification.Channels, baseNotification.Channels...)
 	}
 
 	return h.storage.Create(ctx, dlqNotification)

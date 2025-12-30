@@ -11,8 +11,8 @@ type QueueAdapter interface {
 	// PublishBatch publishes multiple events in a batch
 	PublishBatch(ctx context.Context, events []*NotificationEvent) error
 
-	// Subscribe starts consuming events from the queue
-	Subscribe(ctx context.Context, handler EventHandler) error
+	// Subscribe starts consuming events from the queue with specified concurrency
+	Subscribe(ctx context.Context, handler EventHandler, concurrency int) error
 
 	// Close closes the queue connection
 	Close() error

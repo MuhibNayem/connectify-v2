@@ -2,10 +2,10 @@ package grpc
 
 import (
 	"context"
-
 	"io"
 	"time"
 
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/auth"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/core"
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/adapters"
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/models"
@@ -18,11 +18,13 @@ import (
 type NotificationServer struct {
 	pb.UnimplementedNotificationServiceServer
 	orchestrator *core.Orchestrator
+	authEnabled  bool
 }
 
-func NewNotificationServer(orchestrator *core.Orchestrator) *NotificationServer {
+func NewNotificationServer(orchestrator *core.Orchestrator, authEnabled bool) *NotificationServer {
 	return &NotificationServer{
 		orchestrator: orchestrator,
+		authEnabled:  authEnabled,
 	}
 }
 
@@ -31,7 +33,10 @@ func (s *NotificationServer) Register(grpcServer *grpc.Server) {
 }
 
 func (s *NotificationServer) CreateNotification(ctx context.Context, req *pb.CreateNotificationRequest) (*pb.CreateNotificationResponse, error) {
-	reqModel := s.toCreateRequestModel(req)
+	reqModel, err := s.buildCreateRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 
 	result, err := s.orchestrator.CreateNotification(ctx, reqModel)
 	if err != nil {
@@ -115,7 +120,11 @@ func (s *NotificationServer) processStream(stream pb.NotificationService_StreamN
 		case <-ctx.Done():
 			return ctx.Err()
 		case req := <-reqChan:
-			buffer = append(buffer, s.toCreateRequestModel(req))
+			reqModel, err := s.buildCreateRequest(ctx, req)
+			if err != nil {
+				return err
+			}
+			buffer = append(buffer, reqModel)
 			if len(buffer) >= batchSize {
 				if err := flush(); err != nil {
 					return err
@@ -142,13 +151,31 @@ func (s *NotificationServer) toCreateRequestModel(req *pb.CreateNotificationRequ
 	}
 
 	return &models.CreateNotificationRequest{
-		RecipientID: req.RecipientId,
-		Type:        req.Type,
-		Title:       req.Title,
-		Body:        req.Body,
-		Priority:    models.Priority(req.Priority),
-		Data:        data,
+		Type:     req.Type,
+		Title:    req.Title,
+		Body:     req.Body,
+		Priority: models.Priority(req.Priority),
+		Data:     data,
 	}
+}
+
+func (s *NotificationServer) buildCreateRequest(ctx context.Context, req *pb.CreateNotificationRequest) (*models.CreateNotificationRequest, error) {
+	model := s.toCreateRequestModel(req)
+
+	recipientID := req.RecipientId
+	if s.authEnabled {
+		var err error
+		recipientID, err = s.enforceRecipient(ctx, req.RecipientId)
+		if err != nil {
+			return nil, err
+		}
+	} else if recipientID == "" {
+		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
+	}
+
+	model.RecipientID = recipientID
+	model.TenantID = s.tenantIDFromClaims(ctx)
+	return model, nil
 }
 
 func (s *NotificationServer) GetNotification(ctx context.Context, req *pb.GetNotificationRequest) (*pb.GetNotificationResponse, error) {
@@ -159,6 +186,9 @@ func (s *NotificationServer) GetNotification(ctx context.Context, req *pb.GetNot
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get notification: %v", err)
 	}
+	if err := s.checkNotificationAccess(ctx, notif); err != nil {
+		return nil, err
+	}
 
 	return &pb.GetNotificationResponse{
 		Notification: s.toProto(notif),
@@ -166,9 +196,21 @@ func (s *NotificationServer) GetNotification(ctx context.Context, req *pb.GetNot
 }
 
 func (s *NotificationServer) ListNotifications(ctx context.Context, req *pb.ListNotificationsRequest) (*pb.ListNotificationsResponse, error) {
+	recipientID := req.RecipientId
+	if s.authEnabled {
+		var err error
+		recipientID, err = s.enforceRecipient(ctx, req.RecipientId)
+		if err != nil {
+			return nil, err
+		}
+	} else if recipientID == "" {
+		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
+	}
+
 	reqModel := &models.ListNotificationsRequest{
-		RecipientID: req.RecipientId,
+		RecipientID: recipientID,
 		Limit:       int(req.Limit),
+		TenantID:    s.tenantIDFromClaims(ctx),
 	}
 
 	result, err := s.orchestrator.ListNotifications(ctx, reqModel)
@@ -198,6 +240,9 @@ func (s *NotificationServer) UpdateNotification(ctx context.Context, req *pb.Upd
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "notification not found after update: %v", err)
 	}
+	if err := s.checkNotificationAccess(ctx, notif); err != nil {
+		return nil, err
+	}
 
 	return &pb.UpdateNotificationResponse{
 		Notification: s.toProto(notif),
@@ -205,6 +250,18 @@ func (s *NotificationServer) UpdateNotification(ctx context.Context, req *pb.Upd
 }
 
 func (s *NotificationServer) DeleteNotification(ctx context.Context, req *pb.DeleteNotificationRequest) (*pb.DeleteNotificationResponse, error) {
+	notif, err := s.orchestrator.GetNotification(ctx, req.Id)
+	if err != nil {
+		if err == adapters.ErrNotFound {
+			return nil, status.Errorf(codes.NotFound, "notification not found: %s", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to fetch notification: %v", err)
+	}
+
+	if err := s.checkNotificationAccess(ctx, notif); err != nil {
+		return nil, err
+	}
+
 	if err := s.orchestrator.DeleteNotification(ctx, req.Id); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete notification: %v", err)
 	}
@@ -212,10 +269,22 @@ func (s *NotificationServer) DeleteNotification(ctx context.Context, req *pb.Del
 }
 
 func (s *NotificationServer) BatchMarkAsRead(ctx context.Context, req *pb.BatchMarkAsReadRequest) (*pb.BatchMarkAsReadResponse, error) {
+	recipientID := req.RecipientId
+	if s.authEnabled {
+		var err error
+		recipientID, err = s.enforceRecipient(ctx, req.RecipientId)
+		if err != nil {
+			return nil, err
+		}
+	} else if recipientID == "" {
+		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
+	}
+
 	reqModel := &models.BatchMarkAsReadRequest{
-		RecipientID:     req.RecipientId,
+		RecipientID:     recipientID,
 		NotificationIDs: req.NotificationIds,
 		MarkAllAsRead:   req.MarkAll,
+		TenantID:        s.tenantIDFromClaims(ctx),
 	}
 
 	count, err := s.orchestrator.BatchMarkAsRead(ctx, reqModel)
@@ -227,7 +296,18 @@ func (s *NotificationServer) BatchMarkAsRead(ctx context.Context, req *pb.BatchM
 }
 
 func (s *NotificationServer) GetUnreadCount(ctx context.Context, req *pb.GetUnreadCountRequest) (*pb.GetUnreadCountResponse, error) {
-	count, err := s.orchestrator.GetUnreadCount(ctx, req.RecipientId)
+	recipientID := req.RecipientId
+	if s.authEnabled {
+		var err error
+		recipientID, err = s.enforceRecipient(ctx, req.RecipientId)
+		if err != nil {
+			return nil, err
+		}
+	} else if recipientID == "" {
+		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
+	}
+
+	count, err := s.orchestrator.GetUnreadCount(ctx, recipientID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get unread count: %v", err)
 	}
@@ -244,4 +324,64 @@ func (s *NotificationServer) toProto(n *models.Notification) *pb.Notification {
 		CreatedAt:   n.CreatedAt.String(),
 		Read:        n.Read,
 	}
+}
+
+func (s *NotificationServer) enforceRecipient(ctx context.Context, requested string) (string, error) {
+	if !s.authEnabled {
+		if requested == "" {
+			return "", status.Error(codes.InvalidArgument, "recipient_id is required")
+		}
+		return requested, nil
+	}
+
+	claims := auth.ClaimsFromContext(ctx)
+	if claims == nil {
+		return "", status.Error(codes.Unauthenticated, "missing authentication context")
+	}
+
+	if claims.Role == "service" || claims.Role == "admin" {
+		if requested == "" {
+			return "", status.Error(codes.InvalidArgument, "recipient_id is required")
+		}
+		return requested, nil
+	}
+
+	if requested != "" && requested != claims.UserID {
+		return "", status.Error(codes.PermissionDenied, "forbidden: cannot access other user's data")
+	}
+
+	return claims.UserID, nil
+}
+
+func (s *NotificationServer) tenantIDFromClaims(ctx context.Context) string {
+	if !s.authEnabled {
+		return ""
+	}
+	if claims := auth.ClaimsFromContext(ctx); claims != nil {
+		return claims.TenantID
+	}
+	return ""
+}
+
+func (s *NotificationServer) checkNotificationAccess(ctx context.Context, notif *models.Notification) error {
+	if !s.authEnabled {
+		return nil
+	}
+
+	claims := auth.ClaimsFromContext(ctx)
+	if claims == nil {
+		return status.Error(codes.Unauthenticated, "missing authentication context")
+	}
+
+	if claims.Role == "service" || claims.Role == "admin" {
+		return nil
+	}
+
+	if notif.RecipientID != claims.UserID {
+		return status.Error(codes.PermissionDenied, "forbidden: notification belongs to another user")
+	}
+	if notif.TenantID != "" && claims.TenantID != "" && notif.TenantID != claims.TenantID {
+		return status.Error(codes.PermissionDenied, "forbidden: tenant mismatch")
+	}
+	return nil
 }

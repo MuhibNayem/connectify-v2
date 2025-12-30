@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -213,13 +214,6 @@ func main() {
 		Scheduler:       schedulerService,
 	})
 
-	// Start Worker
-	go func() {
-		if err := orchestrator.StartWorker(context.Background()); err != nil {
-			logger.Error("Worker failed", zap.Error(err))
-		}
-	}()
-
 	// ==================== CHANNELS ====================
 
 	// 1. In-App (WebSocket)
@@ -305,6 +299,13 @@ func main() {
 		}
 	}
 
+	// Start Worker only after channels and resilience primitives are ready
+	go func() {
+		if err := orchestrator.StartWorker(context.Background()); err != nil {
+			logger.Error("Worker failed", zap.Error(err))
+		}
+	}()
+
 	// ==================== BACKGROUND SERVICES ====================
 
 	// Cleanup Service
@@ -351,9 +352,16 @@ func main() {
 
 	// Rate Limiter: Only enable if Redis is available
 	if redisClient != nil && cfg.RateLimit.Enabled {
+		requestsPerHour := cfg.RateLimit.MaxPerHour
+		requestsPerSecond := int(math.Ceil(float64(requestsPerHour) / 3600.0))
+		if requestsPerSecond < 1 {
+			requestsPerSecond = 1
+		}
+		burstSize := requestsPerSecond * 2
+
 		rateLimiter = ratelimit.NewLimiter(redisClient, ratelimit.Config{
-			RequestsPerSecond: cfg.RateLimit.MaxPerHour / 3600, // Convert to per-second
-			BurstSize:         cfg.RateLimit.MaxPerHour / 1800, // Allow 2x burst
+			RequestsPerSecond: requestsPerSecond,
+			BurstSize:         burstSize,
 			KeyPrefix:         "ratelimit:notification",
 		})
 		logger.Info("Rate limiter initialized")
@@ -381,6 +389,7 @@ func main() {
 		logger.Fatal("Failed to listen for gRPC", zap.Error(err))
 	}
 
+	grpcInterceptorMgr := grpcserver.NewInterceptorManager(logger, authenticator)
 	grpcServer := grpc.NewServer(
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle: 15 * time.Second,
@@ -389,13 +398,13 @@ func main() {
 			Timeout:           20 * time.Second,
 		}),
 		grpc.ChainUnaryInterceptor(
-			grpcserver.NewInterceptorManager(logger).UnaryServerInterceptor(),
+			grpcInterceptorMgr.UnaryServerInterceptor(),
 		),
 		grpc.ChainStreamInterceptor(
-			grpcserver.NewInterceptorManager(logger).StreamServerInterceptor(),
+			grpcInterceptorMgr.StreamServerInterceptor(),
 		),
 	)
-	notificationServer := grpcserver.NewNotificationServer(orchestrator)
+	notificationServer := grpcserver.NewNotificationServer(orchestrator, authenticator != nil)
 	notificationServer.Register(grpcServer)
 
 	go func() {

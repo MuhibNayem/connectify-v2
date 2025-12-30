@@ -2,6 +2,8 @@ package push
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/channels"
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/models"
@@ -35,22 +37,27 @@ func (p *PushChannel) Send(ctx context.Context, notification *models.Notificatio
 		return nil // Skip if disabled or no tokens
 	}
 
+	var errs []error
 	for _, token := range recipient.DeviceTokens {
-		// Send to each device
-		_ = p.provider.SendPush(ctx, token.Token, notification.Title, notification.Body, notification.Data)
+		if err := p.provider.SendPush(ctx, token.Token, notification.Title, notification.Body, notification.Data); err != nil {
+			errs = append(errs, fmt.Errorf("%s token %s: %w", token.Platform, token.Token, err))
+		}
 	}
 
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
 	return nil
 }
 
 func (p *PushChannel) SendBatch(ctx context.Context, notifications []*models.Notification, recipients []*channels.ChannelRecipient) error {
+	var batchErr error
 	for i, notif := range notifications {
 		if err := p.Send(ctx, notif, recipients[i]); err != nil {
-			// Log error but continue
-			continue
+			batchErr = errors.Join(batchErr, fmt.Errorf("notification %d: %w", i, err))
 		}
 	}
-	return nil
+	return batchErr
 }
 
 func (p *PushChannel) IsEnabled() bool {

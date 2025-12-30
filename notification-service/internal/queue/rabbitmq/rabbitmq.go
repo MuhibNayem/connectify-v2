@@ -205,13 +205,22 @@ func (r *RabbitQueue) PublishBatch(ctx context.Context, events []*adapters.Notif
 	return nil
 }
 
-func (r *RabbitQueue) Subscribe(ctx context.Context, handler adapters.EventHandler) error {
+// Subscribe registers a handler to consume messages with specified concurrency.
+// It sets QoS to match concurrency and spawns multiple goroutines to process messages in parallel.
+func (r *RabbitQueue) Subscribe(ctx context.Context, handler adapters.EventHandler, concurrency int) error {
 	r.mu.RLock()
 	ch := r.ch
 	r.mu.RUnlock()
 
 	if ch == nil {
 		return errors.New("not connected")
+	}
+
+	// Set QoS to match concurrency.
+	// We use global=false (per consumer), but since we have 1 AMQP consumer feeding N workers,
+	// this effectively limits the total unacked messages for this channel to 'concurrency'.
+	if err := ch.Qos(concurrency, 0, false); err != nil {
+		return fmt.Errorf("failed to set QoS: %w", err)
 	}
 
 	// Unique consumer tag
@@ -230,39 +239,42 @@ func (r *RabbitQueue) Subscribe(ctx context.Context, handler adapters.EventHandl
 		return err
 	}
 
-	go func() {
-		for d := range msgs {
-			// Handle Context Cancellation
-			if ctx.Err() != nil {
-				return
-			}
+	// Spawn Concurrent Workers
+	// All workers consume from the same 'msgs' channel, which is filled by RabbitMQ up to QoS limit.
+	for i := 0; i < concurrency; i++ {
+		go func(workerID int) {
+			for d := range msgs {
+				// Handle Context Cancellation
+				if ctx.Err() != nil {
+					return
+				}
 
-			var event adapters.NotificationEvent
-			if err := json.Unmarshal(d.Body, &event); err != nil {
-				// Poison Pill: Reject without requeue
-				d.Nack(false, false)
-				continue
-			}
+				var event adapters.NotificationEvent
+				if err := json.Unmarshal(d.Body, &event); err != nil {
+					// Poison Pill: Reject without requeue
+					d.Nack(false, false)
+					continue
+				}
 
-			// INJECT MANUAL ACK/NACK
-			// This allows the specific worker to Ack AFTER it completes processing.
-			// Critical for "At-Least-Once" guarantee.
-			event.Ack = func() error {
-				return d.Ack(false)
-			}
-			event.Nack = func() error {
-				return d.Nack(false, true) // Requeue enabled for retries
-			}
+				// INJECT MANUAL ACK/NACK
+				// This allows the specific worker to Ack AFTER it completes processing.
+				// Critical for "At-Least-Once" guarantee.
+				event.Ack = func() error {
+					return d.Ack(false)
+				}
+				event.Nack = func() error {
+					// CRITICAL: Requeue=true ensures zero data loss on failure.
+					return d.Nack(false, true)
+				}
 
-			if err := handler(ctx, &event); err != nil {
-				// If handler returns error (e.g. queue full backpressure), we Nack here.
-				// But generally, the handler (Orchestrator) takes ownership.
-				d.Nack(false, true)
+				if err := handler(ctx, &event); err != nil {
+					// If handler returns error (e.g. processing failed), we Nack with Requeue.
+					d.Nack(false, true)
+				}
+				// NO AUTO ACK HERE! Handler (Orchestrator) must call event.Ack()
 			}
-			// NO AUTO ACK HERE! Handler (Orchestrator) must call event.Ack()
-		}
-
-	}()
+		}(i)
+	}
 
 	return nil
 }

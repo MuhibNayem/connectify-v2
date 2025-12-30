@@ -4,13 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/adapters"
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/models"
 	"github.com/google/uuid"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 type PostgresStorage struct {
@@ -27,12 +29,10 @@ func NewPostgresStorage(connStr string) (*PostgresStorage, error) {
 		return nil, fmt.Errorf("failed to ping postgres: %w", err)
 	}
 
-	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(15 * time.Minute)
 
-	// Create table if not exists
 	schema := `
 	CREATE TABLE IF NOT EXISTS notifications (
 		id UUID PRIMARY KEY,
@@ -79,6 +79,7 @@ func NewPostgresStorage(connStr string) (*PostgresStorage, error) {
 	CREATE INDEX IF NOT EXISTS idx_recipient_read ON notifications(recipient_id, read);
 	CREATE INDEX IF NOT EXISTS idx_type ON notifications(type);
 	CREATE INDEX IF NOT EXISTS idx_created_at ON notifications(created_at);
+	CREATE INDEX IF NOT EXISTS idx_tenant ON notifications(tenant_id);
 	CREATE INDEX IF NOT EXISTS idx_expires_at ON notifications(expires_at) WHERE expires_at IS NOT NULL;
 	CREATE INDEX IF NOT EXISTS idx_outbox_timestamp ON outbox(timestamp);
 	CREATE INDEX IF NOT EXISTS idx_outbox_locked ON outbox(locked_until);
@@ -100,23 +101,54 @@ func (p *PostgresStorage) Create(ctx context.Context, notification *adapters.Not
 	notification.CreatedAt = now.Format(time.RFC3339)
 	notification.UpdatedAt = now.Format(time.RFC3339)
 
+	dataJSON, err := toJSON(notification.Data)
+	if err != nil {
+		return err
+	}
+
+	templateJSON, err := toJSON(notification.TemplateData)
+	if err != nil {
+		return err
+	}
+
+	deliveredJSON, err := toJSON(notification.DeliveredAt)
+	if err != nil {
+		return err
+	}
+
 	query := `
 		INSERT INTO notifications (
 			id, recipient_id, sender_id, type, title, body,
-			image_url, action_url, priority, channels, data, read, 
-			template_id, template_data, tenant_id, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+			image_url, action_url, priority, channels, data, read,
+			delivered_at, failed_channels, template_id, template_data,
+			expires_at, tenant_id, created_at, updated_at
+		) VALUES (
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+			$13,$14,$15,$16,$17,$18,$19,$20
+		)
 	`
-	// Note: We adhere to standard driver capabilities. If pq.Array is required, ensure lib/pq is imported.
-	// For this implementation, we rely on the driver handling string slices for TEXT[] columns or similar.
 
-	// Fix: arguments count. ID..UpdatedAt.
-	_, err := p.db.ExecContext(ctx, query,
-		notification.ID, notification.RecipientID, notification.SenderID, notification.Type,
-		notification.Title, notification.Body, notification.ImageURL, notification.ActionURL,
-		notification.Priority, notification.Channels,
-		notification.Data, notification.Read, notification.TemplateID, notification.TemplateData,
-		notification.TenantID, now, now,
+	_, err = p.db.ExecContext(ctx, query,
+		notification.ID,
+		notification.RecipientID,
+		notification.SenderID,
+		notification.Type,
+		notification.Title,
+		notification.Body,
+		notification.ImageURL,
+		notification.ActionURL,
+		notification.Priority,
+		pq.Array(notification.Channels),
+		dataJSON,
+		notification.Read,
+		deliveredJSON,
+		pq.Array(notification.FailedChannels),
+		notification.TemplateID,
+		templateJSON,
+		toSQLTime(notification.ExpiresAt),
+		notification.TenantID,
+		now,
+		now,
 	)
 
 	return err
@@ -125,23 +157,65 @@ func (p *PostgresStorage) Create(ctx context.Context, notification *adapters.Not
 func (p *PostgresStorage) Get(ctx context.Context, id string) (*adapters.Notification, error) {
 	query := `
 		SELECT id, recipient_id, sender_id, type, title, body,
-			   priority, read, created_at, updated_at
+			   image_url, action_url, priority, channels, data, read,
+			   read_at, delivered_at, failed_channels, template_id, template_data,
+			   expires_at, tenant_id, created_at, updated_at
 		FROM notifications WHERE id = $1
 	`
 
 	var n adapters.Notification
 	var createdAt, updatedAt time.Time
+	var readAt sql.NullTime
+	var expiresAt sql.NullTime
+	var dataJSON, deliveredJSON, templateJSON []byte
 
 	err := p.db.QueryRowContext(ctx, query, id).Scan(
-		&n.ID, &n.RecipientID, &n.SenderID, &n.Type, &n.Title, &n.Body,
-		&n.Priority, &n.Read, &createdAt, &updatedAt,
+		&n.ID,
+		&n.RecipientID,
+		&n.SenderID,
+		&n.Type,
+		&n.Title,
+		&n.Body,
+		&n.ImageURL,
+		&n.ActionURL,
+		&n.Priority,
+		pq.Array(&n.Channels),
+		&dataJSON,
+		&n.Read,
+		&readAt,
+		&deliveredJSON,
+		pq.Array(&n.FailedChannels),
+		&n.TemplateID,
+		&templateJSON,
+		&expiresAt,
+		&n.TenantID,
+		&createdAt,
+		&updatedAt,
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, adapters.ErrNotFound
 		}
 		return nil, err
+	}
+
+	if len(dataJSON) > 0 {
+		_ = json.Unmarshal(dataJSON, &n.Data)
+	}
+	if len(deliveredJSON) > 0 {
+		_ = json.Unmarshal(deliveredJSON, &n.DeliveredAt)
+	}
+	if len(templateJSON) > 0 {
+		_ = json.Unmarshal(templateJSON, &n.TemplateData)
+	}
+	if readAt.Valid {
+		readVal := readAt.Time.Format(time.RFC3339)
+		n.ReadAt = &readVal
+	}
+	if expiresAt.Valid {
+		expVal := expiresAt.Time.Format(time.RFC3339)
+		n.ExpiresAt = &expVal
 	}
 
 	n.CreatedAt = createdAt.Format(time.RFC3339)
@@ -151,41 +225,85 @@ func (p *PostgresStorage) Get(ctx context.Context, id string) (*adapters.Notific
 }
 
 func (p *PostgresStorage) List(ctx context.Context, query *adapters.ListQuery) (*adapters.ListResult, error) {
-	// Build WHERE clause
-	where := "WHERE recipient_id = $1"
+	where := []string{"recipient_id = $1"}
 	args := []interface{}{query.RecipientID}
-	argCount := 1
+	argPos := 1
 
 	if query.Read != nil {
-		argCount++
-		where += fmt.Sprintf(" AND read = $%d", argCount)
+		argPos++
+		where = append(where, fmt.Sprintf("read = $%d", argPos))
 		args = append(args, *query.Read)
 	}
-
-	// Count total
-	countQuery := "SELECT COUNT(*) FROM notifications " + where
-	var total int64
-	err := p.db.QueryRowContext(ctx, countQuery, args...).Scan(&total)
-	if err != nil {
-		return nil, err
+	if len(query.Types) > 0 {
+		argPos++
+		where = append(where, fmt.Sprintf("type = ANY($%d)", argPos))
+		args = append(args, pq.Array(query.Types))
+	}
+	if len(query.Channels) > 0 {
+		argPos++
+		where = append(where, fmt.Sprintf("channels && $%d", argPos))
+		args = append(args, pq.Array(query.Channels))
+	}
+	if query.Priority != "" {
+		argPos++
+		where = append(where, fmt.Sprintf("priority = $%d", argPos))
+		args = append(args, query.Priority)
+	}
+	if query.TenantID != "" {
+		argPos++
+		where = append(where, fmt.Sprintf("tenant_id = $%d", argPos))
+		args = append(args, query.TenantID)
+	}
+	if query.Since != nil {
+		if since, err := time.Parse(time.RFC3339, *query.Since); err == nil {
+			argPos++
+			where = append(where, fmt.Sprintf("created_at >= $%d", argPos))
+			args = append(args, since)
+		}
+	}
+	if query.Until != nil {
+		if until, err := time.Parse(time.RFC3339, *query.Until); err == nil {
+			argPos++
+			where = append(where, fmt.Sprintf("created_at <= $%d", argPos))
+			args = append(args, until)
+		}
+	}
+	if query.Cursor != "" {
+		if ts, cursorID, err := parseCursor(query.Cursor); err == nil {
+			argPos++
+			where = append(where, fmt.Sprintf("(created_at, id) < ($%d, $%d)", argPos, argPos+1))
+			args = append(args, ts, cursorID)
+			argPos++
+		}
 	}
 
-	// Get notifications
+	whereSQL := ""
+	if len(where) > 0 {
+		whereSQL = "WHERE " + strings.Join(where, " AND ")
+	}
+
 	limit := query.Limit
 	if limit <= 0 {
 		limit = 20
 	}
-	if limit > 100 {
-		limit = 100
+	if limit > 500 {
+		limit = 500
+	}
+
+	orderDirection := "DESC"
+	if query.Sort == "asc" {
+		orderDirection = "ASC"
 	}
 
 	selectQuery := fmt.Sprintf(`
 		SELECT id, recipient_id, sender_id, type, title, body,
-			   priority, read, created_at, updated_at
+			   image_url, action_url, priority, channels, data, read,
+			   created_at, updated_at, delivered_at, failed_channels,
+			   template_id, template_data, expires_at, tenant_id
 		FROM notifications %s
-		ORDER BY created_at DESC
+		ORDER BY created_at %s, id %s
 		LIMIT %d
-	`, where, limit)
+	`, whereSQL, orderDirection, orderDirection, limit+1)
 
 	rows, err := p.db.QueryContext(ctx, selectQuery, args...)
 	if err != nil {
@@ -197,13 +315,46 @@ func (p *PostgresStorage) List(ctx context.Context, query *adapters.ListQuery) (
 	for rows.Next() {
 		var n adapters.Notification
 		var createdAt, updatedAt time.Time
+		var expiresAt sql.NullTime
+		var dataJSON, deliveredJSON, templateJSON []byte
 
-		err := rows.Scan(
-			&n.ID, &n.RecipientID, &n.SenderID, &n.Type, &n.Title, &n.Body,
-			&n.Priority, &n.Read, &createdAt, &updatedAt,
-		)
-		if err != nil {
+		if err := rows.Scan(
+			&n.ID,
+			&n.RecipientID,
+			&n.SenderID,
+			&n.Type,
+			&n.Title,
+			&n.Body,
+			&n.ImageURL,
+			&n.ActionURL,
+			&n.Priority,
+			pq.Array(&n.Channels),
+			&dataJSON,
+			&n.Read,
+			&createdAt,
+			&updatedAt,
+			&deliveredJSON,
+			pq.Array(&n.FailedChannels),
+			&n.TemplateID,
+			&templateJSON,
+			&expiresAt,
+			&n.TenantID,
+		); err != nil {
 			continue
+		}
+
+		if len(dataJSON) > 0 {
+			_ = json.Unmarshal(dataJSON, &n.Data)
+		}
+		if len(deliveredJSON) > 0 {
+			_ = json.Unmarshal(deliveredJSON, &n.DeliveredAt)
+		}
+		if len(templateJSON) > 0 {
+			_ = json.Unmarshal(templateJSON, &n.TemplateData)
+		}
+		if expiresAt.Valid {
+			expVal := expiresAt.Time.Format(time.RFC3339)
+			n.ExpiresAt = &expVal
 		}
 
 		n.CreatedAt = createdAt.Format(time.RFC3339)
@@ -211,32 +362,40 @@ func (p *PostgresStorage) List(ctx context.Context, query *adapters.ListQuery) (
 		notifications = append(notifications, &n)
 	}
 
+	hasMore := len(notifications) > limit
+	var nextCursor string
+	if hasMore {
+		last := notifications[len(notifications)-1]
+		nextCursor = buildCursor(last.CreatedAt, last.ID)
+		notifications = notifications[:len(notifications)-1]
+	}
+
 	return &adapters.ListResult{
 		Notifications: notifications,
-		Total:         total,
-		HasMore:       int64(len(notifications)) >= int64(limit),
+		Total:         int64(len(notifications)),
+		NextCursor:    nextCursor,
+		HasMore:       hasMore,
 	}, nil
 }
 
 func (p *PostgresStorage) Update(ctx context.Context, id string, updates map[string]interface{}) error {
 	query := "UPDATE notifications SET updated_at = $1"
 	args := []interface{}{time.Now()}
-	argCount := 1
+	argPos := 1
 
 	if read, ok := updates["read"].(bool); ok {
-		argCount++
-		query += fmt.Sprintf(", read = $%d", argCount)
+		argPos++
+		query += fmt.Sprintf(", read = $%d", argPos)
 		args = append(args, read)
-
 		if read {
-			argCount++
-			query += fmt.Sprintf(", read_at = $%d", argCount)
+			argPos++
+			query += fmt.Sprintf(", read_at = $%d", argPos)
 			args = append(args, time.Now())
 		}
 	}
 
-	argCount++
-	query += fmt.Sprintf(" WHERE id = $%d", argCount)
+	argPos++
+	query += fmt.Sprintf(" WHERE id = $%d", argPos)
 	args = append(args, id)
 
 	_, err := p.db.ExecContext(ctx, query, args...)
@@ -264,11 +423,10 @@ func (p *PostgresStorage) BatchMarkAsRead(ctx context.Context, recipientID strin
 		WHERE recipient_id = $3 AND id = ANY($4)
 	`
 
-	result, err := p.db.ExecContext(ctx, query, time.Now(), time.Now(), recipientID, ids)
+	result, err := p.db.ExecContext(ctx, query, time.Now(), time.Now(), recipientID, pq.Array(ids))
 	if err != nil {
 		return 0, err
 	}
-
 	return result.RowsAffected()
 }
 
@@ -280,7 +438,6 @@ func (p *PostgresStorage) DeleteExpired(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return result.RowsAffected()
 }
 
@@ -336,7 +493,6 @@ func (p *PostgresStorage) CreateWithOutbox(ctx context.Context, notification *ad
 	}
 	defer tx.Rollback()
 
-	// 1. Insert Notification
 	if notification.ID == "" {
 		notification.ID = uuid.New().String()
 	}
@@ -344,23 +500,40 @@ func (p *PostgresStorage) CreateWithOutbox(ctx context.Context, notification *ad
 	notification.CreatedAt = now.Format(time.RFC3339)
 	notification.UpdatedAt = now.Format(time.RFC3339)
 
+	dataJSON, err := toJSON(notification.Data)
+	if err != nil {
+		return err
+	}
+	templateJSON, err := toJSON(notification.TemplateData)
+	if err != nil {
+		return err
+	}
+	deliveredJSON, err := toJSON(notification.DeliveredAt)
+	if err != nil {
+		return err
+	}
+
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO notifications (
 			id, recipient_id, sender_id, type, title, body,
-			image_url, action_url, priority, channels, data, read, 
-			template_id, template_data, tenant_id, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+			image_url, action_url, priority, channels, data, read,
+			delivered_at, failed_channels, template_id, template_data,
+			expires_at, tenant_id, created_at, updated_at
+		) VALUES (
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+			$13,$14,$15,$16,$17,$18,$19,$20
+		)
 	`,
 		notification.ID, notification.RecipientID, notification.SenderID, notification.Type,
 		notification.Title, notification.Body, notification.ImageURL, notification.ActionURL,
-		notification.Priority, notification.Channels, notification.Data, notification.Read,
-		notification.TemplateID, notification.TemplateData, notification.TenantID, now, now,
+		notification.Priority, pq.Array(notification.Channels), dataJSON, notification.Read,
+		deliveredJSON, pq.Array(notification.FailedChannels), notification.TemplateID, templateJSON,
+		toSQLTime(notification.ExpiresAt), notification.TenantID, now, now,
 	)
 	if err != nil {
 		return err
 	}
 
-	// 2. Insert Outbox Event
 	payloadJSON, err := toJSON(event.Payload)
 	if err != nil {
 		return err
@@ -370,7 +543,6 @@ func (p *PostgresStorage) CreateWithOutbox(ctx context.Context, notification *ad
 		INSERT INTO outbox (id, type, payload, timestamp, tenant_id)
 		VALUES ($1, $2, $3, $4, $5)
 	`, event.ID, event.Type, payloadJSON, time.Now(), event.TenantID)
-
 	if err != nil {
 		return err
 	}
@@ -389,12 +561,11 @@ func (p *PostgresStorage) CreateBatchWithOutbox(ctx context.Context, notificatio
 	}
 	defer tx.Rollback()
 
-	// 1. Bulk Insert Notifications
-	// Construct Multi-Value Insert
 	query := `INSERT INTO notifications (
 			id, recipient_id, sender_id, type, title, body,
-			image_url, action_url, priority, channels, data, read, 
-			template_id, template_data, tenant_id, created_at, updated_at
+			image_url, action_url, priority, channels, data, read,
+			delivered_at, failed_channels, template_id, template_data,
+			expires_at, tenant_id, created_at, updated_at
 		) VALUES `
 
 	vals := []interface{}{}
@@ -407,49 +578,49 @@ func (p *PostgresStorage) CreateBatchWithOutbox(ctx context.Context, notificatio
 		n.CreatedAt = now
 		n.UpdatedAt = now
 
-		// Parameter placeholders (e.g., $1, $2...)
-		offset := i * 17
-		query += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d),",
-			offset+1, offset+2, offset+3, offset+4, offset+5, offset+6,
-			offset+7, offset+8, offset+9, offset+10, offset+11, offset+12,
-			offset+13, offset+14, offset+15, offset+16, offset+17)
+		offset := i * 20
+		query += fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d),",
+			offset+1, offset+2, offset+3, offset+4, offset+5,
+			offset+6, offset+7, offset+8, offset+9, offset+10,
+			offset+11, offset+12, offset+13, offset+14, offset+15,
+			offset+16, offset+17, offset+18, offset+19, offset+20,
+		)
+
+		dataJSON, _ := json.Marshal(n.Data)
+		templateJSON, _ := json.Marshal(n.TemplateData)
+		deliveredJSON, _ := json.Marshal(n.DeliveredAt)
 
 		vals = append(vals,
-			n.ID, n.RecipientID, n.SenderID, n.Type, n.Title, n.Body,
-			n.ImageURL, n.ActionURL, n.Priority, n.Channels, n.Data, n.Read,
-			n.TemplateID, n.TemplateData, n.TenantID, n.CreatedAt, n.UpdatedAt,
+			n.ID, n.RecipientID, n.SenderID, n.Type, n.Title,
+			n.Body, n.ImageURL, n.ActionURL, n.Priority,
+			pq.Array(n.Channels), dataJSON, n.Read,
+			deliveredJSON, pq.Array(n.FailedChannels), n.TemplateID, templateJSON,
+			toSQLTime(n.ExpiresAt), n.TenantID, n.CreatedAt, n.UpdatedAt,
 		)
 	}
-	// Remove trailing comma
-	query = query[:len(query)-1]
+	query = strings.TrimSuffix(query, ",")
 
 	if _, err := tx.ExecContext(ctx, query, vals...); err != nil {
 		return fmt.Errorf("failed to bulk insert notifications: %w", err)
 	}
 
-	// 2. Bulk Insert Outbox Events
 	if len(events) > 0 {
 		outboxQuery := `INSERT INTO outbox (id, type, payload, timestamp, tenant_id) VALUES `
 		outboxVals := []interface{}{}
 
 		for i, e := range events {
-			// Ensure Event ID matches Notification ID if linked, or new UUID
 			if e.ID == "" {
 				e.ID = uuid.New().String()
 			}
 			e.Timestamp = now
 
 			offset := i * 5
-			outboxQuery += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d),",
-				offset+1, offset+2, offset+3, offset+4, offset+5)
+			outboxQuery += fmt.Sprintf("($%d,$%d,$%d,$%d,$%d),", offset+1, offset+2, offset+3, offset+4, offset+5)
 
-			payloadJson, _ := json.Marshal(e.Payload)
-
-			outboxVals = append(outboxVals,
-				e.ID, e.Type, payloadJson, e.Timestamp, e.TenantID,
-			)
+			payloadJSON, _ := json.Marshal(e.Payload)
+			outboxVals = append(outboxVals, e.ID, e.Type, payloadJSON, e.Timestamp, e.TenantID)
 		}
-		outboxQuery = outboxQuery[:len(outboxQuery)-1]
+		outboxQuery = strings.TrimSuffix(outboxQuery, ",")
 
 		if _, err := tx.ExecContext(ctx, outboxQuery, outboxVals...); err != nil {
 			return fmt.Errorf("failed to bulk insert outbox: %w", err)
@@ -460,8 +631,6 @@ func (p *PostgresStorage) CreateBatchWithOutbox(ctx context.Context, notificatio
 }
 
 func (p *PostgresStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
-	// Atomic Lease: Update locked_until for items that are not locked or lock expired
-	// Skip locked items to avoid waiting
 	query := `
 		UPDATE outbox
 		SET locked_until = NOW() + INTERVAL '2 minutes'
@@ -511,12 +680,39 @@ func (p *PostgresStorage) Close() error {
 	return p.db.Close()
 }
 
-// Helpers
-
 func toJSON(v interface{}) ([]byte, error) {
+	if v == nil {
+		return []byte("null"), nil
+	}
 	return json.Marshal(v)
 }
 
 func fromJSON(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
+}
+
+func buildCursor(createdAt string, id string) string {
+	return fmt.Sprintf("%s|%s", createdAt, id)
+}
+
+func parseCursor(cursor string) (time.Time, string, error) {
+	parts := strings.Split(cursor, "|")
+	if len(parts) != 2 {
+		return time.Time{}, "", fmt.Errorf("invalid cursor")
+	}
+	ts, err := time.Parse(time.RFC3339, parts[0])
+	if err != nil {
+		return time.Time{}, "", err
+	}
+	return ts, parts[1], nil
+}
+
+func toSQLTime(ts *string) interface{} {
+	if ts == nil || *ts == "" {
+		return nil
+	}
+	if parsed, err := time.Parse(time.RFC3339, *ts); err == nil {
+		return parsed
+	}
+	return nil
 }

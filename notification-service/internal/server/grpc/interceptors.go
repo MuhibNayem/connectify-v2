@@ -5,18 +5,24 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/auth"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // InterceptorManager holds dependencies for interceptors
 type InterceptorManager struct {
-	logger *zap.Logger
+	logger        *zap.Logger
+	authenticator *auth.Authenticator
 }
 
-func NewInterceptorManager(logger *zap.Logger) *InterceptorManager {
-	return &InterceptorManager{logger: logger}
+func NewInterceptorManager(logger *zap.Logger, authenticator *auth.Authenticator) *InterceptorManager {
+	return &InterceptorManager{
+		logger:        logger,
+		authenticator: authenticator,
+	}
 }
 
 // UnaryServerInterceptor returns a new unary server interceptor with logging and recovery
@@ -35,7 +41,18 @@ func (im *InterceptorManager) UnaryServerInterceptor() grpc.UnaryServerIntercept
 			}
 		}()
 
-		// 2. Call Handler
+		if im.authenticator != nil {
+			var authErr error
+			ctx, authErr = im.authenticator.AuthenticateGRPC(ctx)
+			if authErr != nil {
+				im.logger.Warn("gRPC authentication failed",
+					zap.String("method", info.FullMethod),
+					zap.Error(authErr),
+				)
+				return nil, status.Error(codes.Unauthenticated, authErr.Error())
+			}
+		}
+
 		resp, err := handler(ctx, req)
 
 		// 3. Logging
@@ -68,6 +85,21 @@ func (im *InterceptorManager) StreamServerInterceptor() grpc.StreamServerInterce
 			}
 		}()
 
+		if im.authenticator != nil {
+			authCtx, authErr := im.authenticator.AuthenticateGRPC(ss.Context())
+			if authErr != nil {
+				im.logger.Warn("gRPC stream authentication failed",
+					zap.String("method", info.FullMethod),
+					zap.Error(authErr),
+				)
+				return status.Error(codes.Unauthenticated, authErr.Error())
+			}
+			ss = &authenticatedServerStream{
+				ServerStream: ss,
+				ctx:          authCtx,
+			}
+		}
+
 		err := handler(srv, ss)
 
 		duration := time.Since(start)
@@ -82,4 +114,13 @@ func (im *InterceptorManager) StreamServerInterceptor() grpc.StreamServerInterce
 
 		return err
 	}
+}
+
+type authenticatedServerStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *authenticatedServerStream) Context() context.Context {
+	return s.ctx
 }

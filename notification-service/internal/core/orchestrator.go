@@ -98,12 +98,7 @@ var ErrDuplicateRequest = errors.New("duplicate request")
 var ErrRetryable = errors.New("transient failure, retryable")
 
 const (
-	HighPriorityWorkers   = 20
-	LowPriorityWorkers    = 10
-	HighPriorityQueueSize = 1000
-	LowPriorityQueueSize  = 5000
-	IdempotencyTTL        = 24 * time.Hour
-	MaxDeliveryAttempts   = 3
+	MaxDeliveryAttempts = 3
 )
 
 type Job struct {
@@ -157,7 +152,6 @@ func (o *Orchestrator) StartOutboxProcessor(ctx context.Context) {
 }
 
 // StartWorker initializes the worker pools and starts the event handlers.
-// It sets up priority queues (High/Low) and subscribes to the message queue.
 func (o *Orchestrator) StartWorker(ctx context.Context) error {
 	// Start Outbox Processor in background
 	go o.StartOutboxProcessor(ctx)
@@ -167,84 +161,54 @@ func (o *Orchestrator) StartWorker(ctx context.Context) error {
 		go o.scheduler.StartPoller(ctx)
 	}
 
-	// Initialize Priority Queues
-	highPriorityQ := make(chan Job, HighPriorityQueueSize)
-	lowPriorityQ := make(chan Job, LowPriorityQueueSize)
+	// Subscribe to queue events with Direct Handler
+	// We use HighPriorityWorkers constant (e.g. 50) as Concurrency limit for QoS
+	const ConcurrencyLimit = 50
 
-	// Start Worker Pools
-	for i := 0; i < HighPriorityWorkers; i++ {
-		go o.worker(ctx, i, highPriorityQ, "HIGH")
-	}
-	for i := 0; i < LowPriorityWorkers; i++ {
-		go o.worker(ctx, i, lowPriorityQ, "LOW")
-	}
+	o.logger.Info("Orchestrator Worker Started", zap.String("strategy", "direct_concurrent_processing"), zap.Int("concurrency", ConcurrencyLimit))
 
-	o.logger.Info("Orchestrator Worker Started",
-		zap.Int("fast_lane_workers", HighPriorityWorkers),
-		zap.Int("slow_lane_workers", LowPriorityWorkers))
-
-	// Subscribe to queue events
-	return o.queue.Subscribe(ctx, adapters.EventHandler(func(ctx context.Context, event *adapters.NotificationEvent) error {
-		// Tracing instrumentation
-		if o.tracer != nil {
-			var span *tracing.Span
-			ctx, span = o.tracer.StartSpan(ctx, "orchestrator.dispatch")
-			span.SetAttribute("event_id", event.ID)
-			span.SetAttribute("event_type", event.Type)
-			defer o.tracer.End(span)
-		}
-
-		// REMOVED: Old Simple Idempotency Check (SetNX).
-		// Now handled inside the worker using Lock/Confirm pattern for correctness.
-		// We just pass it through.
-
-		// Extract attempt count from payload if present (for retries)
-		attempt := 0
-		if a, ok := event.Payload["attempt"].(float64); ok { // JSON unmarshal often makes numbers float64
-			attempt = int(a)
-		} else if a, ok := event.Payload["attempt"].(int); ok {
-			attempt = a
-		}
-
-		job := Job{Event: event, Attempt: attempt}
-
-		// Priority Routing logic
-		isHighPriority := event.Payload["priority"] == "HIGH" || event.Payload["type"] == "OTP"
-
-		select {
-		case (func() chan Job {
-			if isHighPriority {
-				return highPriorityQ
-			} else {
-				return lowPriorityQ
-			}
-		})() <- job:
-			o.logger.Debug("Job dispatched",
-				zap.String("id", event.ID),
-				zap.Bool("high_priority", isHighPriority),
-				zap.String("trace_id", tracing.TraceIDFromContext(ctx)))
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			o.logger.Warn("Queue saturated, applying backpressure", zap.String("id", event.ID))
-			observability.Metrics.RecordBackpressure()
-			// Return error so the message remains in the source queue (e.g., Kafka)
-			return ErrBackpressure
-		}
-	}))
+	return o.queue.Subscribe(ctx, o.HandleEvent, ConcurrencyLimit)
 }
 
-func (o *Orchestrator) worker(ctx context.Context, id int, jobs <-chan Job, lane string) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case job := <-jobs:
-			o.processJob(ctx, job, lane)
-		}
+// HandleEvent is the direct callback from the Queue Adapter.
+// It executes synchronously to propagate backpressure to the broker.
+func (o *Orchestrator) HandleEvent(ctx context.Context, event *adapters.NotificationEvent) error {
+	// Tracing instrumentation
+	if o.tracer != nil {
+		var span *tracing.Span
+		ctx, span = o.tracer.StartSpan(ctx, "orchestrator.dispatch")
+		span.SetAttribute("event_id", event.ID)
+		span.SetAttribute("event_type", event.Type)
+		defer o.tracer.End(span)
 	}
+
+	// Extract attempt count
+	attempt := 0
+	if a, ok := event.Payload["attempt"].(float64); ok {
+		attempt = int(a)
+	} else if a, ok := event.Payload["attempt"].(int); ok {
+		attempt = a
+	}
+
+	job := Job{Event: event, Attempt: attempt}
+
+	// Direct Processing (No internal priority queue)
+	// Priority is handled by the broker (if supported) or simply processed FIFO by the concurrent pool.
+	// Note: Smart Priority routing could be re-introduced by having multiple subscriptions (topics),
+	// but internal buffering is banned.
+
+	// Determine "Lane" for logging effectively
+	lane := "DEFAULT"
+	if event.Payload["priority"] == "HIGH" || event.Payload["type"] == "OTP" {
+		lane = "HIGH"
+	}
+
+	o.processJob(ctx, job, lane)
+	return nil
 }
+
+// Deprecated: Internal worker pool logic removed.
+// func (o *Orchestrator) worker(...) { ... }
 
 func (o *Orchestrator) processJob(ctx context.Context, job Job, lane string) {
 	event := job.Event
@@ -469,9 +433,29 @@ func (o *Orchestrator) deliverNotification(ctx context.Context, notifID string, 
 
 	// Smart Fallback Logic
 	for failedChannel := range results {
-		if failedChannel == "push" && hasChannel("sms", notif.Channels) == false {
-			log.Info("Smart Fallback Triggered: Push failed -> Attempting SMS")
-			// In production: dispatch new SMS job
+		if failedChannel == "push" && !hasChannel("sms", notif.Channels) {
+			if smsChan, exists := o.channelRegistry["sms"]; exists {
+				log.Info("Smart Fallback Triggered: Push failed -> Attempting SMS")
+
+				// Execute Fallback
+				success, retryable := o.executeSmartDelivery(ctx, smsChan, notif, prefs, log)
+
+				if success {
+					state.UpdateChannelStatus("sms", models.DeliveryStatusDelivered, "Fallback success")
+				} else {
+					state.UpdateChannelStatus("sms", models.DeliveryStatusFailed, "Fallback failed")
+					if retryable {
+						// Should we retry fallback? Maybe.
+						// For now, let's treat fallback failure as non-fatal unless it's the only channel?
+						// But if push failed and fallback failed... maybe strict requeue?
+						// Let's stick to simple: if fallback fails retryable, we flag retryNeeded for the whole job.
+						retryMutex.Lock()
+						retryNeeded = true
+						retryMutex.Unlock()
+					}
+				}
+				o.storage.SaveDeliveryState(ctx, state.Snapshot())
+			}
 		}
 	}
 
