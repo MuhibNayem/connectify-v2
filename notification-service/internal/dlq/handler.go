@@ -63,6 +63,24 @@ func (h *Handler) Send(ctx context.Context, event *adapters.NotificationEvent, e
 	return h.storage.Create(ctx, dlqNotification)
 }
 
+// SendRaw sends a malformed/raw message to the dead letter queue (Poison Pill)
+func (h *Handler) SendRaw(ctx context.Context, data []byte, err error) error {
+	h.logger.Error("💀 Malformed message sent to DLQ",
+		zap.String("error", err.Error()),
+		zap.ByteString("raw_data", data))
+
+	// Store raw poison pill
+	dlqNotification := &adapters.Notification{
+		ID:        "dlq_raw_" + time.Now().Format(time.RFC3339Nano),
+		Type:      "DLQ_MALFORMED",
+		Data:      map[string]interface{}{"raw_payload": string(data), "error": err.Error()},
+		Priority:  "LOW",
+		CreatedAt: time.Now().Format(time.RFC3339),
+	}
+
+	return h.storage.Create(ctx, dlqNotification)
+}
+
 // Reprocess attempts to reprocess events from the DLQ
 func (h *Handler) Reprocess(ctx context.Context, eventID string) error {
 	// Fetch from DLQ storage

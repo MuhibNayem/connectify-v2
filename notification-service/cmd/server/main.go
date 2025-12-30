@@ -14,7 +14,6 @@ import (
 
 	"github.com/MuhibNayem/connectify-v2/notification-service/config"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/auth"
-	"github.com/MuhibNayem/connectify-v2/notification-service/internal/cache"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/email"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/inapp"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/channels/push"
@@ -27,6 +26,7 @@ import (
 	kafkaqueue "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/kafka"
 	memoryqueue "github.com/MuhibNayem/connectify-v2/notification-service/internal/queue/memory"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/ratelimit"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/scheduler"
 	grpcserver "github.com/MuhibNayem/connectify-v2/notification-service/internal/server/grpc"
 	httpserver "github.com/MuhibNayem/connectify-v2/notification-service/internal/server/http"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/storage/memory"
@@ -88,23 +88,6 @@ func main() {
 		logger.Warn("⚠️  Unknown storage type, using in-memory", zap.String("type", cfg.Storage.Type))
 	}
 
-	// ==================== QUEUE INITIALIZATION ====================
-	var queue adapters.QueueAdapter
-
-	switch cfg.Queue.Type {
-	case "kafka":
-		queue = kafkaqueue.NewKafkaQueue(cfg.Queue.Brokers, cfg.Queue.Topic, cfg.Queue.GroupID)
-		logger.Info("✅ Using Kafka queue", zap.Strings("brokers", cfg.Queue.Brokers))
-
-	case "memory":
-		queue = memoryqueue.NewMemoryQueue()
-		logger.Info("✅ Using in-memory queue (development mode)")
-
-	default:
-		queue = memoryqueue.NewMemoryQueue()
-		logger.Warn("⚠️  Unknown queue type, using in-memory", zap.String("type", cfg.Queue.Type))
-	}
-
 	// ==================== SHARED REDIS CLIENT ====================
 	var redisClient *redis.Client
 	if cfg.Redis.Addr != "" {
@@ -125,11 +108,40 @@ func main() {
 		}
 	}
 
-	// ==================== CACHE ====================
-	// RedisCache is unused if rateLimiter is injected directly
-	_ = cache.NewRedisCache // Satisfy import
+	// ==================== 10/10 COMPONENTS INIT (Moved Up) ====================
 
-	// ==================== 10/10 PRODUCTION COMPONENTS ====================
+	// Dead Letter Queue Handler
+	dlqHandler := dlq.NewHandler(storage, logger)
+	logger.Info("✅ DLQ handler initialized")
+
+	// ==================== QUEUE INITIALIZATION ====================
+	var queue adapters.QueueAdapter
+
+	switch cfg.Queue.Type {
+	case "kafka":
+		// Inject DLQ Handler for Poison Pills
+		queue = kafkaqueue.NewKafkaQueue(cfg.Queue.Brokers, cfg.Queue.Topic, cfg.Queue.GroupID, func(ctx context.Context, data []byte, err error) error {
+			return dlqHandler.SendRaw(ctx, data, err)
+		})
+		logger.Info("✅ Using Kafka queue (with DLQ enabled)", zap.Strings("brokers", cfg.Queue.Brokers))
+
+	case "memory":
+		queue = memoryqueue.NewMemoryQueue()
+		logger.Info("✅ Using in-memory queue (development mode)")
+
+	default:
+		queue = memoryqueue.NewMemoryQueue()
+		logger.Warn("⚠️  Unknown queue type, using in-memory", zap.String("type", cfg.Queue.Type))
+	}
+
+	// 3. Distributed Tracing
+	tracer := tracing.NewTracer("notification-service")
+	logger.Info("✅ Tracing initialized")
+
+	// 5. Delayed Scheduler (For Retries)
+	// Pass redisClient (can be nil) and queue
+	schedulerService := scheduler.NewService(redisClient, queue, logger)
+	logger.Info("✅ Scheduler initialized")
 
 	// 1. Idempotency Service (Exactly-Once Processing)
 	var idempotencyService *idempotency.Service
@@ -137,14 +149,6 @@ func main() {
 		idempotencyService = idempotency.NewService(redisClient, 24*time.Hour)
 		logger.Info("✅ Idempotency service initialized (24h TTL)")
 	}
-
-	// 2. Dead Letter Queue Handler
-	dlqHandler := dlq.NewHandler(storage, logger)
-	logger.Info("✅ DLQ handler initialized")
-
-	// 3. Distributed Tracing
-	tracer := tracing.NewTracer("notification-service")
-	logger.Info("✅ Tracing initialized")
 
 	// 4. User Resolver
 	var userResolver adapters.UserResolver
@@ -166,6 +170,7 @@ func main() {
 		Idempotency:     idempotencyService,
 		DLQHandler:      dlqHandler,
 		Tracer:          tracer,
+		Scheduler:       schedulerService,
 	})
 
 	// Start Worker

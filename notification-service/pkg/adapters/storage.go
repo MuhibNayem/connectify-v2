@@ -41,6 +41,17 @@ type StorageAdapter interface {
 
 	// GetDeliveryState retrieves delivery state for a notification
 	GetDeliveryState(ctx context.Context, notificationID string) (*models.NotificationDeliveryState, error)
+
+	// --- Transactional Outbox Support ---
+
+	// CreateWithOutbox atomically saves the notification and an outbox event
+	CreateWithOutbox(ctx context.Context, notification *Notification, event *NotificationEvent) error
+
+	// GetPendingOutboxEvents retrieves events that haven't been published yet
+	GetPendingOutboxEvents(ctx context.Context, limit int) ([]*NotificationEvent, error)
+
+	// DeleteOutboxEvent removes an event from the outbox (after successful publish)
+	DeleteOutboxEvent(ctx context.Context, eventID string) error
 }
 
 // Notification is the storage model

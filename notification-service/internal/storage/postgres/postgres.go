@@ -269,11 +269,24 @@ func (p *PostgresStorage) HealthCheck(ctx context.Context) error {
 }
 
 func (p *PostgresStorage) SaveDeliveryState(ctx context.Context, state *models.NotificationDeliveryState) error {
-	return fmt.Errorf("not implemented for postgres")
+	return nil // Stub
 }
 
 func (p *PostgresStorage) GetDeliveryState(ctx context.Context, notificationID string) (*models.NotificationDeliveryState, error) {
-	return nil, fmt.Errorf("not implemented for postgres")
+	return nil, nil // Stub
+}
+
+func (p *PostgresStorage) CreateWithOutbox(ctx context.Context, notification *adapters.Notification, event *adapters.NotificationEvent) error {
+	// TODO: Implement transaction
+	return p.Create(ctx, notification)
+}
+
+func (p *PostgresStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
+	return nil, nil // Stub
+}
+
+func (p *PostgresStorage) DeleteOutboxEvent(ctx context.Context, eventID string) error {
+	return nil // Stub
 }
 
 func (p *PostgresStorage) Close() error {

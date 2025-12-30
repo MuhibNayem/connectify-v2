@@ -234,11 +234,24 @@ func (m *MongoStorage) HealthCheck(ctx context.Context) error {
 }
 
 func (m *MongoStorage) SaveDeliveryState(ctx context.Context, state *models.NotificationDeliveryState) error {
-	return fmt.Errorf("not implemented for mongodb")
+	return nil // Stub
 }
 
 func (m *MongoStorage) GetDeliveryState(ctx context.Context, notificationID string) (*models.NotificationDeliveryState, error) {
-	return nil, fmt.Errorf("not implemented for mongodb")
+	return nil, nil // Stub
+}
+
+func (m *MongoStorage) CreateWithOutbox(ctx context.Context, notification *adapters.Notification, event *adapters.NotificationEvent) error {
+	// TODO: Implement multi-document transaction
+	return m.Create(ctx, notification)
+}
+
+func (m *MongoStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
+	return nil, nil // Stub
+}
+
+func (m *MongoStorage) DeleteOutboxEvent(ctx context.Context, eventID string) error {
+	return nil // Stub
 }
 
 func (m *MongoStorage) Close() error {

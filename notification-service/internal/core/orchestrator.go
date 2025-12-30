@@ -10,6 +10,7 @@ import (
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/idempotency"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/observability"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/resilience"
+	"github.com/MuhibNayem/connectify-v2/notification-service/internal/scheduler"
 	"github.com/MuhibNayem/connectify-v2/notification-service/internal/tracing"
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/adapters"
 	"github.com/MuhibNayem/connectify-v2/notification-service/pkg/channels"
@@ -38,6 +39,7 @@ type Orchestrator struct {
 	idempotency *idempotency.Service
 	dlqHandler  *dlq.Handler
 	tracer      *tracing.Tracer
+	scheduler   *scheduler.Service
 }
 
 // OrchestratorConfig holds all configuration for the orchestrator
@@ -50,6 +52,7 @@ type OrchestratorConfig struct {
 	Idempotency     *idempotency.Service
 	DLQHandler      *dlq.Handler
 	Tracer          *tracing.Tracer
+	Scheduler       *scheduler.Service
 }
 
 func NewOrchestrator(cfg *OrchestratorConfig) *Orchestrator {
@@ -69,6 +72,7 @@ func NewOrchestrator(cfg *OrchestratorConfig) *Orchestrator {
 		idempotency:     cfg.Idempotency,
 		dlqHandler:      cfg.DLQHandler,
 		tracer:          cfg.Tracer,
+		scheduler:       cfg.Scheduler,
 	}
 }
 
@@ -106,7 +110,53 @@ type Job struct {
 	Attempt int
 }
 
+func (o *Orchestrator) StartOutboxProcessor(ctx context.Context) {
+	ticker := time.NewTicker(200 * time.Millisecond) // Fast poll for low latency
+	defer ticker.Stop()
+
+	o.logger.Info("📤 Outbox Processor Started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			events, err := o.storage.GetPendingOutboxEvents(ctx, 50) // Batch size 50
+			if err != nil {
+				o.logger.Error("Failed to fetch outbox events", zap.Error(err))
+				continue
+			}
+
+			if len(events) == 0 {
+				continue
+			}
+
+			// Parallel publish could optionally be done here, but sequential is safer for ordering
+			for _, event := range events {
+				if err := o.queue.Publish(ctx, event); err != nil {
+					o.logger.Error("Failed to publish outbox event", zap.String("id", event.ID), zap.Error(err))
+					// Don't delete, will retry next tick
+					// In production, might want backoff/circuit break if Kafka is down
+				} else {
+					if err := o.storage.DeleteOutboxEvent(ctx, event.ID); err != nil {
+						o.logger.Error("Failed to delete outbox event", zap.String("id", event.ID), zap.Error(err))
+						// Risk: Event re-published. Idempotency handles this.
+					}
+				}
+			}
+		}
+	}
+}
+
 func (o *Orchestrator) StartWorker(ctx context.Context) error {
+	// Start Outbox Processor
+	go o.StartOutboxProcessor(ctx)
+
+	// Start Delayed Retry Scheduler (if enabled)
+	if o.scheduler != nil {
+		go o.scheduler.StartPoller(ctx)
+	}
+
 	// 1. Dual Priority Queues (The "Fast Lane" & "Slow Lane")
 	highPriorityQ := make(chan Job, HighPriorityQueueSize)
 	lowPriorityQ := make(chan Job, LowPriorityQueueSize)
@@ -229,19 +279,33 @@ func (o *Orchestrator) processJob(ctx context.Context, job Job, lane string) {
 						zap.Int("max_attempts", MaxDeliveryAttempts))
 
 					// Re-publish with incremented attempt count
-					// Ideally this would use a delayed queue, but re-publishing to back of queue is acceptable for now
 					retryEvent := *event
 					if retryEvent.Payload == nil {
 						retryEvent.Payload = make(map[string]interface{})
 					}
 					retryEvent.Payload["attempt"] = job.Attempt + 1
 
-					// Publish retry
-					if pubErr := o.queue.Publish(ctx, &retryEvent); pubErr != nil {
-						log.Error("Failed to publish retry", zap.Error(pubErr))
-						// Fallthrough to DLQ? Or just log? DLQ safer.
+					// Exponential Backoff: 1s, 2s, 4s...
+					// Use Delayed Scheduler if available
+					if o.scheduler != nil {
+						delay := time.Duration(1<<job.Attempt) * time.Second
+						if err := o.scheduler.Schedule(ctx, &retryEvent, delay); err != nil {
+							log.Error("Failed to schedule retry", zap.Error(err))
+							// Fallback to immediate publish
+							if pubErr := o.queue.Publish(ctx, &retryEvent); pubErr != nil {
+								log.Error("Failed to fallback publish retry", zap.Error(pubErr))
+							}
+						} else {
+							log.Info("⏳ Retry scheduled", zap.Duration("delay", delay))
+							return // Successfully scheduled
+						}
 					} else {
-						return // Successfully rescheduled
+						// Fallback: Immediate Retry
+						if pubErr := o.queue.Publish(ctx, &retryEvent); pubErr != nil {
+							log.Error("Failed to publish retry", zap.Error(pubErr))
+						} else {
+							return // Successfully rescheduled
+						}
 					}
 				} else {
 					log.Warn("❌ Max retries reached, sending to DLQ")
@@ -501,10 +565,6 @@ func (o *Orchestrator) CreateNotification(ctx context.Context, req *models.Creat
 		storageNotif.ExpiresAt = &expiresAt
 	}
 
-	if err := o.storage.Create(ctx, storageNotif); err != nil {
-		return nil, err
-	}
-
 	event := &adapters.NotificationEvent{
 		ID:        storageNotif.ID,
 		Type:      "notification.created",
@@ -512,7 +572,16 @@ func (o *Orchestrator) CreateNotification(ctx context.Context, req *models.Creat
 		Timestamp: time.Now().Format(time.RFC3339),
 		TenantID:  req.TenantID,
 	}
-	_ = o.queue.Publish(ctx, event)
+
+	// TRANSACTIONAL OUTBOX: Atomic Save + Event
+	if err := o.storage.CreateWithOutbox(ctx, storageNotif, event); err != nil {
+		return nil, err
+	}
+
+	// Note: The background Outbox Processor will pick this up and publish to Kafka
+	// We can optionally "kick" the processor channel here for lower latency, but polling is safer for consistency.
+	// For dev/memory which has no poller yet, we might want to publish immediately if using memory adapter?
+	// But let's build the Poller correctly.
 
 	return o.toModel(storageNotif), nil
 }

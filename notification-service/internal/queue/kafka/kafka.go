@@ -13,12 +13,14 @@ import (
 // ErrProcessingFailed indicates handler failed - message should NOT be committed
 var ErrProcessingFailed = errors.New("message processing failed")
 
+type DLQHandlerFunc func(ctx context.Context, data []byte, err error) error
 type KafkaQueue struct {
 	writer *kafka.Writer
 	reader *kafka.Reader
+	dlq    DLQHandlerFunc
 }
 
-func NewKafkaQueue(brokers []string, topic, groupID string) *KafkaQueue {
+func NewKafkaQueue(brokers []string, topic, groupID string, dlq DLQHandlerFunc) *KafkaQueue {
 	return &KafkaQueue{
 		writer: &kafka.Writer{
 			Addr:         kafka.TCP(brokers...),
@@ -37,6 +39,7 @@ func NewKafkaQueue(brokers []string, topic, groupID string) *KafkaQueue {
 			// CRITICAL: Disable auto-commit for manual commit-on-success
 			CommitInterval: 0, // Manual commits only
 		}),
+		dlq: dlq,
 	}
 }
 
@@ -66,11 +69,6 @@ func (k *KafkaQueue) PublishBatch(ctx context.Context, events []*adapters.Notifi
 	return k.writer.WriteMessages(ctx, messages...)
 }
 
-// Subscribe implements commit-on-success semantics:
-// 1. FetchMessage (doesn't commit)
-// 2. Call handler
-// 3. If handler succeeds, CommitMessages
-// 4. If handler fails, message stays uncommitted = automatic retry on restart
 func (k *KafkaQueue) Subscribe(ctx context.Context, handler adapters.EventHandler) error {
 	for {
 		// STEP 1: Fetch without commit
@@ -85,8 +83,11 @@ func (k *KafkaQueue) Subscribe(ctx context.Context, handler adapters.EventHandle
 		// STEP 2: Parse event
 		var event adapters.NotificationEvent
 		if err := json.Unmarshal(msg.Value, &event); err != nil {
-			// Malformed message - commit to skip (or send to DLQ)
-			// We commit to avoid infinite loop on bad data
+			// Malformed message - Send to DLQ if configured
+			if k.dlq != nil {
+				_ = k.dlq(ctx, msg.Value, err)
+			}
+			// Always commit malformed messages to avoid infinite loop
 			_ = k.reader.CommitMessages(ctx, msg)
 			continue
 		}
@@ -98,14 +99,8 @@ func (k *KafkaQueue) Subscribe(ctx context.Context, handler adapters.EventHandle
 		if handlerErr == nil {
 			if err := k.reader.CommitMessages(ctx, msg); err != nil {
 				// Log commit failure but continue
-				// On restart, message may be reprocessed (idempotency handles this)
 			}
 		}
-		// If handlerErr != nil, we do NOT commit
-		// This means:
-		// - Message remains uncommitted
-		// - Will be redelivered after session timeout
-		// - Handler should implement idempotency for safe retries
 	}
 }
 

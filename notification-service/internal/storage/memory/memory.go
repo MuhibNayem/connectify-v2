@@ -17,6 +17,7 @@ type MemoryStorage struct {
 	notifications  map[string]*adapters.Notification
 	byRecipient    map[string][]string
 	deliveryStates map[string]*models.NotificationDeliveryState
+	outbox         map[string]*adapters.NotificationEvent
 }
 
 func NewMemoryStorage() *MemoryStorage {
@@ -24,6 +25,7 @@ func NewMemoryStorage() *MemoryStorage {
 		notifications:  make(map[string]*adapters.Notification),
 		byRecipient:    make(map[string][]string),
 		deliveryStates: make(map[string]*models.NotificationDeliveryState),
+		outbox:         make(map[string]*adapters.NotificationEvent),
 	}
 }
 
@@ -201,6 +203,49 @@ func (m *MemoryStorage) GetDeliveryState(ctx context.Context, notificationID str
 		return nil, nil
 	}
 	return state, nil
+}
+
+func (m *MemoryStorage) CreateWithOutbox(ctx context.Context, notification *adapters.Notification, event *adapters.NotificationEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// 1. Create Notification (Logic from Create)
+	if notification.ID == "" {
+		notification.ID = uuid.New().String()
+	}
+	now := time.Now().Format(time.RFC3339)
+	notification.CreatedAt = now
+	notification.UpdatedAt = now
+	m.notifications[notification.ID] = notification
+	m.byRecipient[notification.RecipientID] = append(m.byRecipient[notification.RecipientID], notification.ID)
+
+	// 2. Create Outbox Event
+	m.outbox[event.ID] = event
+
+	return nil
+}
+
+func (m *MemoryStorage) GetPendingOutboxEvents(ctx context.Context, limit int) ([]*adapters.NotificationEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var events []*adapters.NotificationEvent
+	count := 0
+	for _, event := range m.outbox {
+		events = append(events, event)
+		count++
+		if count >= limit {
+			break
+		}
+	}
+	return events, nil
+}
+
+func (m *MemoryStorage) DeleteOutboxEvent(ctx context.Context, eventID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.outbox, eventID)
+	return nil
 }
 
 func (m *MemoryStorage) matchesFilter(notif *adapters.Notification, query *adapters.ListQuery) bool {
